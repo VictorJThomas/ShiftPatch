@@ -23,15 +23,15 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ First git commit (include ESCALATION.md, timestamp is graded)
 - ☑ pnpm monorepo: apps/api, apps/web, packages/contracts, TS strict, lint
 - ☑ Docker Compose: Postgres 16, MinIO, Mailpit
-- ◐ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
+- ☑ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
 - ☑ Fastify /api/health + first Railway deploy
 - ☑ Vercel web deploy + /api/* rewrite to Railway
 - ☑ Deploy to a URL · also 8 Release
 
 ## 2 Data
-- ☐ Drizzle schema + migrations (users, shifts, credentials, audit, outbox...)
-- ☐ DB constraints: filled/claimed_by CHECK, partial unique indexes, audit_log append-only trigger
-- ☐ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
+- ☑ Drizzle schema + migrations (users, shifts, credentials, audit, outbox...)
+- ☑ DB constraints: filled/claimed_by CHECK, partial unique indexes, audit_log append-only trigger
+- ☑ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
 
 ## 3 Auth
 - ☐ packages/contracts: strict Zod schemas for 6 required routes + errors

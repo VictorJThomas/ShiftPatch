@@ -57,3 +57,15 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - Vercel project `shiftpatch-web`, Root Directory `apps/web`, source outside root enabled (root lockfile). `API_ORIGIN` = Railway origin, set in production env (build-time rewrite).
 - CI uses `gitleaks/gitleaks-action@v3` (v2 runs on Node 20, removed from runners 2026-09-16); no license needed on personal account.
 - Orchestration: foundation built by Sonnet subagents with assigned skills; orchestrator alone commits and touches the board.
+
+## Data layer (2026-11-06, stage 2)
+- Drizzle `casing: "snake_case"` (client + `drizzle.config.ts`): TS keys camelCase, columns snake_case. Schema split by domain in `apps/api/src/db/schema/` (`_common`, `identity`, `shifts`, `credentials`, `system`). Migrations in `apps/api/src/db/migrations/` (`0000_init` generated, `0001_audit_log_append_only` custom SQL).
+- `shift_id_seq` starts at **4** (after seeds). The spec's `shift-7` is only an illustrative response, not a requirement; contract tests must not assert it.
+- Multi-agency isolation in the DB: composite FK `shifts(network_id, agency_id) -> network_agencies(network_id, agency_id)`. Partial unique indexes enforce one active membership per user+agency and case-insensitive email among non-deleted users.
+- `audit_log` append-only via trigger on UPDATE/DELETE and TRUNCATE (fires for the table owner too). INSERT/SELECT-only role grant deferred to deploy time (Stage 8); local dev uses one owner role.
+- Seed: `seed(db)` in `src/db/seed.ts`, one transaction, `ON CONFLICT DO NOTHING` everywhere (never overwrites, never lowers the sequence). Agency login users have ids `agency-a`/`agency-b` (ARCHITECTURE §4.6). Production reseed to exact spec values is a Stage 8 task and needs an explicit reset path.
+- DB tests create and drop a throwaway database per test file (`test-db.ts`, needs Postgres at `localhost:5432` with the compose creds; CI service matches). Never run against the dev DB.
+- Not built (documented as Future): nurse claim overlap exclusion (`tstzrange`), `timesheets`.
+- Review fixes (migration `0002`): nurse<->status CHECK is `claimed_by IS NOT NULL <=> status IN (filled, completed)` (the original §4.4 rule made `completed` unreachable; doc corrected). Composite FKs make a shift's nurse and facility belong to the shift's network. Audit triggers are `ENABLE ALWAYS` (fire under `session_replication_role=replica`). Non-blank CHECKs on names/email.
+- **Open item (deploy, Stage 8):** the append-only guarantee only holds against a non-owner, non-superuser role. Dev/CI role `shiftpatch` is a superuser. Before prod: create an `app` role with INSERT/SELECT on `audit_log`, no TRUNCATE; app connects as it, migrations as the owner.
+- Seed never overwrites existing rows (`ON CONFLICT DO NOTHING`): a drifted DB stays drifted. Production reseed (Stage 8) needs an explicit reset path.

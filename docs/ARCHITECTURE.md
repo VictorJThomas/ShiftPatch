@@ -424,8 +424,9 @@ Unique `(user_id, network_id) WHERE revoked_at IS NULL`.
 | created_by | text | no | → users.id |
 
 Constraints:
-- `CHECK ((status = 'filled') = (claimed_by IS NOT NULL))`: the core rule, held by the database.
-- `CHECK (status <> 'filled' OR claimed_at IS NOT NULL)`.
+- `CHECK ((claimed_by IS NOT NULL) = (status IN ('filled','completed')))`: the core rule, held by the database. A completed shift keeps its nurse.
+- `CHECK (status NOT IN ('filled','completed') OR claimed_at IS NOT NULL)`.
+- Composite FKs `(network_id, agency_id)` → `network_agencies`, `(claimed_by, network_id)` → `nurse_profiles(user_id, network_id)` and `(facility_id, network_id)` → `facilities(id, network_id)`: a shift's agency, nurse and facility must all belong to the shift's network (tenant isolation in the database).
 
 Indexes:
 - `(agency_id, status) WHERE deleted_at IS NULL`
