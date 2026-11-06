@@ -49,3 +49,11 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - Project skills in `.claude/skills/`: `/task` (status change in Tasks.md + Notion in one step, script `task/scripts/tasks_md.py`), `/verify` (gates, script `verify/scripts/verify.mjs`), `/wrap-session` (brain update + board reconcile). Why: the two-place manual edit drifted on day 1.
 - Root `package.json` script names are fixed by `/verify`: `typecheck`, `lint`, `test` (unit + integration), `test:contract` (6 required routes, needs Postgres). Gates run sequentially (memory-constrained machine).
 - Tasks.md is edited first (script keeps CRLF, exact titles), Notion second. Reconcile: local ahead → push; Notion ahead → pull; status regression → ask Victor.
+
+## Foundation (2026-11-06)
+- Toolchain: TypeScript 6.0 (not 7: typescript-eslint 8.72 supports <6.1), Next 16, Fastify 5, Vitest 5, zod 4, ESLint 10 flat config. Node 22 (`.nvmrc`).
+- Local S3 = Chainguard `minio` + `minio-client` (`:latest`, free tier). Why: official `minio/minio` + `minio/mc` images no longer published. Distroless → no healthcheck; init services retry.
+- Railway: Hobby plan (trial expired). Railpack builder + root `railway.json`; root `start` script required (Railpack ignores `deploy.startCommand` when planning). Deploys manual via `railway up` until GitHub source is connected. Config-as-code flagged deprecated by CLI (works until 2026-12-01).
+- Vercel project `shiftpatch-web`, Root Directory `apps/web`, source outside root enabled (root lockfile). `API_ORIGIN` = Railway origin, set in production env (build-time rewrite).
+- CI uses `gitleaks/gitleaks-action@v3` (v2 runs on Node 20, removed from runners 2026-09-16); no license needed on personal account.
+- Orchestration: foundation built by Sonnet subagents with assigned skills; orchestrator alone commits and touches the board.
