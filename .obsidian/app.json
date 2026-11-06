@@ -1,0 +1,6 @@
+{
+  "userIgnoreFilters": ["node_modules/", ".next/", "dist/", ".git/", "apps/", "packages/"],
+  "newFileLocation": "folder",
+  "newFileFolderPath": "brain",
+  "useMarkdownLinks": false
+}
