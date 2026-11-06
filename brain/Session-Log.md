@@ -44,3 +44,9 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: no task changes since the 0-drift diff; recheck skipped (Notion API rate-limited). CI skeleton stays Active.
 - Skills copied: none new.
 - Open: Victor opens PR → check run → `/task CI skeleton Done`.
+
+## 2026-11-06 — CI fix on PR
+- Bug: PR run failed only in `security` job's "Post setup-node" (`Path Validation Error … no cache is being saved`). Root cause: `cache: pnpm` set but job never runs `pnpm install` → store path missing; setup-node v7 fails the job. All real steps passed.
+- Fix: removed `cache: pnpm` from security job (`5d8849f`). Rerun green (run 42251767242). `/task CI skeleton Done` (both sides).
+- Skills copied: systematic-debugging.
+- Open: Victor merges PR; stage 2.

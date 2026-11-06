@@ -23,7 +23,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ First git commit (include ESCALATION.md, timestamp is graded)
 - ☑ pnpm monorepo: apps/api, apps/web, packages/contracts, TS strict, lint
 - ☑ Docker Compose: Postgres 16, MinIO, Mailpit
-- ◐ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
+- ☑ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
 - ☑ Fastify /api/health + first Railway deploy
 - ☑ Vercel web deploy + /api/* rewrite to Railway
 - ☑ Deploy to a URL · also 8 Release
