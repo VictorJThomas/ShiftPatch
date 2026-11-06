@@ -43,6 +43,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm build # catches prod resolution of @shiftpatch/contracts (dist) before deploy
 
   security:
     runs-on: ubuntu-latest

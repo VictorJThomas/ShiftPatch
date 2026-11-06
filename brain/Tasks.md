@@ -34,7 +34,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
 
 ## 3 Auth
-- ☐ packages/contracts: strict Zod schemas for 6 required routes + errors
+- ☑ packages/contracts: strict Zod schemas for 6 required routes + errors
 - ☐ POST /api/auth/login (argon2id, JWT, 401 text, rate limit)
 - ☐ Refresh + logout: rotating httpOnly cookie, reuse detection
 - ☐ authenticate + loadActor plugins, X-Agency-Id, can() policies

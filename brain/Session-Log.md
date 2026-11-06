@@ -59,3 +59,12 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Skills copied: constraints, review, constraint-driven-development, code-review-and-quality (also already present: build, incremental-implementation, test-driven-development, using-agent-skills, ponytail, task, verify, wrap-session).
 - Gotchas: stray test DB from a failed run was dropped; drizzle-kit mis-orders UNIQUE vs FK in generated SQL; `/constraints` CONSTRAINTS.md interview not done.
 - Open: push + PR for `chore/2-data-model`; stage 3 contracts + auth; Railway Postgres + migrations shipping; least-privilege app role; export this session's transcript.
+
+## 2026-11-06 — Stage 3 `packages/contracts`
+- Done: Zod contracts for the 6 required routes + error body + exact error texts (`packages/contracts/src/index.ts`), 94 tests (93 in package + 1 api consumer probe) incl. spec fixtures verbatim, missing/invalid/extra keys, date/time formats, `expectTypeOf` inference (checked by tsc). Mutation check: adding a role / extra Shift key turns tests + tsc red. Build to `dist`, workspace deps in api + web, `pnpm build` from clean `dist` OK (api + Next 16).
+- Review: fresh `agent-skills:code-reviewer` (`/agent-skills:review` + `/verify`) → APPROVE, 2 Required fixed (web build builds contracts first + CI `pnpm build` step; permanent api consumer test), suggestions fixed (noValidCredential assert, Cancel `toExtend`, dropped `void _omit`). Deferred to handler stage: Fastify empty-JSON-body on claim, login 400 vs 401 (see [[Decisions]] → Contracts). Nit kept: `dist/index.d.ts` emitted but unused (harmless).
+- `/verify`: GREEN (typecheck, lint, test; contract SKIP, no `test:contract` yet).
+- Decided: request strip / response strict policy, per-route literals, packaging conditions (see [[Decisions]] → Contracts).
+- Board: `packages/contracts` Pending→Active→Done via `/task` (both sides); `diff` 0 drift (63/63).
+- Skills copied: none new (ponytail, using-agent-skills, task, verify, wrap-session, review already current).
+- Open: commit this work; auth (login/refresh/logout) next; Fastify empty-body + login-400 decisions.
