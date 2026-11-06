@@ -44,3 +44,8 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - Placeholder data invented for design only: facility "Med-Surg Unit 4W", address 1200 Palm Avenue Tampa, pay $48/hr, agency emails `*.example`. Not part of spec seed data.
 
 - 2026-11-06: `--c-on-brand` (text on teal buttons) changed from #FFFFFF to #E8EFEC (~7:1 on #0E5A55). Updated tokens.css + brand sheet.
+
+## Agentic workflow (2026-11-06)
+- Project skills in `.claude/skills/`: `/task` (status change in Tasks.md + Notion in one step, script `task/scripts/tasks_md.py`), `/verify` (gates, script `verify/scripts/verify.mjs`), `/wrap-session` (brain update + board reconcile). Why: the two-place manual edit drifted on day 1.
+- Root `package.json` script names are fixed by `/verify`: `typecheck`, `lint`, `test` (unit + integration), `test:contract` (6 required routes, needs Postgres). Gates run sequentially (memory-constrained machine).
+- Tasks.md is edited first (script keeps CRLF, exact titles), Notion second. Reconcile: local ahead → push; Notion ahead → pull; status regression → ask Victor.

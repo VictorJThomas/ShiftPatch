@@ -20,7 +20,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Visual QA of design canvas
 
 ## 1 Foundation
-- ☐ First git commit (include ESCALATION.md, timestamp is graded)
+- ☑ First git commit (include ESCALATION.md, timestamp is graded)
 - ☐ pnpm monorepo: apps/api, apps/web, packages/contracts, TS strict, lint
 - ☐ Docker Compose: Postgres 16, MinIO, Mailpit
 - ☐ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
@@ -87,7 +87,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Email recruiter scope commitment (day 1)
 - ☐ Export full unedited AI session transcripts
 - ☐ Record 5-min Loom for the founder (non-technical)
-- ☐ Agentic setup: custom skills/commands in .claude/ committed
+- ◐ Agentic setup: custom skills/commands in .claude/ committed
 - ☐ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated
 
 ## Extras (Scope: Later)
