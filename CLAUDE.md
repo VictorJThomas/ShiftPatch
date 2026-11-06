@@ -30,4 +30,5 @@ My skills live globally (`~/.claude/skills`, plugin caches). The trial grades th
 - Code, comments, commits in English. Chat with Victor in Spanish or English as he writes.
 - Architecture is approved (`docs/ARCHITECTURE.md`); follow its build order (§16.2). Don't re-litigate decisions.
 - Commands (once monorepo exists): `pnpm typecheck && pnpm lint && pnpm test` + `pnpm test:contract` (contract tests, needs Postgres). **Run all via `/verify`** before marking a task Done or committing. Update this section when scripts land (and the `STEPS` table in `.claude/skills/verify/scripts/verify.mjs` if names differ).
+- After adding/changing a route or a `packages/contracts` schema: regenerate `docs/postman/` with **`/postman-export`** (`.claude/skills/postman-export`) and commit it with the change.
 - Windows: never run dev servers in foreground; check for orphan `node` processes first.

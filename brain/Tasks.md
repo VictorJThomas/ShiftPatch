@@ -34,12 +34,13 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
 
 ## 3 Auth
-- ☐ packages/contracts: strict Zod schemas for 6 required routes + errors
+- ☑ packages/contracts: strict Zod schemas for 6 required routes + errors
 - ☐ POST /api/auth/login (argon2id, JWT, 401 text, rate limit)
 - ☐ Refresh + logout: rotating httpOnly cookie, reuse detection
 - ☐ authenticate + loadActor plugins, X-Agency-Id, can() policies
 - ☐ Authentication
 - ☐ Three roles with real permissions: agency, nurse, admin
+- ☑ test:contract gate: seeded-DB harness + 6-route contract suite (skips until handlers exist)
 
 ## 4 Shifts
 - ☐ GET /api/shifts (full marketplace) + contract mapper
@@ -89,6 +90,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Record 5-min Loom for the founder (non-technical)
 - ☑ Agentic setup: custom skills/commands in .claude/ committed
 - ☐ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated
+- ☑ /postman-export skill + committed Postman collection (docs/postman)
 
 ## Extras (Scope: Later)
 - ☐ Credential summary report (Option C)

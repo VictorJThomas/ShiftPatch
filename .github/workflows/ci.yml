@@ -16,7 +16,7 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     services:
-      # Not used by typecheck/lint/unit tests yet; ready for integration/contract tests.
+      # Used by DB integration tests (pnpm test) and contract tests (pnpm test:contract).
       postgres:
         image: postgres:16-alpine
         env:
@@ -43,6 +43,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm test:contract # 6 required routes vs seeded Postgres (service above)
+      - run: pnpm build # catches prod resolution of @shiftpatch/contracts (dist) before deploy
 
   security:
     runs-on: ubuntu-latest

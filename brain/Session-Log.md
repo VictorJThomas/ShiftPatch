@@ -59,3 +59,20 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Skills copied: constraints, review, constraint-driven-development, code-review-and-quality (also already present: build, incremental-implementation, test-driven-development, using-agent-skills, ponytail, task, verify, wrap-session).
 - Gotchas: stray test DB from a failed run was dropped; drizzle-kit mis-orders UNIQUE vs FK in generated SQL; `/constraints` CONSTRAINTS.md interview not done.
 - Open: push + PR for `chore/2-data-model`; stage 3 contracts + auth; Railway Postgres + migrations shipping; least-privilege app role; export this session's transcript.
+
+## 2026-11-06 — Stage 3 `packages/contracts`
+- Done: Zod contracts for the 6 required routes + error body + exact error texts (`packages/contracts/src/index.ts`), 94 tests (93 in package + 1 api consumer probe) incl. spec fixtures verbatim, missing/invalid/extra keys, date/time formats, `expectTypeOf` inference (checked by tsc). Mutation check: adding a role / extra Shift key turns tests + tsc red. Build to `dist`, workspace deps in api + web, `pnpm build` from clean `dist` OK (api + Next 16).
+- Review: fresh `agent-skills:code-reviewer` (`/agent-skills:review` + `/verify`) → APPROVE, 2 Required fixed (web build builds contracts first + CI `pnpm build` step; permanent api consumer test), suggestions fixed (noValidCredential assert, Cancel `toExtend`, dropped `void _omit`). Deferred to handler stage: Fastify empty-JSON-body on claim, login 400 vs 401 (see [[Decisions]] → Contracts). Nit kept: `dist/index.d.ts` emitted but unused (harmless).
+- `/verify`: GREEN (typecheck, lint, test; contract SKIP, no `test:contract` yet).
+- Decided: request strip / response strict policy, per-route literals, packaging conditions (see [[Decisions]] → Contracts).
+- Board: `packages/contracts` Pending→Active→Done via `/task` (both sides); `diff` 0 drift (63/63).
+- Skills copied: none new (ponytail, using-agent-skills, task, verify, wrap-session, review already current).
+- Open: commit this work; auth (login/refresh/logout) next; Fastify empty-body + login-400 decisions.
+
+## 2026-11-06 — `test:contract` gate + `/postman-export` skill
+- Done: root + api `test:contract` (separate vitest config; `pnpm test` excludes `*.contract.test.ts`), 18 contract tests for the 6 routes vs a seeded throwaway DB, auto-skipped per route until its handler exists. Mutation check: a fake login route made the login block go live (3 fail, 1 pass). CI step added. `/verify` now 4/4 GREEN (contract = all skipped for now).
+- Done: `/postman-export` skill (made with `/skill-creator`, script self-test chosen over the eval loop by Victor): `scripts/export.mjs` writes `docs/postman/` (collection: 5 logins storing `token`, 6 required routes with contract-schema tests, auto-listed extra routes; local + prod envs). `--check` catches a stale file (mutation tested, exit 1). Embedded schemas validated with Ajv v6 against spec examples (7/7). Not opened in the Postman app itself.
+- Decided: see [[Decisions]] → Contracts (contract gate, Postman export).
+- Board: 2 tasks added as Done (both sides).
+- Skills copied: skill-creator already current; new project skill `postman-export`.
+- Open: commit; Postman import smoke test by Victor; run `--check` when routes land.

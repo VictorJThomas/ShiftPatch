@@ -7,6 +7,8 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const config: NextConfig = {
   outputFileTracingRoot: root,
   turbopack: { root },
+  // Workspace package ships TS source under the "development" export condition.
+  transpilePackages: ["@shiftpatch/contracts"],
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${process.env.API_ORIGIN ?? "http://localhost:3001"}/api/:path*` }];
   },

@@ -9,7 +9,8 @@
     "start": "pnpm --filter api start",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "test": "pnpm -r --if-present test"
+    "test": "pnpm -r --if-present test",
+    "test:contract": "pnpm --filter api test:contract"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
