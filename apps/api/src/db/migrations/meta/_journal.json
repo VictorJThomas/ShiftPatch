@@ -8,6 +8,13 @@
       "when": 1793983215499,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793983314683,
+      "tag": "0001_audit_log_append_only",
+      "breakpoints": true
     }
   ]
 }
