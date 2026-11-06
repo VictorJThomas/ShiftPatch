@@ -3,16 +3,17 @@
 **Last updated:** 2026-11-06
 
 ## Where we are
-- Branch `chore/2-data-model`: stage 2 Data committed (`cf72b44`…`ea36d14`), not pushed, no PR. **Stage 3 contracts done but uncommitted** (see `git status`).
+- Branch `chore/2-data-model`: stage 2 Data committed (`cf72b44`…`ea36d14`), not pushed, no PR. Stage 3 contracts committed `a7c6730`. **Contract gate + `/postman-export` done but uncommitted** (see `git status`).
 - `packages/contracts`: Zod schemas for the 6 required routes + `ErrorBody` + `ErrorMessage` texts, one file `src/index.ts`; requests strip unknown keys, responses strict. Exports `development`→src, default→`dist` (build: `pnpm --filter @shiftpatch/contracts build`). Consumed by api + web (workspace deps). See [[Decisions]] → Contracts.
 - `apps/api/src/db/`: Drizzle schema (16 tables), migrations `0000`–`0002`, idempotent seed. Local dev DB `shiftpatch` seeded (next id `shift-4`).
-- `/verify`: **GREEN** (typecheck, lint, test PASS; contract SKIP, no `test:contract` until handlers). Tests: contracts 93, api 45 (44 DB + 1 contracts consumer probe). `pnpm build` from clean OK. CI now also runs `pnpm build`.
+- `/verify`: **GREEN 4/4** (typecheck, lint, test, contract). Tests: contracts 93, api 45 (44 DB + 1 consumer probe). `test:contract`: 18 tests in `apps/api/src/contract/`, **all skipped until handlers are registered** (auto-activate per route). CI runs `pnpm test`, `pnpm test:contract`, `pnpm build`.
+- `/postman-export` skill: `docs/postman/` collection + local/prod environments generated from contracts + Fastify routes (all 6 required routes flagged "not implemented yet"). Regenerate/`--check` after route or schema changes.
 - Independent review of contracts: APPROVE, required items fixed.
 - Deployed API/web unchanged (health only; Railway has no DB yet).
 
 ## Next step
-1. Victor: commit the contracts work (offered), push `chore/2-data-model`, open PR to `master`, confirm CI green (new `pnpm build` step).
-2. Stage 3 auth: `POST /api/auth/login` (argon2id, `jose` JWT, exact 401 text, rate limit) validated with `LoginRequest`/`LoginResponse`; then refresh/logout; add root `test:contract` script so `/verify` runs the contract gate.
+1. Victor: commit the contract gate + postman work (offered), push `chore/2-data-model`, open PR to `master`, confirm CI green (new `test:contract` + `pnpm build` steps). Optional: import `docs/postman/` into Postman once.
+2. Stage 3 auth: `POST /api/auth/login` (argon2id, `jose` JWT, exact 401 text, rate limit) validated with `LoginRequest`/`LoginResponse`; its contract block in `required-routes.contract.test.ts` goes live as soon as the route is registered. Then refresh/logout. Regenerate `docs/postman/`.
 3. Handler-stage decisions open ([[Decisions]] → Contracts): Fastify empty JSON body on claim (`FST_ERR_CTP_EMPTY_JSON_BODY`), login malformed body 400 vs 401 text.
 4. Before first real deploy of data: Railway Postgres, ship `src/db/migrations` with API build, `db:migrate` + `db:seed`, non-owner `app` DB role.
 

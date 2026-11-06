@@ -40,6 +40,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ authenticate + loadActor plugins, X-Agency-Id, can() policies
 - ☐ Authentication
 - ☐ Three roles with real permissions: agency, nurse, admin
+- ☑ test:contract gate: seeded-DB harness + 6-route contract suite (skips until handlers exist)
 
 ## 4 Shifts
 - ☐ GET /api/shifts (full marketplace) + contract mapper
@@ -89,6 +90,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Record 5-min Loom for the founder (non-technical)
 - ☑ Agentic setup: custom skills/commands in .claude/ committed
 - ☐ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated
+- ☑ /postman-export skill + committed Postman collection (docs/postman)
 
 ## Extras (Scope: Later)
 - ☐ Credential summary report (Option C)

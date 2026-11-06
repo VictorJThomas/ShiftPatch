@@ -68,3 +68,11 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: `packages/contracts` Pending→Active→Done via `/task` (both sides); `diff` 0 drift (63/63).
 - Skills copied: none new (ponytail, using-agent-skills, task, verify, wrap-session, review already current).
 - Open: commit this work; auth (login/refresh/logout) next; Fastify empty-body + login-400 decisions.
+
+## 2026-11-06 — `test:contract` gate + `/postman-export` skill
+- Done: root + api `test:contract` (separate vitest config; `pnpm test` excludes `*.contract.test.ts`), 18 contract tests for the 6 routes vs a seeded throwaway DB, auto-skipped per route until its handler exists. Mutation check: a fake login route made the login block go live (3 fail, 1 pass). CI step added. `/verify` now 4/4 GREEN (contract = all skipped for now).
+- Done: `/postman-export` skill (made with `/skill-creator`, script self-test chosen over the eval loop by Victor): `scripts/export.mjs` writes `docs/postman/` (collection: 5 logins storing `token`, 6 required routes with contract-schema tests, auto-listed extra routes; local + prod envs). `--check` catches a stale file (mutation tested, exit 1). Embedded schemas validated with Ajv v6 against spec examples (7/7). Not opened in the Postman app itself.
+- Decided: see [[Decisions]] → Contracts (contract gate, Postman export).
+- Board: 2 tasks added as Done (both sides).
+- Skills copied: skill-creator already current; new project skill `postman-export`.
+- Open: commit; Postman import smoke test by Victor; run `--check` when routes land.
