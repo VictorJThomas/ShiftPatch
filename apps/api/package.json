@@ -8,11 +8,20 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts"
   },
-  "dependencies": { "fastify": "^5.12.8" },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.8",
+    "postgres": "^4.1.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^10.14.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",

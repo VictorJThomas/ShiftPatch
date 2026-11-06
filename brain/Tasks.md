@@ -29,8 +29,8 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Deploy to a URL · also 8 Release
 
 ## 2 Data
-- ☐ Drizzle schema + migrations (users, shifts, credentials, audit, outbox...)
-- ☐ DB constraints: filled/claimed_by CHECK, partial unique indexes, audit_log append-only trigger
+- ☑ Drizzle schema + migrations (users, shifts, credentials, audit, outbox...)
+- ◐ DB constraints: filled/claimed_by CHECK, partial unique indexes, audit_log append-only trigger
 - ☐ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
 
 ## 3 Auth
