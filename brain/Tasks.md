@@ -31,7 +31,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 ## 2 Data
 - ☑ Drizzle schema + migrations (users, shifts, credentials, audit, outbox...)
 - ☑ DB constraints: filled/claimed_by CHECK, partial unique indexes, audit_log append-only trigger
-- ◐ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
+- ☑ Idempotent seed with exact spec data (2 agencies, 2 nurses, admin, 3 shifts)
 
 ## 3 Auth
 - ☐ packages/contracts: strict Zod schemas for 6 required routes + errors
