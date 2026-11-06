@@ -14,15 +14,21 @@ export async function createTestDb() {
   const url = new URL(ADMIN_URL);
   url.pathname = `/${name}`;
   const { db, sql } = createDb(url.toString());
-  await migrate(db, { migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)) });
+  const drop = async () => {
+    await sql.end();
+    await admin.unsafe(`DROP DATABASE ${name} WITH (FORCE)`);
+    await admin.end();
+  };
+  try {
+    await migrate(db, { migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)) });
+  } catch (err) {
+    await drop(); // don't leak the database if migrations fail
+    throw err;
+  }
   return {
     db,
     sql,
     url: url.toString(),
-    async drop() {
-      await sql.end();
-      await admin.unsafe(`DROP DATABASE ${name} WITH (FORCE)`);
-      await admin.end();
-    },
+    drop,
   };
 }

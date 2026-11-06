@@ -36,9 +36,20 @@ export const shifts = pgTable(
     check("shifts_role_valid", sql`${t.role} IN ('RN','LPN','CNA')`),
     check("shifts_times_differ", sql`${t.startTime} <> ${t.endTime}`),
     check("shifts_pay_nonneg", sql`${t.payRateCents} IS NULL OR ${t.payRateCents} >= 0`),
-    // Core rule: filled <=> has a nurse.
-    check("shifts_filled_iff_claimed", sql`(${t.status} = 'filled') = (${t.claimedBy} IS NOT NULL)`),
-    check("shifts_filled_has_claimed_at", sql`${t.status} <> 'filled' OR ${t.claimedAt} IS NOT NULL`),
+    // Same for the claiming nurse and the facility: they must belong to the shift's network.
+    foreignKey({
+      name: "shifts_network_nurse_fk",
+      columns: [t.claimedBy, t.networkId],
+      foreignColumns: [nurseProfiles.userId, nurseProfiles.networkId],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "shifts_network_facility_fk",
+      columns: [t.facilityId, t.networkId],
+      foreignColumns: [facilities.id, facilities.networkId],
+    }).onDelete("restrict"),
+    // Core rule: a nurse is attached exactly while the shift is filled (or completed, which keeps its nurse).
+    check("shifts_claimed_iff_filled_or_completed", sql`(${t.claimedBy} IS NOT NULL) = (${t.status} IN ('filled','completed'))`),
+    check("shifts_filled_has_claimed_at", sql`${t.status} NOT IN ('filled','completed') OR ${t.claimedAt} IS NOT NULL`),
     index("shifts_agency_status_idx").on(t.agencyId, t.status).where(sql`${t.deletedAt} IS NULL`),
     index("shifts_network_status_date_idx").on(t.networkId, t.status, t.shiftDate).where(sql`${t.deletedAt} IS NULL`),
     index("shifts_claimed_by_idx").on(t.claimedBy).where(sql`${t.claimedBy} IS NOT NULL`),

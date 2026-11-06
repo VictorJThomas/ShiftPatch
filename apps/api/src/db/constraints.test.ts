@@ -12,7 +12,11 @@ beforeAll(async () => {
   await t.sql`INSERT INTO network_agencies (network_id, agency_id) VALUES ('net-1', 'ag-a'), ('net-1', 'ag-b')`; // ag-* not in net-2
   await t.sql`INSERT INTO users (id, email, password_hash, role) VALUES
     ('u-nurse1', 'n1@x.test', 'h', 'nurse'), ('u-nurse2', 'n2@x.test', 'h', 'nurse'), ('u-ag', 'ag@x.test', 'h', 'agency')`;
-  await t.sql`INSERT INTO nurse_profiles (user_id, network_id) VALUES ('u-nurse1', 'net-1'), ('u-nurse2', 'net-1')`;
+  await t.sql`INSERT INTO users (id, email, password_hash, role) VALUES ('u-nurse3', 'n3@x.test', 'h', 'nurse')`;
+  await t.sql`INSERT INTO nurse_profiles (user_id, network_id) VALUES ('u-nurse1', 'net-1'), ('u-nurse2', 'net-1'), ('u-nurse3', 'net-2')`;
+  await t.sql`INSERT INTO facilities (id, network_id, name, address_line1, city, state, postal_code, timezone) VALUES
+    ('fac-1', 'net-1', 'F1', '1 Main', 'Miami', 'FL', '33101', 'America/New_York'),
+    ('fac-2', 'net-2', 'F2', '2 Main', 'Tampa', 'FL', '33601', 'America/New_York')`;
 }, 60_000);
 afterAll(async () => {
   await t?.drop();
@@ -34,11 +38,11 @@ describe("shifts", () => {
   });
 
   it("rejects filled without a nurse (core rule)", async () => {
-    await expect(shift({ status: "filled", claimed_at: new Date().toISOString() })).rejects.toThrow(/shifts_filled_iff_claimed/);
+    await expect(shift({ status: "filled", claimed_at: new Date().toISOString() })).rejects.toThrow(/shifts_claimed_iff_filled_or_completed/);
   });
 
   it("rejects a nurse on a shift that is not filled", async () => {
-    await expect(shift({ status: "open", claimed_by: "u-nurse1" })).rejects.toThrow(/shifts_filled_iff_claimed/);
+    await expect(shift({ status: "open", claimed_by: "u-nurse1" })).rejects.toThrow(/shifts_claimed_iff_filled_or_completed/);
   });
 
   it("rejects filled without claimed_at", async () => {
@@ -47,6 +51,18 @@ describe("shifts", () => {
 
   it("accepts a correctly filled shift", async () => {
     await expect(shift({ status: "filled", claimed_by: "u-nurse1", claimed_at: new Date().toISOString() })).resolves.toHaveLength(1);
+  });
+
+  it("allows a completed shift to keep its nurse", async () => {
+    await expect(shift({ status: "completed", claimed_by: "u-nurse1", claimed_at: new Date().toISOString() })).resolves.toHaveLength(1);
+    await expect(shift({ status: "completed" })).rejects.toThrow(/shifts_claimed_iff_filled_or_completed/);
+    await expect(shift({ status: "cancelled", claimed_by: "u-nurse1" })).rejects.toThrow(/shifts_claimed_iff_filled_or_completed/);
+  });
+
+  it("isolates networks: the claiming nurse and the facility must belong to the shift's network", async () => {
+    await expect(shift({ status: "filled", claimed_by: "u-nurse3", claimed_at: new Date().toISOString() })).rejects.toThrow(/shifts_network_nurse_fk/);
+    await expect(shift({ facility_id: "fac-2" })).rejects.toThrow(/shifts_network_facility_fk/);
+    await expect(shift({ facility_id: "fac-1" })).resolves.toHaveLength(1);
   });
 
   it("rejects an unknown role, equal start/end and negative pay", async () => {
@@ -125,6 +141,43 @@ describe("credentials", () => {
   });
 });
 
+describe("other constraints", () => {
+  it("rejects blank names and emails", async () => {
+    await expect(sql`INSERT INTO users (id, email, password_hash, role) VALUES ('u-blank', '  ', 'h', 'nurse')`).rejects.toThrow(/users_email_nonblank/);
+    await expect(sql`INSERT INTO agencies (id, name) VALUES ('ag-blank', ' ')`).rejects.toThrow(/agencies_name_nonblank/);
+    await expect(sql`INSERT INTO hospital_networks (id, name) VALUES ('net-blank', '')`).rejects.toThrow(/hospital_networks_name_nonblank/);
+  });
+
+  it("rejects out-of-range coordinates and bad license types", async () => {
+    await expect(sql`UPDATE facilities SET latitude = 91 WHERE id = 'fac-1'`).rejects.toThrow(/facilities_latitude_range/);
+    await expect(sql`UPDATE facilities SET longitude = -181 WHERE id = 'fac-1'`).rejects.toThrow(/facilities_longitude_range/);
+    await expect(sql`UPDATE nurse_profiles SET license_type = 'MD' WHERE user_id = 'u-nurse1'`).rejects.toThrow(/nurse_profiles_license_type/);
+  });
+
+  it("keeps agency names unique (case-insensitive) and network admin memberships unique while active", async () => {
+    await expect(sql`INSERT INTO agencies (id, name) VALUES ('ag-dup', 'AGENCY a')`).rejects.toThrow(/agencies_name_uq/);
+    await sql`INSERT INTO network_memberships (id, user_id, network_id) VALUES ('nm1', 'u-ag', 'net-1')`;
+    await expect(sql`INSERT INTO network_memberships (id, user_id, network_id) VALUES ('nm2', 'u-ag', 'net-1')`).rejects.toThrow(/network_memberships_active_uq/);
+  });
+
+  it("keeps refresh token hashes unique", async () => {
+    const h = "b".repeat(64);
+    const ins = (id: string) => sql`INSERT INTO refresh_tokens (id, user_id, family_id, token_hash, expires_at) VALUES (${id}, 'u-ag', 'fam', ${h}, now() + interval '1 day')`;
+    await ins("rt1");
+    await expect(ins("rt2")).rejects.toThrow(/refresh_tokens_token_hash_uq/);
+  });
+
+  it("records shift cancellations referencing a real shift and nurse", async () => {
+    const [{ id }] = (await shift({ status: "filled", claimed_by: "u-nurse1", claimed_at: new Date().toISOString() })) as unknown as [{ id: string }];
+    const ins = (shiftId: string) => sql`INSERT INTO shift_cancellations (id, shift_id, reason, previous_nurse_id, cancelled_by, cancelled_by_role)
+      VALUES (${"sc-" + shiftId}, ${shiftId}, 'no-show', 'u-nurse1', 'u-ag', 'agency')`;
+    await expect(ins(id)).resolves.toBeDefined();
+    await expect(ins("shift-missing")).rejects.toThrow(/foreign key/);
+    await expect(sql`INSERT INTO shift_cancellations (id, shift_id, reason, previous_nurse_id, cancelled_by, cancelled_by_role)
+      VALUES ('sc-x', ${id}, 'bogus', 'u-nurse1', 'u-ag', 'agency')`).rejects.toThrow(/cancel_reason/);
+  });
+});
+
 describe("files", () => {
   it("enforces the 10 MB limit and unique (bucket, object_key)", async () => {
     const f = (id: string, size: number, key = "k1") =>
@@ -138,6 +191,16 @@ describe("files", () => {
 });
 
 describe("audit_log is append-only", () => {
+  it("keeps the triggers firing even under session_replication_role=replica", async () => {
+    const [r] = await sql`INSERT INTO audit_log (action, entity_type, entity_id) VALUES ('x', 'shift', 'shift-1') RETURNING id`;
+    await expect(
+      sql.begin(async (tx) => {
+        await tx`SET LOCAL session_replication_role = replica`;
+        await tx`DELETE FROM audit_log WHERE id = ${r!.id}`;
+      }),
+    ).rejects.toThrow(/append-only/);
+  });
+
   it("allows INSERT but blocks UPDATE and DELETE", async () => {
     const [r] = await sql`INSERT INTO audit_log (action, entity_type, entity_id) VALUES ('shift.claimed', 'shift', 'shift-1') RETURNING id`;
     await expect(sql`UPDATE audit_log SET action = 'tampered' WHERE id = ${r!.id}`).rejects.toThrow(/append-only/);

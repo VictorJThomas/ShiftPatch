@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { char, check, index, numeric, pgTable, primaryKey, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { char, check, index, numeric, pgTable, primaryKey, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { createdAt, membershipRole, nurseStatus, orgStatus, timestamps, tstz, userRole, userStatus } from "./_common.js";
 import { files } from "./system.js";
 
@@ -9,7 +9,7 @@ export const hospitalNetworks = pgTable("hospital_networks", {
   defaultTimezone: text().notNull().default("America/New_York"),
   status: orgStatus().notNull().default("active"),
   ...timestamps(),
-});
+}, (t) => [check("hospital_networks_name_nonblank", sql`length(trim(${t.name})) > 0`)]);
 
 export const users = pgTable(
   "users",
@@ -25,6 +25,7 @@ export const users = pgTable(
   (t) => [
     uniqueIndex("users_email_uq").on(sql`lower(${t.email})`).where(sql`${t.deletedAt} IS NULL`),
     check("users_email_lowercase", sql`${t.email} = lower(${t.email})`),
+    check("users_email_nonblank", sql`length(trim(${t.email})) > 0`),
   ],
 );
 
@@ -52,7 +53,10 @@ export const nurseProfiles = pgTable(
     createdAt: createdAt(),
     updatedAt: createdAt(),
   },
-  (t) => [check("nurse_profiles_license_type", sql`${t.licenseType} IS NULL OR ${t.licenseType} IN ('RN','LPN','CNA')`)],
+  (t) => [
+    check("nurse_profiles_license_type", sql`${t.licenseType} IS NULL OR ${t.licenseType} IN ('RN','LPN','CNA')`),
+    unique("nurse_profiles_user_network_uq").on(t.userId, t.networkId), // target of shifts_network_nurse_fk
+  ],
 );
 
 export const agencies = pgTable(
@@ -72,7 +76,10 @@ export const agencies = pgTable(
     status: orgStatus().notNull().default("active"),
     ...timestamps(),
   },
-  (t) => [uniqueIndex("agencies_name_uq").on(sql`lower(${t.name})`).where(sql`${t.deletedAt} IS NULL`)],
+  (t) => [
+    uniqueIndex("agencies_name_uq").on(sql`lower(${t.name})`).where(sql`${t.deletedAt} IS NULL`),
+    check("agencies_name_nonblank", sql`length(trim(${t.name})) > 0`),
+  ],
 );
 
 export const networkAgencies = pgTable(
@@ -141,6 +148,8 @@ export const facilities = pgTable(
     ...timestamps(),
   },
   (t) => [
+    unique("facilities_id_network_uq").on(t.id, t.networkId), // target of shifts_network_facility_fk
+    check("facilities_name_nonblank", sql`length(trim(${t.name})) > 0`),
     check("facilities_latitude_range", sql`${t.latitude} IS NULL OR ${t.latitude} BETWEEN -90 AND 90`),
     check("facilities_longitude_range", sql`${t.longitude} IS NULL OR ${t.longitude} BETWEEN -180 AND 180`),
   ],

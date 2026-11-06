@@ -5,6 +5,9 @@ import { createDb } from "./client.js";
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is required");
 const { db, sql } = createDb(url);
-await migrate(db, { migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)) });
-await sql.end();
+try {
+  await migrate(db, { migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)) });
+} finally {
+  await sql.end();
+}
 console.log("migrations applied");
