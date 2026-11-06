@@ -20,13 +20,13 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Visual QA of design canvas
 
 ## 1 Foundation
-- ☐ First git commit (include ESCALATION.md, timestamp is graded)
-- ☐ pnpm monorepo: apps/api, apps/web, packages/contracts, TS strict, lint
-- ☐ Docker Compose: Postgres 16, MinIO, Mailpit
-- ☐ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
-- ☐ Fastify /api/health + first Railway deploy
-- ☐ Vercel web deploy + /api/* rewrite to Railway
-- ☐ Deploy to a URL · also 8 Release
+- ☑ First git commit (include ESCALATION.md, timestamp is graded)
+- ☑ pnpm monorepo: apps/api, apps/web, packages/contracts, TS strict, lint
+- ☑ Docker Compose: Postgres 16, MinIO, Mailpit
+- ◐ CI skeleton: typecheck, lint, tests, pnpm audit, secret scan
+- ☑ Fastify /api/health + first Railway deploy
+- ☑ Vercel web deploy + /api/* rewrite to Railway
+- ☑ Deploy to a URL · also 8 Release
 
 ## 2 Data
 - ☐ Drizzle schema + migrations (users, shifts, credentials, audit, outbox...)
@@ -84,10 +84,10 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
 
 ## 9 Delivery
-- ☐ Email recruiter scope commitment (day 1)
+- ☑ Email recruiter scope commitment (day 1)
 - ☐ Export full unedited AI session transcripts
 - ☐ Record 5-min Loom for the founder (non-technical)
-- ☐ Agentic setup: custom skills/commands in .claude/ committed
+- ☑ Agentic setup: custom skills/commands in .claude/ committed
 - ☐ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated
 
 ## Extras (Scope: Later)

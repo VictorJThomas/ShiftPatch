@@ -6,3 +6,7 @@ dist/
 !.env.example
 .obsidian/workspace*.json
 .obsidian/cache
+coverage/
+.vercel/
+.railway/
+*.tsbuildinfo

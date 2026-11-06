@@ -1,0 +1,53 @@
+# Local dev only. Credentials below are throwaway, never reuse them.
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_USER: shiftpatch
+      POSTGRES_PASSWORD: shiftpatch
+      POSTGRES_DB: shiftpatch
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shiftpatch -d shiftpatch"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Upstream minio/minio + minio/mc images are no longer published; Chainguard
+  # images are distroless (no shell/curl): no healthcheck, and the init step
+  # runs mc directly with restart-on-failure until minio answers.
+  minio:
+    image: cgr.dev/chainguard/minio:latest # ponytail: free tier only has :latest
+    command: server /data --console-address ":9001"
+    ports: ["9000:9000", "9001:9001"]
+    environment:
+      MINIO_ROOT_USER: shiftpatch
+      MINIO_ROOT_PASSWORD: shiftpatch-secret
+    volumes: ["miniodata:/data"]
+
+  # Creates both buckets. private-credentials gets no policy = stays private.
+  minio-init:
+    image: &mc cgr.dev/chainguard/minio-client:latest
+    depends_on: [minio]
+    restart: on-failure
+    environment: &mcenv
+      MC_HOST_local: http://shiftpatch:shiftpatch-secret@minio:9000
+    command: mb --ignore-existing local/public-assets local/private-credentials
+
+  # Only public-assets allows anonymous download.
+  minio-policy:
+    image: *mc
+    depends_on:
+      minio-init: { condition: service_completed_successfully }
+    restart: on-failure
+    environment: *mcenv
+    command: anonymous set download local/public-assets
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["1025:1025", "8025:8025"]
+
+volumes:
+  pgdata:
+  miniodata:

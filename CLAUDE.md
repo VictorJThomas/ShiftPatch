@@ -6,7 +6,7 @@ Designli Product Engineer trial: shift-marketplace app for nursing staffing. Sta
 The Obsidian vault is this repo root. Entry point: `brain/00-Index.md`.
 1. **Start of every session, before any answer or plan: read `brain/00-Index.md`, then `brain/Status.md`.** Follow its read order for the task at hand.
 2. **Consult the brain first. Do not rely on memory** (model memory, auto-memory, or earlier chat). If the brain lacks a fact, read the source docs, then write the fact into the brain.
-3. **Update the brain every session, before ending:** overwrite `brain/Status.md`, append to `brain/Session-Log.md`, tick `brain/Requirements-Checklist.md`, record new decisions in `brain/Decisions.md`. Do it incrementally after each milestone, not only at the end.
+3. **Update the brain every session, before ending:** overwrite `brain/Status.md`, append to `brain/Session-Log.md`, tick `brain/Requirements-Checklist.md`, record new decisions in `brain/Decisions.md`. Do it incrementally after each milestone, not only at the end. **Use `/wrap-session`** (`.claude/skills/wrap-session`) — it does all of this plus the board reconcile.
 4. Source docs beat summaries: `docs/original/ShiftPatch-Technical-Spec.md` (seed data, routes, test IDs — exact), `docs/ARCHITECTURE.md`, `docs/market-research.md`, `ESCALATION.md`. Fix stale brain notes.
 5. Never delete brain notes; archive to `brain/archive/`. Use `[[wikilinks]]`.
 
@@ -15,8 +15,8 @@ My skills live globally (`~/.claude/skills`, plugin caches). The trial grades th
 
 ## Tasks — Notion Kanban sync (rule)
 - Kanban = Notion page **ShiftPatch** → inline DB **Demands board** (find it with `notion-search "ShiftPatch"`; data source `collection://615ea490-0b1b-4e69-ba8d-70a2c8294ebd`). Columns: `Task`, `Status` (Pending/Active/Done), `Scope` (MVP/Escalated/Later), `Stage` (multi-select, build stage tags `0 Planning`…`9 Delivery`, `Extras`).
-- Local mirror: `brain/Tasks.md`. **Whenever you start, finish, add, or re-scope a task, update BOTH** `brain/Tasks.md` and the Notion row (match by exact title; create the file/row with a `Stage` tag if missing). Set `Active` when you begin work, `Done` when verified.
-- Before ending a session, reconcile: query the board, diff against `brain/Tasks.md`, fix drift, log it.
+- Local mirror: `brain/Tasks.md`. **Whenever you start, finish, add, or re-scope a task, update BOTH** `brain/Tasks.md` and the Notion row (match by exact title; create the file/row with a `Stage` tag if missing). Set `Active` when you begin work, `Done` when verified. **Use `/task <query> <Active|Done>`** (`.claude/skills/task`) — one step, both sides; don't hand-edit.
+- Before ending a session, reconcile: query the board, diff against `brain/Tasks.md` (`tasks_md.py diff`), fix drift, log it. `/wrap-session` does this.
 
 ## Hard constraints (from the trial brief)
 - TypeScript. Fictional brand — never use "Designli" name/assets.
@@ -29,5 +29,5 @@ My skills live globally (`~/.claude/skills`, plugin caches). The trial grades th
 ## Working style
 - Code, comments, commits in English. Chat with Victor in Spanish or English as he writes.
 - Architecture is approved (`docs/ARCHITECTURE.md`); follow its build order (§16.2). Don't re-litigate decisions.
-- Commands (once monorepo exists): `pnpm typecheck && pnpm lint && pnpm test`. Update this section when scripts land.
+- Commands (once monorepo exists): `pnpm typecheck && pnpm lint && pnpm test` + `pnpm test:contract` (contract tests, needs Postgres). **Run all via `/verify`** before marking a task Done or committing. Update this section when scripts land (and the `STEPS` table in `.claude/skills/verify/scripts/verify.mjs` if names differ).
 - Windows: never run dev servers in foreground; check for orphan `node` processes first.

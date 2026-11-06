@@ -3,13 +3,13 @@
 Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as asked. Update every session.
 
 ## Deliverables
-- ☐ Deployed app, real URL, seeded ([[Spec-Summary]])
-- ☐ Repo with passing CI (typecheck + lint + tests), no secrets in history
-- ◐ Agentic setup: CLAUDE.md ☑, second brain ☑ (this vault), custom skills/commands ☐
+- ◐ Deployed app, real URL, seeded ([[Spec-Summary]]) — web https://shiftpatch-web-orcin.vercel.app + API https://api-production-1811a.up.railway.app live (health only); seed pending stage 2
+- ◐ Repo with passing CI (typecheck + lint + tests), no secrets in history — `.github/workflows/ci.yml` pushed; 0 runs yet — triggers on PR/master only; needs PR
+- ◐ Agentic setup: CLAUDE.md ☑, second brain ☑ (this vault), custom skills ☑ (`/task`, `/verify`, `/wrap-session` committed `0f830e9`; used plugin skills copied)
 - ☐ 5-min Loom for founder
 - ☐ Full unedited AI transcripts — export every session
-- ☐ Scope-commitment email to recruiter (due day 1)
-- ☐ ESCALATION.md committed — untracked, repo has zero commits. **Commit ASAP (timestamp is graded).**
+- ☑ Scope-commitment email to recruiter (due day 1) — sent by Victor 2026-11-06
+- ☑ ESCALATION.md committed — in first commit `5292609` (2026-11-06 10:53 -0400).
 
 ## Founder wish list
 | Item | State | Note |
@@ -25,7 +25,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 | Audit log | ☐ | §11, `audit-log-table` |
 | One-click license/TB export | ⛔ | [[ESCALATION]] |
 | PostHog analytics | ☐ | no health data in events |
-| Deployed to real URL | ☐ | Vercel + Railway |
+| Deployed to real URL | ◐ | Vercel + Railway live, /api rewrite verified; app features pending |
 
 ## Docs done
 - ☑ [[docs/market-research]]
