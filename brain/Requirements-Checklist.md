@@ -3,7 +3,7 @@
 Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as asked. Update every session.
 
 ## Deliverables
-- ◐ Deployed app, real URL, seeded ([[Spec-Summary]]) — web https://shiftpatch-web-orcin.vercel.app + API https://api-production-1811a.up.railway.app live (health only); seed pending stage 2
+- ◐ Deployed app, real URL, seeded ([[Spec-Summary]]) — web https://shiftpatch-web-orcin.vercel.app + API https://api-production-1811a.up.railway.app live (health only); seed + migrations written and verified locally (stage 2), not yet on Railway (no DB there)
 - ☑ Repo with passing CI (typecheck + lint + tests), no secrets in history — CI green on PR (typecheck, lint, test, pnpm audit, gitleaks)
 - ◐ Agentic setup: CLAUDE.md ☑, second brain ☑ (this vault), custom skills ☑ (`/task`, `/verify`, `/wrap-session` committed `0f830e9`; used plugin skills copied)
 - ☐ 5-min Loom for founder

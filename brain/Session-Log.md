@@ -50,3 +50,12 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Fix: removed `cache: pnpm` from security job (`5d8849f`). Rerun green (run 42251767242). `/task CI skeleton Done` (both sides).
 - Skills copied: systematic-debugging.
 - Open: Victor merges PR; stage 2.
+
+## 2026-11-06 — Stage 2 Data layer
+- Done: Drizzle schema (16 tables, ARCHITECTURE §4.4), 3 migrations (init, audit_log append-only trigger, network isolation + checks), idempotent seed with exact spec data, migrate/seed scripts, 44 DB tests (throwaway DB per file, 20 parallel claims → 1 winner). Dev DB migrated + seeded twice (no duplicates). Process: TDD (RED first for schema, trigger, seed), `/verify` before each of 4 commits.
+- Review: independent subagent (`agent-skills:code-reviewer` with `/agent-skills:review` + `/verify`), two rounds. Fixed: `completed` unreachable under filled CHECK (doc §4.4 corrected too), cross-network nurse/facility on a shift (composite FKs), blank-name checks, triggers `ENABLE ALWAYS`, test-db cleanup. Accepted: seed never overwrites drift; superuser dev role can drop triggers (deploy open item).
+- Decided: see [[Decisions]] → Data layer (`shift_id_seq` starts at 4, agency users `agency-a`/`agency-b`, throwaway test DBs).
+- Board: 3 tasks Active→Done via `/task` (both sides). Final reconcile compared the 63 Notion rows by eye against [[Tasks]] (no `diff` script run; no drift seen).
+- Skills copied: constraints, review, constraint-driven-development, code-review-and-quality (also already present: build, incremental-implementation, test-driven-development, using-agent-skills, ponytail, task, verify, wrap-session).
+- Gotchas: stray test DB from a failed run was dropped; drizzle-kit mis-orders UNIQUE vs FK in generated SQL; `/constraints` CONSTRAINTS.md interview not done.
+- Open: push + PR for `chore/2-data-model`; stage 3 contracts + auth; Railway Postgres + migrations shipping; least-privilege app role; export this session's transcript.
