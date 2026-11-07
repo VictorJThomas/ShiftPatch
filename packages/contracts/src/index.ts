@@ -158,9 +158,7 @@ export const AuditLogEntry = z.strictObject({
 });
 export const AuditLogResponse = z.strictObject({ items: z.array(AuditLogEntry), nextCursor: z.string().nullable() });
 
-<<<<<<< Updated upstream
-=======
-// ---------- Nurse credentials (additive, Stage 7; ARCHITECTURE §9) ----------
+
 
 export const CredentialType = z.enum(["license", "tb_screening", "other"]);
 export const CredentialStatus = z.enum(["pending", "verified", "rejected"]);
@@ -195,11 +193,7 @@ export const NurseCredential = z.strictObject({
   hasFile: z.boolean(),
 });
 export const UploadCredentialResponse = z.strictObject({ credential: NurseCredential });
-<<<<<<< HEAD
 /** `licenseValid` = the same rule the claim uses (`isEligible`: unexpired license, verified OR pending per ARCHITECTURE §5.3). Drives the lapsed-license warning. */
-=======
-/** `licenseValid` = the same rule the claim uses (verified, unexpired license). Drives the lapsed-license warning. */
->>>>>>> 63d098c (feat(contracts): credential upload/list schemas, audit agencyId filter; apiFetch FormData)
 export const NurseCredentialsResponse = z.strictObject({ credentials: z.array(NurseCredential), licenseValid: z.boolean() });
 
 >>>>>>> Stashed changes
