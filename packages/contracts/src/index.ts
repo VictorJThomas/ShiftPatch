@@ -158,6 +158,51 @@ export const AuditLogEntry = z.strictObject({
 });
 export const AuditLogResponse = z.strictObject({ items: z.array(AuditLogEntry), nextCursor: z.string().nullable() });
 
+<<<<<<< Updated upstream
+=======
+// ---------- Nurse credentials (additive, Stage 7; ARCHITECTURE §9) ----------
+
+export const CredentialType = z.enum(["license", "tb_screening", "other"]);
+export const CredentialStatus = z.enum(["pending", "verified", "rejected"]);
+/** Upload limits shared by the API (hard 413/415) and the web form (early, friendly check). */
+export const CREDENTIAL_MAX_BYTES = 10 * 1024 * 1024;
+export const CREDENTIAL_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/heic"] as const;
+
+/**
+ * POST /api/nurses/me/credentials is multipart: these are the TEXT fields; the `file` part is validated by the route.
+ * license -> expiresOn required (DB CHECK credentials_license_needs_expiry); tb_screening -> screenedOn required.
+ */
+export const UploadCredentialFields = z
+  .object({
+    type: CredentialType,
+    licenseType: ShiftRole.optional(),
+    expiresOn: IsoDate.optional(),
+    screenedOn: IsoDate.optional(),
+  })
+  .refine((c) => c.type !== "license" || !!c.expiresOn, { message: "Expiry date is required for a license", path: ["expiresOn"] })
+  .refine((c) => c.type !== "tb_screening" || !!c.screenedOn, { message: "Screening date is required for a TB screening", path: ["screenedOn"] });
+
+/** `expired` = expiresOn is before today (derived, not a stored status). No file key, size or hash: the read model stays PII-light. */
+export const NurseCredential = z.strictObject({
+  id: Id,
+  type: CredentialType,
+  licenseType: ShiftRole.nullable(),
+  status: CredentialStatus,
+  expiresOn: IsoDate.nullable(),
+  screenedOn: IsoDate.nullable(),
+  uploadedAt: IsoInstant,
+  expired: z.boolean(),
+  hasFile: z.boolean(),
+});
+export const UploadCredentialResponse = z.strictObject({ credential: NurseCredential });
+<<<<<<< HEAD
+/** `licenseValid` = the same rule the claim uses (`isEligible`: unexpired license, verified OR pending per ARCHITECTURE §5.3). Drives the lapsed-license warning. */
+=======
+/** `licenseValid` = the same rule the claim uses (verified, unexpired license). Drives the lapsed-license warning. */
+>>>>>>> 63d098c (feat(contracts): credential upload/list schemas, audit agencyId filter; apiFetch FormData)
+export const NurseCredentialsResponse = z.strictObject({ credentials: z.array(NurseCredential), licenseValid: z.boolean() });
+
+>>>>>>> Stashed changes
 // ---------- Inferred types ----------
 // Requests use z.input (what a client sends), responses z.output (what the API returns).
 
