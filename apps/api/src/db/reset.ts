@@ -19,6 +19,9 @@ export function assertLocalDatabase(rawUrl: string, env: NodeJS.ProcessEnv = pro
   } catch {
     throw new Error("db:reset refused: DATABASE_URL is not a valid URL");
   }
+  if (url.hash || url.search || rawUrl.includes("#")) {
+    throw new Error("db:reset refused: query strings and fragments are not allowed in the reset URL");
+  }
   if (!LOCAL_HOSTS.has(url.hostname)) {
     throw new Error(`db:reset refused: host "${url.hostname}" is not local`);
   }
@@ -26,7 +29,15 @@ export function assertLocalDatabase(rawUrl: string, env: NodeJS.ProcessEnv = pro
   if (!SAFE_DB_NAME.test(dbName)) {
     throw new Error(`db:reset refused: database "${dbName}" does not match shiftpatch[_suffix]`);
   }
-  if (env.NODE_ENV === "production" || env.RAILWAY_ENVIRONMENT || env.VERCEL) {
+  // WHATWG URL and postgres.js parse differently (e.g. `localhost#@evil` is host "localhost" here but "evil" in
+  // the driver), so also check what the driver itself would connect to.
+  const probe = postgres(rawUrl, { max: 1, onnotice: () => {} });
+  const { host, database } = probe.options;
+  void probe.end({ timeout: 0 }); // never connected: no query was sent
+  if (!host.every((h) => LOCAL_HOSTS.has(h)) || database !== dbName) {
+    throw new Error("db:reset refused: the driver would connect to a different host or database than the URL shows");
+  }
+  if (env.NODE_ENV === "production" || env.RAILWAY_ENVIRONMENT || env.RAILWAY_ENVIRONMENT_NAME || env.RAILWAY_PROJECT_ID || env.VERCEL) {
     throw new Error("db:reset refused: running in a deployed environment");
   }
   return { dbName };

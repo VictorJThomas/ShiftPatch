@@ -11,6 +11,8 @@ describe("db:reset guard", () => {
     ["public proxy", "postgres://u:p@roundhouse.proxy.rlwy.net:41234/railway"],
     ["non-shiftpatch db", "postgres://u:p@localhost:5432/postgres"],
     ["quote injection", 'postgres://u:p@localhost:5432/shiftpatch"; DROP'],
+    ["fragment host confusion (driver sees evil)", "postgres://u:p@localhost#@evil:5432/shiftpatch"],
+    ["fragment host confusion with path", "postgres://u:p@localhost/shiftpatch#@evil:5432/shiftpatch"],
     ["not a url", "nope"],
   ])("refuses %s", (_label, url) => {
     expect(() => assertLocalDatabase(url, {})).toThrow(/db:reset refused/);
@@ -21,6 +23,7 @@ describe("db:reset guard", () => {
       /deployed environment/,
     );
     expect(() => assertLocalDatabase("postgres://u:p@localhost:5432/shiftpatch", { NODE_ENV: "production" })).toThrow();
+    expect(() => assertLocalDatabase("postgres://u:p@localhost:5432/shiftpatch", { RAILWAY_PROJECT_ID: "x" })).toThrow();
   });
 
   it("accepts the local dev and suffixed databases", () => {

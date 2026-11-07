@@ -319,3 +319,31 @@ Issues:
 | 28 | Low | `AdminShell.tsx:12-16` | The design nav includes "Credentials (3)" (review queue); it is absent. | Confirm scope vs `ESCALATION.md`; add the nav item when the route exists. |
 | 29 | Low | copy, `admin/dashboard/page.tsx:17`, `agency/profile/page.tsx:19` | "X is coming" reads as a dev note. | Use product empty-state copy with a next action. |
 | 30 | Info | `login-form.tsx:57-106` | Good: labels, `aria-invalid`/`aria-describedby`, autocomplete, icon + text errors, `aria-busy`. Contrast passes AA for every token pair (§5). | Keep this as the pattern for the 6b forms (post shift, credential upload). |
+
+---
+
+## 8. Live pass: real browser (Chrome extension) + viewport sweep (Playwright)
+
+**How.** Desktop checks ran in Chrome through the extension during the five seeded-user runs ([[WORKFLOW_TEST_RESULTS]]). The Chrome window couldn't be resized: it reports `screenX -1709` and stays at 1699 CSS px (dpr 1.5), even after it was un-maximized. So the five viewports were captured with Playwright (`apps/web/scripts/qa-responsive.mjs`) against the **same local app + API**, logged in through the real login form once per role. That gave 50 full-page screenshots plus metrics in `screenshots/responsive/` (`metrics.json`).
+
+| Check | 360×800 | 390×844 | 768×1024 | 1440×900 | 1920×1080 |
+|---|---|---|---|---|---|
+| Horizontal overflow (all 10 routes) | none | none | none | none | none |
+| Login | OK, single column | OK | OK | split brand panel, form column 730px | form 970px |
+| Nurse shell | `<main>` **missing**, bottom nav ✓ | same | 480px column centered | **480px phone column in a 1440 canvas** (`nurse-nurse-shifts-1440.png`) | same |
+| Agency shell | bottom tab bar, band, `main` full width ✓ (`agency-agency-shifts-390.png`) | ✓ | header nav ✓ | `main` 1200px centered ✓ | 1200px centered ✓ |
+| Admin shell | sidebar stacked on top (nav at y=126), content below | same | **broken: the 248px sidebar takes the whole first row (~490px tall) and the content starts below it** (`admin-admin-dashboard-768.png`) | sidebar + content | content unbounded (2304px wide at 2552) |
+| Touch targets <44px | "Show password" 65×36 (login) | same | same | same | same |
+| Smallest font | 12px (nav labels, badges) | 12px | 12px | 12px | 12px |
+
+**Session lost during the sweep (QA-006).** The sweep loaded about 38 pages in a minute from one IP. Each full page load calls `POST /api/auth/refresh`. The 31st call got **429**, and the admin context ended up on `/login` with a still-valid refresh cookie. See [[DEFECT_LOG]] QA-006: grader click-throughs and hospital NATs share one IP.
+
+**Accessibility, observed live (adds to §5):**
+- Visible focus ring (3px, `rgb(26,95,180)`) on links and buttons. Inputs use a field-box ring. Tab order is logical.
+- No skip link in any shell. No `<main>` in the nurse shell. EmptyState jumps h1 → h3.
+- Login error is announced (`role=alert` in the toast) but not tied to the fields (no `aria-invalid` / `aria-describedby`; the design shows an inline alert).
+- On Edge, the native password-reveal icon shows next to the app's "Show" button: two reveal controls. Fix with `input::-ms-reveal{display:none}`.
+- `/nurse/profile` and `/agency/*` have a generic `<title>`.
+- Dev-only: the Next.js dev-tools button is the first Tab stop (not in prod).
+
+**Visual verdict (desktop and mobile).** The brand layer is coherent: token colours, Schibsted Grotesk, the agency band and the login split panel read as a calm clinical SaaS. But every post-login screen is a centered EmptyState on a large beige field. The product can't currently be presented as a finished SaaS because the screens that carry the value (marketplace cards, agency table, admin coverage) don't exist. The shells themselves need three fixes before the 6b screens are built: nurse layout scale-up, admin tablet breakpoint, and an admin content max-width.

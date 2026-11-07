@@ -89,7 +89,7 @@ Environment notes for every run:
 | A12 Audit visibility | PASS (API) / UI N/A for agency | 200 `{items[],nextCursor}`, 5 rows, all agency-a |
 | A13 Logout | PASS | Lands on `/login`, reload stays logged out (refresh 401). The 503 seen in the extension is a tool artifact (QA-001) |
 | Focus / keyboard | PASS | Visible 2.67px outline, logical order. **No skip link** |
-| Touch targets (desktop) | PASS | All ≥44px |
+| Touch targets (desktop, post-login shells) | PASS | All ≥44px. Login "Show password" is 65×36 (FAIL, see [[UI_UX_AUDIT]] §8) |
 | Responsive 390 | **N/T** | Window can't be resized |
 
 ### Agency B — run 1 (QA subagent, fresh seed)
@@ -138,3 +138,47 @@ Environment notes for every run:
 | Desktop | Info | Nurse shell is a narrow centered column on a 2552px window; looks like a phone mock-up (see [[UI_UX_AUDIT]] Nurse-Scale-Up) |
 | Note | Info | The agent made one unplanned extra claim + cancel on shift-3 (empty-JSON-body check); reverted, leaves 2 extra audit rows + 1 email to agency-b |
 | Final state | — | shift-1 filled nurse-1 (re-claimed for the Admin run), shift-2 filled nurse-1, shift-3 open |
+
+### Nurse 2 — run 1 (expired license, negative workflow; state continued from Nurse 1)
+| # | Result | Evidence |
+|---|---|---|
+| N2-1 Login (UI) | PASS | → `/nurse/shifts`, profile "James Cook" |
+| N2-2 Credential status / expired warning | **MISSING** | No credential or expiry text on shifts, credentials or profile. Screenshots `nurse-2-shifts-desktop.jpg`, `nurse-2-credentials-desktop.jpg` |
+| N2-3 Marketplace fallback (§12.4) | **MISSING** | `/nurse/shifts` makes no `/api/shifts` call. No list, no claim button |
+| N2-4 Banner in UI | **N/T** | No trigger exists (0 `notification-banner` on screen) |
+| N2-4 Frontend readiness (code) | READY (plumbing) | `api-client.ts:48-57` `toApiError` keeps `body.error` verbatim. `apiFetch` throws `ApiError` (`:155-166`). No automatic toast for nurse 403s. A future claim handler must call `notify.error(err.message)` like `login-form.tsx:43` |
+| ?matchable=true | PASS | 200 `{"shifts":[]}` |
+| **N2-4 API (browser) claim shift-3** | **PASS** | **403 `{"error":"Credential expired, cannot claim shift"}` (exact).** Same with `Content-Type: application/json` and an empty body (no 400/500) |
+| **N2-5 Backend enforcement** | **PASS** | shift-3 still `open`, `claimedBy:null` |
+| Claim filled shift-1 | Info | 403 credential beats 409 not-open (eligibility checked first) |
+| My shifts / cancel someone else's | PASS | `[]` / 403 |
+| `/api/me` | Gap | No credential/expiry data, so the §12.4 trigger ("no valid license") has no data source. Needs `GET /api/nurses/me/credentials` (Stage 7) or credential status on `/api/me` |
+| Logout | PASS | |
+
+### Admin 1 — run 1 (state continued from Nurse 1 and Nurse 2)
+| # | Result | Evidence |
+|---|---|---|
+| AD-1 Login, sidebar, restore, role guard | PASS | → `/admin/dashboard`. `nav[aria-label=Admin]` Dashboard/Audit log/Timesheets with `aria-current`. Reload restores. `/agency/shifts`, `/nurse/shifts` → `/admin/dashboard` |
+| AD-2 Coverage dashboard UI | **MISSING** | "Coverage is coming". No `admin-dashboard-shift-table` / `admin-shift-status-badge`. `admin-1-dashboard-desktop.jpg` |
+| AD-2 API (browser) | PASS | `GET /api/shifts` counts open 1 / filled 2 / cancelled 0, exact shape |
+| AD-3 Audit UI | **MISSING** (misleading) | Placeholder says "No audit entries to show" while the API holds 15 rows. `admin-1-audit-desktop.jpg` |
+| AD-3 API (browser) | PASS | Rows from both agencies + auth rows (agencyId null), all `network-default`. Nurse 1 trail on shift-1: claimed → cancelled (advance) → claimed. Every row has `occurredAt` (ISO), actor, action, entity. `limit=5` paging 13..9 → 8..4 → 3..1 → `nextCursor:null`, no overlap, id desc. Filters entityType/entityId/action/from-to work. Bad query → 400 `Invalid query`. **`agencyId=` filter silently ignored** (not in `AuditLogQuery`) |
+| Denied attempts audited? | Info | Nurse 2's 403 claims → no audit rows (design choice; roadmap item) |
+| AD-4 Timesheets | **MISSING** | Placeholder. No `timesheet-table`, no route |
+| AD-5 Agency lists | PASS | agency-a 200 (shift-1, shift-2), agency-b 200 (shift-3), unknown agency 403 |
+| Admin writes | PASS | POST /api/shifts → 403 (with or without `X-Agency-Id`; admins can't post per ARCHITECTURE). Claim → 403. **Cancel shift-2 no-show → 200**, `cancellation:{reason:"no-show",previousNurseId:"nurse-1"}`. **Withdraw shift-3 → 200 cancelled**. Re-withdraw → 409. Counts recomputed to open 1 / filled 1 / cancelled 1. Admin writes audited (#14, #15) |
+| AD-6 Out-of-network | **N/T** (fixtures) | One network in the seed. Covered by `audit-logs.test.ts`, `matrix.test.ts`, `policy.test.ts`, `scope.test.ts`, `shifts.test.ts` (admin-1 → agency-c 403), `claim-cancel.test.ts` |
+| Layout (2552px) | Medium | No max width: `main` is 2304px wide. No skip link. Sidebar targets 215×44 ✓. Visible 3px focus ✓ |
+| Logout | PASS | |
+| Final state | — | shift-1 filled nurse-1 · shift-2 open · shift-3 cancelled. Restored to the spec seed at the end of QA |
+
+## Final verification (2026-11-07)
+| Check | Result |
+|---|---|
+| `/verify` | GREEN 4/4: api 429 tests (18 files), contract 18, contracts 93, web 36 |
+| `pnpm --filter web build` | ✓ (`next-env.d.ts` reverted) |
+| `pnpm --filter web test:e2e` (mocked API) | 34/34 ✓ |
+| `pnpm audit --prod --audit-level high` | No known vulnerabilities |
+| gitleaks | Not installed locally; runs in CI (`security` job) |
+| Independent review (`agent-skills:code-reviewer`) | Approve with changes. Applied: lint globals on the QA script; reset guard now also checks the host/DB the postgres.js driver would use and refuses `#`/`?` (parser-mismatch case `localhost#@evil`); more deployed-env flags; usage guard; touch-target claim corrected |
+| Baseline restored | `pnpm --filter api db:reset` → shift-1 open, shift-2 filled nurse-1, shift-3 open; 5 users; 0 audit rows. **Production not touched** |
