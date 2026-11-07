@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { SessionUnavailable } from "@/features/auth/role-guard";
 import { HOME_BY_ROLE, LOGIN_PATH } from "@/lib/routes";
 import { useSessionStore } from "@/stores/session";
 
@@ -16,6 +17,7 @@ export default function Home() {
     else if (status === "authenticated" && role) router.replace(HOME_BY_ROLE[role]);
   }, [status, role, router]);
 
+  if (status === "unavailable") return <SessionUnavailable />;
   return (
     <div className="page-loading" role="status" aria-busy="true">
       <span className="spin" aria-hidden="true" />
