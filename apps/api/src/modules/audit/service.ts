@@ -75,6 +75,7 @@ export async function listAuditLogs(db: Db, scope: AuditScope, q: AuditLogQuery)
     ...(q.entityType ? { entityType: q.entityType } : {}),
     ...(q.entityId ? { entityId: q.entityId } : {}),
     ...(q.action ? { action: q.action } : {}),
+    ...(q.agencyId ? { agencyId: q.agencyId } : {}), // QA-005: a filter inside the scope, never a scope of its own
     ...(q.from ? { from: new Date(q.from) } : {}),
     ...(q.to ? { to: new Date(q.to) } : {}),
     ...(before !== undefined ? { before } : {}),

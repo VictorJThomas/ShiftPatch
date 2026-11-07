@@ -109,8 +109,9 @@ describe("authorization and isolation", () => {
     expect(ids(await all("&entityType=iso", "admin-both"))).toEqual(["iso-a", "iso-b", "iso-c"]);
   });
 
-  it("admin cannot widen or switch the scope through the query (networkId / agencyId params are ignored)", async () => {
-    expect(ids(await all("&entityType=iso&networkId=network-2&agencyId=agency-c", "admin-1"))).toEqual(["iso-a", "iso-b"]);
+  it("admin cannot widen or switch the scope through the query (networkId is ignored; a foreign agencyId narrows to nothing)", async () => {
+    expect(ids(await all("&entityType=iso&networkId=network-2", "admin-1"))).toEqual(["iso-a", "iso-b"]);
+    expect(await all("&entityType=iso&networkId=network-2&agencyId=agency-c", "admin-1")).toEqual([]);
     err(await get("?entityType=iso", "admin-1", { "x-agency-id": "agency-c" }), 403, "Agency not available"); // header names no membership
   });
 
@@ -127,7 +128,8 @@ describe("authorization and isolation", () => {
 
   it("agency cannot reach another agency's rows by entityId, agencyId param or header", async () => {
     expect((await get("?entityType=iso&entityId=iso-b", "agency-a")).body).toEqual({ items: [], nextCursor: null });
-    expect(ids(await all("&entityType=iso&agencyId=agency-b&networkId=network-default", "agency-a"))).toEqual(["iso-a"]);
+    expect(await all("&entityType=iso&agencyId=agency-b&networkId=network-default", "agency-a")).toEqual([]); // narrows, never widens
+    expect(ids(await all("&entityType=iso&agencyId=agency-a", "agency-a"))).toEqual(["iso-a"]);
     err(await get("?entityType=iso", "agency-a", { "x-agency-id": "agency-b" }), 403, "Agency not available");
   });
 
@@ -213,6 +215,31 @@ describe("filters, pagination, empty results", () => {
     const p1 = await get("?entityType=flt&limit=1", "agency-a");
     const p2 = await get(`?entityType=flt&limit=1&cursor=${p1.body.nextCursor}`, "agency-a");
     expect([p1, p2].flatMap((p) => p.body.items.map((i: AuditLogEntry) => i.agencyId))).toEqual(["agency-a", "agency-a"]);
+  });
+
+  it("agencyId (QA-005): admin gets only that agency's rows inside their network", async () => {
+    expect(ids(await all("&entityType=flt&agencyId=agency-b", "admin-1"))).toEqual(["f-b"]);
+    const a = await all("&entityType=flt&agencyId=agency-a", "admin-1");
+    expect(ids(a).sort()).toEqual(["f-1", "f-2", "f-3"]);
+    expect(a.every((i) => i.agencyId === "agency-a")).toBe(true);
+  });
+
+  it("agencyId (QA-005): an agency outside the admin's network is an empty page, never another network's rows", async () => {
+    await ins({ networkId: "network-2", agencyId: "agency-c", entityType: "flt", entityId: "f-c" });
+    expect((await get("?entityType=flt&agencyId=agency-c", "admin-1")).body).toEqual({ items: [], nextCursor: null });
+    expect((await get("?entityType=flt&agencyId=agency-unknown", "admin-1")).body).toEqual({ items: [], nextCursor: null });
+    expect(ids(await all("&entityType=flt&agencyId=agency-c", "admin-2"))).toEqual(["f-c"]); // its own admin does see it
+  });
+
+  it("agencyId (QA-005) combines with action and cursor paging", async () => {
+    expect(ids(await all("&entityType=flt&agencyId=agency-a&action=flt.other", "admin-1")).sort()).toEqual(["f-1", "f-3"]);
+    expect(await all("&entityType=flt&agencyId=agency-b&action=flt.two", "admin-1")).toEqual([]);
+    const p1 = await get("?entityType=flt&agencyId=agency-a&limit=2", "admin-1");
+    expect(p1.body.items).toHaveLength(2);
+    expect(p1.body.nextCursor).not.toBeNull();
+    const p2 = await get(`?entityType=flt&agencyId=agency-a&limit=2&cursor=${p1.body.nextCursor}`, "admin-1");
+    expect(p2.body.nextCursor).toBeNull();
+    expect([...p1.body.items, ...p2.body.items].map((i: AuditLogEntry) => i.entityId)).toEqual(["f-3", "f-2", "f-1"]);
   });
 
   it("empty results are 200 { items: [], nextCursor: null }", async () => {
