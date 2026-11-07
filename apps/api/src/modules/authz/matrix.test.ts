@@ -214,12 +214,14 @@ describe(`authorization matrix (${ACTORS_NOTE})`, () => {
         expect(r.status).toBe(200);
         return r.body.items as AuditLogEntry[];
       };
-      const a = await rows("agency-a", "&agencyId=agency-b&networkId=network-2");
+      const a = await rows("agency-a", "&networkId=network-2");
       expect(a.length).toBeGreaterThan(0);
       expect(a.every((e) => e.agencyId === "agency-a")).toBe(true);
-      const n2 = await rows("admin-2", "&networkId=network-default&agencyId=agency-a");
+      expect(await rows("agency-a", "&agencyId=agency-b")).toEqual([]); // agencyId (QA-005) narrows inside the scope, never widens
+      const n2 = await rows("admin-2", "&networkId=network-default");
       expect(n2.length).toBeGreaterThan(0);
       expect(n2.every((e) => e.networkId === "network-2")).toBe(true);
+      expect(await rows("admin-2", "&agencyId=agency-a")).toEqual([]); // a foreign network's agency: empty, not its rows
       const n1 = await rows("admin-1", "&networkId=network-2");
       expect(n1.some((e) => e.networkId === "network-2")).toBe(false);
       // Sanity: the rows exist in the table, so the filters above really excluded something.
