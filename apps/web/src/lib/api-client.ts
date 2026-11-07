@@ -1,3 +1,4 @@
+import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import type { ZodType } from "zod";
 import { ErrorMessage, LoginResponse } from "@shiftpatch/contracts";
 import { setRoleCookie } from "@/lib/role-cookie";

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { useQuery } from "@tanstack/react-query";
 import { AgencyShiftsResponse } from "@shiftpatch/contracts";
 import { EmptyState } from "@/components/ui/EmptyState";

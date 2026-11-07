@@ -1139,6 +1139,7 @@ Open question §19 (Q2).
 2. Railway deploys the API with a pre-deploy step that runs `drizzle-kit migrate`.
 3. Vercel deploys the web app.
 4. The seed runs only through a manual Railway job (`pnpm db:seed`).
+5. Once per environment, after the first migrate: as the owner role run `docs/security/db-least-privilege.sql` (creates `shiftpatch_app`: DML only, no DDL, `audit_log` INSERT/SELECT only; re-runnable) and point the API's runtime `DATABASE_URL` at `shiftpatch_app`. Migrations and the seed keep the owner URL (Railway's pre-deploy step shares the service env, so it must override it: `DATABASE_URL=$OWNER_DATABASE_URL pnpm --filter api db:migrate`). Verified locally 2026-11-07 (built API + full HTTP flow ran as `shiftpatch_app`).
 
 **Before submission:** reset the production database to the exact spec seed (`pnpm db:reset && pnpm db:seed`). The graders' tests assume `shift-1` is open. There is **no** reset HTTP endpoint, since that would be a security hole.
 

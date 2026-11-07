@@ -74,8 +74,9 @@ export async function seed(db: Db) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is required");
+  // MIGRATE_DATABASE_URL = the schema owner (prod: the API's runtime DATABASE_URL is the least-privilege role, which has no DDL).
+  const url = process.env.MIGRATE_DATABASE_URL || process.env.DATABASE_URL;
+  if (!url) throw new Error("MIGRATE_DATABASE_URL or DATABASE_URL is required");
   const { db, sql: client } = createDb(url);
   await seed(db);
   await client.end();

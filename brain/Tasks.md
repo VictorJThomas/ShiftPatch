@@ -58,6 +58,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Audit shift.claimed: record when a pending license was used · Later
 - ☐ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
 - ☑ GET /api/me (profile + agency memberships)
+- ☐ Decide: reject past-dated shifts on create/claim/matchable?
 
 ## 5 Audit+Notify
 - ◐ Audit module wired into every write (same transaction)
@@ -86,10 +87,11 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
 - ☐ Warn or unassign when a license is rejected after a claim · Later
+- ☐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
 
 ## 8 Release
 - ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
-- ☐ Security pass: headers/CSP, IDOR, token tampering, upload abuse, dep audit
+- ☑ Security pass: headers/CSP, IDOR, token tampering, upload abuse, dep audit
 - ☐ Production reseed to exact spec data before submission
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
 

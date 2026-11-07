@@ -1,3 +1,4 @@
+import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { LoginResponse, MeResponse, type LoginRequest } from "@shiftpatch/contracts";
 import { apiFetch, refreshSession } from "@/lib/api-client";
 import { getQueryClient } from "@/lib/query-client";

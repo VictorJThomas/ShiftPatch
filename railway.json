@@ -7,6 +7,9 @@
   "deploy": {
     "startCommand": "pnpm --filter api start",
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 120
+    "healthcheckTimeout": 120,
+    "preDeployCommand": [
+      "pnpm --filter api db:migrate"
+    ]
   }
 }
