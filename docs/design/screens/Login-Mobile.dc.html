@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Login Mobile</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sp phone" data-theme="light" style="padding:0 24px">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px;padding-bottom:24px">
+    <div class="logo" style="gap:12px"><svg class="mark" style="width:44px;height:44px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"></rect><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"></rect><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"></rect></svg><span class="wordmark" style="font-size:30px">Shift<b>Patch</b></span></div>
+    <div class="col" style="gap:6px"><h1 style="font-size:32px;font-weight:750;letter-spacing:-.03em;line-height:1.1">Sign in</h1><p style="color:var(--c-ink-2)">One login for nurses, agencies and hospital admins.</p></div>
+
+    <div class="alert al-err" role="alert"><span class="ic ic-lg i-alert-circle" aria-hidden="true"></span><div><b>Invalid email or password</b>Check your details and try again.</div></div>
+
+    <form style="display:flex;flex-direction:column;gap:4px" onsubmit="return false">
+      <div class="fld"><label class="lbl" for="em">Email</label><div class="inp err"><input id="em" type="email" autocomplete="username" value="james.cook@example.com" aria-invalid="true" style="border:0;background:none;outline:0;width:100%"></div></div>
+      <div class="fld"><label class="lbl" for="pw">Password</label><div class="inp err"><input id="pw" type="password" autocomplete="current-password" value="wrongpassword" aria-invalid="true" style="border:0;background:none;outline:0;width:100%"><button type="button" class="btn btn-ghost btn-sm" style="min-height:36px">Show</button></div></div>
+      <button type="submit" class="btn btn-primary btn-block" style="min-height: 52px; font-size: 16px; color: #e8efec">Sign in</button>
+    </form>
+    <a href="#" style="align-self:center;min-height:44px;display:inline-flex;align-items:center">Forgot password?</a>
+  </div>
+  <p class="muted" style="font-size:12.5px;text-align:center;padding-bottom:20px">Times are shown in facility-local time, 24-hour.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agency Switcher</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.ag{display:flex;align-items:center;gap:14px;min-height:64px;padding:8px 14px;border-radius:12px}.tile{width:44px;height:44px;border-radius:12px;color:#fff;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none}</style>
+</helmet>
+<div class="sp" data-theme="light" style="width:640px;height:460px;padding:24px;display:flex;flex-direction:column;gap:12px">
+  <section style="background:#A24A00;color:#fff;border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px">
+    <span style="width:48px;height:48px;border-radius:12px;background:#fff;color:#A24A00;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center">SH</span>
+    <div style="flex:1"><div style="font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Active agency</div><div style="font-size:21px;font-weight:750;letter-spacing:-.02em">Sunrise Health Staffing</div></div>
+    <button class="btn is-focus" aria-expanded="true" aria-haspopup="listbox" style="border-color:#fff;color:#fff;background:rgba(255,255,255,.14)"><span class="ic i-swap" aria-hidden="true"></span>Switch agency<span class="ic i-down" aria-hidden="true" style="transform:rotate(180deg)"></span></button>
+  </section>
+  <div role="listbox" aria-label="Your agencies" class="card" style="box-shadow:var(--e-2);padding:8px;width:440px;align-self:flex-end;display:flex;flex-direction:column;gap:4px">
+    <div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px 4px">Your agencies · 2</div>
+    <div class="ag" role="option" aria-selected="true" style="background:var(--c-brand-soft);box-shadow:inset 0 0 0 1.5px var(--c-brand)"><span class="tile" style="background:#A24A00">SH</span><div style="flex:1"><b>Sunrise Health Staffing</b><div class="muted" style="font-size:13px">210 Harbor Street, Tampa, FL</div></div><span class="badge b-verified"><span class="ic i-check" aria-hidden="true"></span>Current</span></div>
+    <div class="ag" role="option" aria-selected="false"><span class="tile" style="background:#2F4FA3">MC</span><div style="flex:1"><b>Metro Care Partners</b><div class="muted" style="font-size:13px">88 Biscayne Way, Miami, FL</div></div><span class="btn btn-secondary btn-sm">Switch</span></div>
+  </div>
+  <p class="muted" style="font-size:13px;max-width:60ch">Switching reloads Shifts and Profile for that agency, and the whole band changes color and name. Single-agency users never see this control.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":640,"height":460}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

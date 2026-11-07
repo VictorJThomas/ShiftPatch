@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shift List States</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.cap{height:20px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c-ink-3)}</style>
+</helmet>
+<div class="sp" data-theme="light" style="width:1250px;height:884px;display:flex;gap:40px;background:transparent">
+
+  <div class="col" style="gap:8px"><span class="cap">Loading</span>
+  <div class="sp phone" data-theme="light" aria-busy="true">
+    <header class="appbar"><h1>Available shifts</h1><span class="avatar">ML</span></header>
+    <div class="body" style="display:flex;flex-direction:column;gap:14px">
+      <div class="row" style="gap:8px"><div class="skel" style="height:44px;width:112px;border-radius:999px"></div><div class="skel" style="height:44px;width:104px;border-radius:999px"></div><div class="skel" style="height:44px;width:60px;border-radius:999px"></div></div>
+      <span class="sr" role="status">Loading shifts…</span>
+      <div class="card shift"><div class="row between"><div class="skel" style="height:18px;width:60%"></div><div class="skel" style="height:28px;width:40px"></div></div><div class="skel" style="height:20px;width:82%"></div><div class="skel" style="height:26px;width:46%;border-radius:999px"></div><div class="skel" style="height:44px;width:100%;border-radius:10px"></div></div>
+      <div class="card shift"><div class="row between"><div class="skel" style="height:18px;width:52%"></div><div class="skel" style="height:28px;width:40px"></div></div><div class="skel" style="height:20px;width:78%"></div><div class="skel" style="height:26px;width:46%;border-radius:999px"></div><div class="skel" style="height:44px;width:100%;border-radius:10px"></div></div>
+      <div class="card shift" style="opacity:.6"><div class="row between"><div class="skel" style="height:18px;width:56%"></div><div class="skel" style="height:28px;width:40px"></div></div><div class="skel" style="height:20px;width:70%"></div></div>
+    </div>
+    <nav class="tabbar" aria-label="Main"><a class="tab on" href="#"><span class="ic ic-lg i-brief" aria-hidden="true"></span>Shifts</a><a class="tab" href="#"><span class="ic ic-lg i-list" aria-hidden="true"></span>My shifts</a><a class="tab" href="#"><span class="ic ic-lg i-idcard" aria-hidden="true"></span>Credentials</a><a class="tab" href="#"><span class="ic ic-lg i-user" aria-hidden="true"></span>Profile</a></nav>
+  </div></div>
+
+  <div class="col" style="gap:8px"><span class="cap">Empty (filters applied)</span>
+  <div class="sp phone" data-theme="light">
+    <header class="appbar"><h1>Available shifts</h1><span class="avatar">ML</span></header>
+    <div class="body" style="display:flex;flex-direction:column;gap:14px">
+      <div class="row" style="gap:8px"><button class="chip on" aria-pressed="true"><span class="ic ic-sm i-cal" aria-hidden="true"></span>Oct 5–6<span class="ic ic-sm i-down" aria-hidden="true"></span></button><button class="chip on" aria-pressed="true">LPN</button></div>
+      <div class="empty" style="margin-top:56px"><div class="glyph"><span class="ic ic-lg i-inbox" aria-hidden="true"></span></div><h3>No open shifts match</h3><p>Try another date or role. New shifts appear here as soon as agencies post them.</p><button class="btn btn-secondary" style="margin-top:8px">Clear filters</button></div>
+    </div>
+    <nav class="tabbar" aria-label="Main"><a class="tab on" href="#"><span class="ic ic-lg i-brief" aria-hidden="true"></span>Shifts</a><a class="tab" href="#"><span class="ic ic-lg i-list" aria-hidden="true"></span>My shifts</a><a class="tab" href="#"><span class="ic ic-lg i-idcard" aria-hidden="true"></span>Credentials</a><a class="tab" href="#"><span class="ic ic-lg i-user" aria-hidden="true"></span>Profile</a></nav>
+  </div></div>
+
+  <div class="col" style="gap:8px"><span class="cap">Error</span>
+  <div class="sp phone" data-theme="light">
+    <header class="appbar"><h1>Available shifts</h1><span class="avatar">ML</span></header>
+    <div class="body" style="display:flex;flex-direction:column;gap:14px">
+      <div class="alert al-err" role="alert"><span class="ic ic-lg i-alert-circle" aria-hidden="true"></span><div><b>Couldn't load shifts</b>We lost the connection. Your claimed shifts are safe.</div></div>
+      <div class="empty" style="margin-top:36px"><div class="glyph"><span class="ic ic-lg i-wifi-off" aria-hidden="true"></span></div><h3>Can't reach ShiftPatch</h3><p>Check your signal, then try again.</p><button class="btn btn-primary" style="margin-top: 8px; color: #e8efec"><span class="ic i-refresh" aria-hidden="true"></span>Try again</button></div>
+    </div>
+    <nav class="tabbar" aria-label="Main"><a class="tab on" href="#"><span class="ic ic-lg i-brief" aria-hidden="true"></span>Shifts</a><a class="tab" href="#"><span class="ic ic-lg i-list" aria-hidden="true"></span>My shifts</a><a class="tab" href="#"><span class="ic ic-lg i-idcard" aria-hidden="true"></span>Credentials</a><a class="tab" href="#"><span class="ic ic-lg i-user" aria-hidden="true"></span>Profile</a></nav>
+  </div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1250,"height":884}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

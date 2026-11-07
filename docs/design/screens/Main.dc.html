@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ShiftPatch Brand Sheet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.bs h2{font-size:28px;font-weight:750;letter-spacing:-.02em}
+.bs .eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--c-brand-ink)}
+.bs .sw{height:64px;border-radius:10px;border:1px solid var(--c-line-strong)}
+.bs code,.bs pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+</style>
+</helmet>
+<div class="sp bs" data-theme="light" style="width:1280px;min-height:3500px;padding:72px 80px;display:flex;flex-direction:column;gap:72px">
+
+<!-- HERO -->
+<header style="display:flex;justify-content:space-between;align-items:flex-end;gap:40px">
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="eyebrow">Brand &amp; design tokens · v1</div>
+    <div class="logo" style="gap:18px">
+      <svg class="mark" style="width:84px;height:84px" viewBox="0 0 48 48" aria-label="ShiftPatch mark" role="img"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg>
+      <span class="wordmark" style="font-size:76px">Shift<b>Patch</b></span>
+    </div>
+    <p style="font-size:20px;color:var(--c-ink-2);max-width:56ch">Calm, exact shift coverage for Florida hospitals, agencies and nurses. A reliable operations tool, not a gig app.</p>
+  </div>
+  <p style="max-width:34ch;color:var(--c-ink-3);font-size:14px">Built to drop into Next.js: every value below is a CSS variable in <code>tokens.css</code>. Light is default; add <code>data-theme="dark"</code> to flip.</p>
+</header>
+
+<!-- 01 LOGO -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">01</div><h2>Logo &amp; app icon</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+    <div class="card" style="padding:40px;display:flex;flex-direction:column;gap:20px;align-items:flex-start">
+      <div class="logo" style="gap:14px"><svg class="mark" style="width:56px;height:56px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="wordmark" style="font-size:44px">Shift<b>Patch</b></span></div>
+      <p class="muted" style="font-size:14px">Primary lockup · light</p>
+    </div>
+    <div class="sp" data-theme="dark" style="border-radius:16px;padding:40px;display:flex;flex-direction:column;gap:20px;align-items:flex-start">
+      <div class="logo" style="gap:14px"><svg class="mark" style="width:56px;height:56px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="wordmark" style="font-size:44px">Shift<b>Patch</b></span></div>
+      <p class="muted" style="font-size:14px">Primary lockup · dark</p>
+    </div>
+    <div class="card" style="padding:28px 32px;display:flex;flex-direction:column;gap:12px;background:var(--c-brand-soft)">
+      <h3 style="font-size:18px;font-weight:700">The idea</h3>
+      <p style="color:var(--c-ink-2)">Two tiles. The white one is the shift; the amber one is the patch laid over a gap. No crosses, no pulse lines. The wordmark sets <em>Shift</em> light and <b style="color:var(--c-brand)">Patch</b> heavy.</p>
+      <p style="color:var(--c-ink-2);font-size:14px">Clear space: one tile width on every side. Min size: mark 16 px, lockup 96 px wide.</p>
+    </div>
+  </div>
+  <div class="card" style="padding:32px;display:flex;gap:48px;align-items:flex-end;flex-wrap:wrap">
+    <div class="col" style="gap:10px;align-items:center"><svg class="mark" style="width:96px;height:96px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="muted" style="font-size:13px">App icon 96</span></div>
+    <div class="col" style="gap:10px;align-items:center"><svg class="mark" style="width:48px;height:48px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="muted" style="font-size:13px">48</span></div>
+    <div class="col" style="gap:10px;align-items:center"><svg class="mark" style="width:32px;height:32px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="muted" style="font-size:13px">Favicon 32</span></div>
+    <div class="col" style="gap:10px;align-items:center"><svg class="mark" style="width:16px;height:16px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="muted" style="font-size:13px">16</span></div>
+    <div class="sp" data-theme="dark" style="padding:20px;border-radius:16px;display:flex;gap:16px;align-items:center"><svg class="mark" style="width:64px;height:64px" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="muted" style="font-size:13px">Dark icon</span></div>
+    <p class="muted" style="font-size:14px;max-width:36ch;margin-left:auto">Icon stays one shape: rounded square, radius 25%. Favicon ships as SVG with the same three rects.</p>
+  </div>
+</section>
+
+<!-- 02 COLOR -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">02</div><h2>Color — light &amp; dark</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+    <div class="sp" data-theme="light" style="border:1px solid var(--c-line);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:16px">
+      <h3 style="font-size:16px;font-weight:700">Light</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+        <sc-for list="{{swL}}" as="s" hint-placeholder-count="9">
+          <div class="col" style="gap:6px"><div class="sw" style="background: {{s.v}}"></div><b style="font-size:13px">{{s.n}}</b><code class="muted">{{s.hex}}</code><span class="muted" style="font-size:12px">{{s.use}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+    <div class="sp" data-theme="dark" style="border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:16px">
+      <h3 style="font-size:16px;font-weight:700">Dark</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+        <sc-for list="{{swD}}" as="s" hint-placeholder-count="9">
+          <div class="col" style="gap:6px"><div class="sw" style="background: {{s.v}}"></div><b style="font-size:13px">{{s.n}}</b><code class="muted">{{s.hex}}</code><span class="muted" style="font-size:12px">{{s.use}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <p class="muted" style="font-size:14px;max-width:90ch">Contrast (WCAG 2.2 AA): ink on bg ≈15:1 · secondary ink ≈7.5:1 · muted ink ≈5.3:1 · text on brand (#E8EFEC) ≈7:1 · input border ≈3.8:1 on white (needs 3:1). Dark: ink ≈15:1 · brand on bg ≈9:1 · button text on brand ≈8:1. Amber <code>--c-patch</code> is for the mark only, never text.</p>
+</section>
+
+<!-- 03 STATUS -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">03</div><h2>Status system</h2><p class="muted" style="margin-top:6px;max-width:80ch">Every status is icon + label + tint. Cancelled strikes its label; Expired adds a dashed hatch and heavier outline so it never reads as Pending.</p></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+    <div class="sp" data-theme="light" style="border:1px solid var(--c-line);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:20px">
+      <div class="col" style="gap:10px"><span class="muted" style="font-size:13px;font-weight:700">SHIFT</span><div class="row" style="flex-wrap:wrap;gap:10px">
+        <sc-for list="{{shiftBadges}}" as="b" hint-placeholder-count="4"><span class="badge {{b.cls}}"><span class="ic {{b.icon}}" aria-hidden="true"></span><span class="{{b.lc}}">{{b.label}}</span></span></sc-for>
+      </div></div>
+      <div class="col" style="gap:10px"><span class="muted" style="font-size:13px;font-weight:700">CREDENTIAL</span><div class="row" style="flex-wrap:wrap;gap:10px">
+        <sc-for list="{{credBadges}}" as="b" hint-placeholder-count="4"><span class="badge {{b.cls}}"><span class="ic {{b.icon}}" aria-hidden="true"></span><span>{{b.label}}</span></span></sc-for>
+      </div></div>
+    </div>
+    <div class="sp" data-theme="dark" style="border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:20px">
+      <div class="col" style="gap:10px"><span class="muted" style="font-size:13px;font-weight:700">SHIFT</span><div class="row" style="flex-wrap:wrap;gap:10px">
+        <sc-for list="{{shiftBadges}}" as="b" hint-placeholder-count="4"><span class="badge {{b.cls}}"><span class="ic {{b.icon}}" aria-hidden="true"></span><span class="{{b.lc}}">{{b.label}}</span></span></sc-for>
+      </div></div>
+      <div class="col" style="gap:10px"><span class="muted" style="font-size:13px;font-weight:700">CREDENTIAL</span><div class="row" style="flex-wrap:wrap;gap:10px">
+        <sc-for list="{{credBadges}}" as="b" hint-placeholder-count="4"><span class="badge {{b.cls}}"><span class="ic {{b.icon}}" aria-hidden="true"></span><span>{{b.label}}</span></span></sc-for>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 TYPE -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">04</div><h2>Typography — Schibsted Grotesk</h2><p class="muted" style="margin-top:6px;max-width:80ch">One family, weights 400–800. Tight tracking on headings, tabular numerals for times, counts and tables. Body never below 14 px on desktop and 16 px on mobile.</p></div>
+  <div class="card" style="padding:12px 32px">
+    <sc-for list="{{typeScale}}" as="t" hint-placeholder-count="7">
+      <div style="display:grid;grid-template-columns:150px 1fr 150px;gap:24px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--c-line)">
+        <code class="muted">{{t.token}} · {{t.px}}</code>
+        <span style="font-size: {{t.px}}; font-weight: {{t.w}}; letter-spacing: {{t.ls}}; line-height:1.15">{{t.sample}}</span>
+        <span class="muted" style="font-size:13px">{{t.use}}</span>
+      </div>
+    </sc-for>
+    <div style="display:flex;gap:40px;padding:18px 0;align-items:baseline;flex-wrap:wrap">
+      <span style="font-weight:400">Regular 400</span><span style="font-weight:500">Medium 500</span><span style="font-weight:650">Semibold 650</span><span style="font-weight:750">Bold 750</span>
+      <span class="tnum" style="font-weight:650">Fri, Oct 2 · 19:00 → Sat 07:00 <span class="muted" style="font-weight:400">(tabular)</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- 05 SPACE / RADIUS / ELEVATION -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">05</div><h2>Spacing, radius, elevation</h2></div>
+  <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px">
+    <div class="card" style="padding:28px;display:flex;flex-direction:column;gap:10px">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">Spacing · 4 px base</h3>
+      <sc-for list="{{spaces}}" as="s" hint-placeholder-count="10">
+        <div class="row" style="gap:16px"><code class="muted" style="width:92px">{{s.token}}</code><div style="height:16px;border-radius:4px;background:var(--c-brand);width: {{s.px}}"></div><span class="tnum muted" style="font-size:13px">{{s.px}}</span></div>
+      </sc-for>
+    </div>
+    <div class="col" style="gap:24px">
+      <div class="card" style="padding:28px;display:flex;flex-direction:column;gap:14px">
+        <h3 style="font-size:16px;font-weight:700">Radius</h3>
+        <div class="row" style="gap:16px;flex-wrap:wrap">
+          <sc-for list="{{radii}}" as="r" hint-placeholder-count="5">
+            <div class="col" style="gap:6px;align-items:center"><div style="width:64px;height:64px;background:var(--c-brand-soft);border:2px solid var(--c-brand);border-radius: {{r.px}}"></div><code class="muted" style="font-size:11.5px">{{r.token}}</code><span class="muted" style="font-size:12px">{{r.label}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="card" style="padding:28px;display:flex;flex-direction:column;gap:14px">
+        <h3 style="font-size:16px;font-weight:700">Elevation</h3>
+        <div class="row" style="gap:20px">
+          <div class="col" style="gap:6px;flex:1"><div style="height:64px;border-radius:12px;background:var(--c-surface);box-shadow:var(--e-1);border:1px solid var(--c-line)"></div><code class="muted" style="font-size:12px">--e-1 cards</code></div>
+          <div class="col" style="gap:6px;flex:1"><div style="height:64px;border-radius:12px;background:var(--c-surface);box-shadow:var(--e-2)"></div><code class="muted" style="font-size:12px">--e-2 menus</code></div>
+          <div class="col" style="gap:6px;flex:1"><div style="height:64px;border-radius:12px;background:var(--c-surface);box-shadow:var(--e-3)"></div><code class="muted" style="font-size:12px">--e-3 sheets, toasts</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 ICONS -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">06</div><h2>Icon style</h2><p class="muted" style="margin-top:6px;max-width:80ch">24 px grid, 1.75 px stroke, round caps and joins, one color (currentColor). Shown at 20 px by default, 24 px in tab bars. Icons support text; they never replace it, except on labelled icon buttons.</p></div>
+  <div class="card" style="padding:28px;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:20px 12px">
+    <sc-for list="{{icons}}" as="i" hint-placeholder-count="20">
+      <div class="col" style="gap:8px;align-items:center"><span class="ic ic-lg {{i.c}}" aria-hidden="true"></span><code class="muted" style="font-size:11px">{{i.n}}</code></div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- 07 A11Y + FOCUS -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">07</div><h2>Accessibility rules baked in</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+    <div class="card" style="padding:28px;display:flex;flex-direction:column;gap:16px">
+      <h3 style="font-size:16px;font-weight:700">Focus, targets, controls</h3>
+      <div class="row" style="gap:16px;flex-wrap:wrap">
+        <button class="btn btn-primary is-focus">Claim shift</button>
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-danger">Reject</button>
+        <button class="btn btn-ghost">Upload</button>
+        <button class="btn btn-primary btn-sm">Compact · desktop only</button>
+      </div>
+      <p class="muted" style="font-size:14px">Focus ring: 3 px <code>--c-focus</code>, 2 px offset, always visible on keyboard focus (shown on the first button). Touch targets 44 px (<code>--tap</code>); compact 36 px only on pointer-fine desktop tables with 8 px gaps (WCAG 2.2 target size).</p>
+      <div class="fld" style="margin:0"><label class="lbl" for="demo1">Email</label><div class="inp"><input id="demo1" style="border:0;background:none;outline:0;width:100%" value="maria.lopez@example.com"></div></div>
+    </div>
+    <div class="card" style="padding:28px;display:flex;flex-direction:column;gap:14px">
+      <h3 style="font-size:16px;font-weight:700">Never color alone</h3>
+      <ul style="display:flex;flex-direction:column;gap:10px;color:var(--c-ink-2)">
+        <li class="row" style="align-items:flex-start"><span class="ic i-check-circle" aria-hidden="true" style="margin-top:2px"></span>Status = icon + word + tint. Errors = icon + message + heavier border.</li>
+        <li class="row" style="align-items:flex-start"><span class="ic i-check-circle" aria-hidden="true" style="margin-top:2px"></span>Toasts use <code>role="status"</code> (success) and <code>role="alert"</code> (error).</li>
+        <li class="row" style="align-items:flex-start"><span class="ic i-check-circle" aria-hidden="true" style="margin-top:2px"></span>Overnight shifts say "→ Sat 07:00" in text plus an Overnight tag.</li>
+        <li class="row" style="align-items:flex-start"><span class="ic i-check-circle" aria-hidden="true" style="margin-top:2px"></span>Respect <code>prefers-reduced-motion</code>; skeleton shimmer stops.</li>
+        <li class="row" style="align-items:flex-start"><span class="ic i-check-circle" aria-hidden="true" style="margin-top:2px"></span>All times 24-hour, facility-local, tabular numerals.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 08 TOKENS -->
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div><div class="eyebrow">08</div><h2>Tokens → Next.js</h2><p class="muted" style="margin-top:6px;max-width:80ch">Put these in <code>app/tokens.css</code>, import once in <code>layout.tsx</code>, add the font with <code>next/font/google</code> (Schibsted_Grotesk) and map <code>--f-sans</code> to it. Scope on <code>:root</code> instead of <code>.sp</code> in the app. The full file, with all 8 status pairs and icon masks, ships with this canvas as <code>tokens.css</code>.</p></div>
+  <div class="card" style="padding:28px;background:var(--c-ink);color:#E8EFEC;border:0"><pre style="margin:0;white-space:pre-wrap;line-height:1.6">:root {
+  --c-bg:#F5F4EF; --c-surface:#FFFFFF; --c-sunken:#ECEAE3; --c-line:#DDDBD1; --c-line-strong:#868476;
+  --c-ink:#14201E; --c-ink-2:#44514E; --c-ink-3:#5B6764;
+  --c-brand:#0E5A55; --c-brand-hover:#0A4743; --c-brand-soft:#DCEEEA; --c-on-brand:#E8EFEC;
+  --c-patch:#F2B544; --c-focus:#1A5FB4;
+  --st-open-bg:#E3EEFB;   --st-open-fg:#0F4C8A;     --st-filled-bg:#DDF0E6;   --st-filled-fg:#17603A;
+  --st-cancelled-bg:#ECEBE6; --st-cancelled-fg:#4A4F4D; --st-completed-bg:#EAE6F7; --st-completed-fg:#4A3A91;
+  --st-pending-bg:#FBEFD0; --st-pending-fg:#7A4B00;   --st-verified-bg:#DDF0E6; --st-verified-fg:#17603A;
+  --st-rejected-bg:#FBE3DF; --st-rejected-fg:#9A2519; --st-expired-bg:#FDE6D2;  --st-expired-fg:#8A3B05;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px; --s-16:64px;
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-xl:24px; --r-pill:999px;
+  --e-1:0 1px 2px rgba(20,32,30,.07); --e-2:0 4px 14px rgba(20,32,30,.10); --e-3:0 14px 36px rgba(20,32,30,.18);
+  --tap:44px;
+}
+[data-theme="dark"] {
+  --c-bg:#0E1514; --c-surface:#162120; --c-sunken:#1D2B29; --c-line:#2B3A38; --c-line-strong:#6F7F7B;
+  --c-ink:#E8EFEC; --c-ink-2:#B2C0BC; --c-ink-3:#93A39F;
+  --c-brand:#5CC8BB; --c-brand-soft:#173532; --c-on-brand:#062320; --c-focus:#8DBBFF;
+}</pre></div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":3500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (n, v, l, d, use) => ({ n, v: 'var(' + v + ')', hexL: l, hexD: d, use });
+    const base = [
+      mk('Background', '--c-bg', '#F5F4EF', '#0E1514', 'Page'),
+      mk('Surface', '--c-surface', '#FFFFFF', '#162120', 'Cards, sheets'),
+      mk('Sunken', '--c-sunken', '#ECEAE3', '#1D2B29', 'Table heads, wells'),
+      mk('Line', '--c-line', '#DDDBD1', '#2B3A38', 'Dividers'),
+      mk('Input border', '--c-line-strong', '#868476', '#6F7F7B', 'Controls, 3:1+'),
+      mk('Ink', '--c-ink', '#14201E', '#E8EFEC', 'Body text'),
+      mk('Ink 2', '--c-ink-2', '#44514E', '#B2C0BC', 'Secondary'),
+      mk('Ink 3', '--c-ink-3', '#5B6764', '#93A39F', 'Muted, 5:1+'),
+      mk('Brand', '--c-brand', '#0E5A55', '#5CC8BB', 'Actions, links'),
+      mk('Brand soft', '--c-brand-soft', '#DCEEEA', '#173532', 'Selected'),
+      mk('Patch', '--c-patch', '#F2B544', '#F2B544', 'Mark only'),
+      mk('Focus', '--c-focus', '#1A5FB4', '#8DBBFF', 'Focus ring')
+    ];
+    const badge = (cls, icon, label, extra) => ({ cls, icon, label, lc: extra || '' });
+    return {
+      swL: base.map(s => ({ n: s.n, v: s.v, hex: s.hexL, use: s.use })),
+      swD: base.map(s => ({ n: s.n, v: s.v, hex: s.hexD, use: s.use })),
+      shiftBadges: [
+        badge('b-open', 'i-dot', 'Open'),
+        badge('b-filled', 'i-check-circle', 'Filled'),
+        badge('b-cancelled', 'i-ban', 'Cancelled', 'lbl-s'),
+        badge('b-completed', 'i-flag', 'Completed')
+      ],
+      credBadges: [
+        badge('b-pending', 'i-clock', 'Pending review'),
+        badge('b-verified', 'i-shield', 'Verified'),
+        badge('b-rejected', 'i-x-circle', 'Rejected'),
+        badge('b-expired', 'i-cal-x', 'Expired')
+      ],
+      typeScale: [
+        { token: '--t-4xl', px: '48px', w: 750, ls: '-0.03em', sample: 'Open shifts, covered', use: 'Marketing, login' },
+        { token: '--t-3xl', px: '36px', w: 750, ls: '-0.025em', sample: 'Good morning, Maria', use: 'Page title (desktop)' },
+        { token: '--t-2xl', px: '28px', w: 700, ls: '-0.02em', sample: 'Available shifts', use: 'Page title (mobile)' },
+        { token: '--t-xl', px: '22px', w: 700, ls: '-0.015em', sample: 'Sunrise Health Staffing', use: 'Section, app bar' },
+        { token: '--t-lg', px: '18px', w: 650, ls: '-0.01em', sample: 'Fri, Oct 2 · 19:00 → Sat 07:00', use: 'Shift time' },
+        { token: '--t-base', px: '16px', w: 450, ls: '0', sample: 'Claim the shifts you are cleared to work.', use: 'Body (mobile)' },
+        { token: '--t-sm', px: '14px', w: 500, ls: '0', sample: 'Updated 10 s ago · refreshes every 15 s', use: 'Tables, meta' },
+        { token: '--t-xs', px: '12px', w: 600, ls: '0.01em', sample: 'Max 10 MB · PDF, JPG, PNG, HEIC', use: 'Hints, tab labels' }
+      ],
+      spaces: [
+        { token: '--s-1', px: '4px' }, { token: '--s-2', px: '8px' }, { token: '--s-3', px: '12px' }, { token: '--s-4', px: '16px' },
+        { token: '--s-5', px: '20px' }, { token: '--s-6', px: '24px' }, { token: '--s-8', px: '32px' }, { token: '--s-10', px: '40px' },
+        { token: '--s-12', px: '48px' }, { token: '--s-16', px: '64px' }
+      ],
+      radii: [
+        { token: '--r-sm', px: '6px', label: '6 · tags' }, { token: '--r-md', px: '10px', label: '10 · controls' },
+        { token: '--r-lg', px: '16px', label: '16 · cards' }, { token: '--r-xl', px: '24px', label: '24 · sheets' },
+        { token: '--r-pill', px: '999px', label: 'pill · chips' }
+      ],
+      icons: ['check','x','clock','alert','info','check-circle','x-circle','ban','dot','flag','shield','cal','cal-x','pin','search','upload','camera','file','user','brief','list','idcard','grid','eye','refresh','building','phone','mail','lock','swap','inbox','note','arrow','plus','down','right','left','moon','logout','wifi-off'].map(n => ({ n, c: 'i-' + n }))
+    };
+  }
+}
+</script>
+</body>
+</html>

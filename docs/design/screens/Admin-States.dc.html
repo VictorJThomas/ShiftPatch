@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin States</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.cap{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c-ink-3);margin-bottom:8px}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:900px;padding:32px 40px;display:flex;flex-direction:column;gap:24px">
+  <div><h1 style="font-size:24px;font-weight:750;letter-spacing:-.02em">Admin dashboard · states</h1><p class="muted" style="font-size:14px">Loading, error with stale data, and the dark theme.</p></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:24px;align-items:start">
+    <div class="col" style="gap:24px">
+      <div class="col"><span class="cap">Loading</span>
+        <div class="card" aria-busy="true" style="padding:20px;display:flex;flex-direction:column;gap:16px"><span class="sr" role="status">Loading coverage…</span>
+          <div class="row" style="gap:12px"><div class="skel" style="height:96px;flex:1;border-radius:12px"></div><div class="skel" style="height:96px;flex:1;border-radius:12px"></div><div class="skel" style="height:96px;flex:1;border-radius:12px"></div><div class="skel" style="height:96px;flex:1;border-radius:12px"></div></div>
+          <div class="skel" style="height:20px;width:100%"></div><div class="skel" style="height:20px;width:100%"></div><div class="skel" style="height:20px;width:100%"></div>
+        </div></div>
+      <div class="col"><span class="cap">Error · showing last good data</span>
+        <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div class="alert al-err" role="alert"><span class="ic ic-lg i-alert-circle" aria-hidden="true"></span><div style="flex:1"><b>Live updates paused</b>Couldn't refresh. Showing data from 08:14, retrying every 15 s.</div><button class="btn btn-danger btn-sm"><span class="ic ic-sm i-refresh" aria-hidden="true"></span>Retry now</button></div>
+          <div class="row pill-live" style="gap:8px"><span class="ic ic-sm i-refresh" aria-hidden="true"></span>Updated 1 min ago</div>
+          <table class="tbl"><tbody><tr><td><b>Sunrise Health Staffing</b></td><td><span class="role">RN</span></td><td class="num">Fri, Oct 2</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td></tr><tr><td><b>Metro Care Partners</b></td><td><span class="role">RN</span></td><td class="num">Sun, Oct 4</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td></tr></tbody></table>
+        </div></div>
+    </div>
+    <div class="col"><span class="cap">Dark theme</span>
+      <div class="sp" data-theme="dark" style="border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div class="row between"><h2 style="font-size:26px;font-weight:750;letter-spacing:-.03em">Coverage</h2><div class="pill-live"><span class="ic ic-sm i-refresh" aria-hidden="true"></span>Updated 10 s ago</div></div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+          <div class="card stat"><span class="l"><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></span><span class="n">2</span></div>
+          <div class="card stat"><span class="l"><span class="badge b-filled"><span class="ic i-check-circle" aria-hidden="true"></span>Filled</span></span><span class="n">1</span></div>
+          <div class="card stat"><span class="l"><span class="badge b-cancelled"><span class="ic i-ban" aria-hidden="true"></span><span class="lbl-s">Cancelled</span></span></span><span class="n">0</span></div>
+          <div class="card stat" style="border-color:var(--st-pending-fg)"><span class="l" style="color:var(--st-pending-fg)"><span class="ic i-clock" aria-hidden="true"></span>Open · next 48 h</span><span class="n">1</span></div>
+        </div>
+        <div class="card"><table class="tbl">
+          <thead><tr><th>Agency</th><th>Role</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><b>Sunrise Health Staffing</b></td><td><span class="role">RN</span></td><td class="num">Fri, Oct 2</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td></tr>
+            <tr><td><b>Sunrise Health Staffing</b></td><td><span class="role">LPN</span></td><td class="num">Sat, Oct 3</td><td><span class="badge b-filled"><span class="ic i-check-circle" aria-hidden="true"></span>Filled</span></td></tr>
+            <tr><td><b>Metro Care Partners</b></td><td><span class="role">RN</span></td><td class="num">Sun, Oct 4</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td></tr>
+          </tbody></table></div>
+        <div class="row" style="gap:10px;flex-wrap:wrap"><span class="badge b-pending"><span class="ic i-clock" aria-hidden="true"></span>Pending review</span><span class="badge b-verified"><span class="ic i-shield" aria-hidden="true"></span>Verified</span><span class="badge b-rejected"><span class="ic i-x-circle" aria-hidden="true"></span>Rejected</span><span class="badge b-expired"><span class="ic i-cal-x" aria-hidden="true"></span>Expired</span><span class="badge b-completed"><span class="ic i-flag" aria-hidden="true"></span>Completed</span></div>
+      </div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

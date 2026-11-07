@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Available Shifts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sp phone" data-theme="light">
+  <header class="appbar">
+    <h1>Available shifts</h1>
+    <span class="avatar" aria-label="Maria Lopez">ML</span>
+  </header>
+  <div class="body" style="display:flex;flex-direction:column;gap:14px">
+    <div class="row" style="gap:8px;overflow:hidden;flex:none;margin:0 -16px;padding:0 16px">
+      <button class="chip on" aria-pressed="true"><span class="ic ic-sm i-cal" aria-hidden="true"></span>Oct 2–4<span class="ic ic-sm i-down" aria-hidden="true"></span></button>
+      <button class="chip on" aria-pressed="true">All roles</button>
+      <button class="chip" aria-pressed="false">RN</button>
+      <button class="chip" aria-pressed="false">LPN</button>
+    </div>
+    <p class="muted" style="font-size:14px;font-weight:600">2 shifts you can take</p>
+
+    <article class="card shift">
+      <div class="row between"><span class="agency">Sunrise Health Staffing</span><span class="role">RN</span></div>
+      <div class="col" style="gap:6px"><div class="when">Fri, Oct 2 · 19:00 <span class="arr">→</span> Sat 07:00</div><div class="row" style="gap:8px"><span class="tag"><span class="ic i-moon" aria-hidden="true"></span>Overnight · 12 h</span><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></div></div>
+      <div class="row" style="gap:10px"><button class="btn btn-primary" style="flex:1"><span style="color: rgb(232, 239, 236); background-color: rgb(14, 90, 85)">Claim shift</span></button><button class="btn btn-secondary">Details</button></div>
+    </article>
+
+    <article class="card shift">
+      <div class="row between"><span class="agency">Metro Care Partners</span><span class="role">RN</span></div>
+      <div class="col" style="gap:6px"><div class="when">Sun, Oct 4 · 19:00 <span class="arr">→</span> Mon 07:00</div><div class="row" style="gap:8px"><span class="tag"><span class="ic i-moon" aria-hidden="true"></span>Overnight · 12 h</span><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></div></div>
+      <div class="row" style="gap:10px"><button class="btn btn-primary" style="flex: 1; color: #e8efec">Claim shift</button><button class="btn btn-secondary">Details</button></div>
+    </article>
+  </div>
+  <nav class="tabbar" aria-label="Main">
+    <a class="tab on" href="#" aria-current="page"><span class="ic ic-lg i-brief" aria-hidden="true"></span>Shifts</a>
+    <a class="tab" href="#"><span class="ic ic-lg i-list" aria-hidden="true"></span>My shifts</a>
+    <a class="tab" href="#"><span class="ic ic-lg i-idcard" aria-hidden="true"></span>Credentials</a>
+    <a class="tab" href="#"><span class="ic ic-lg i-user" aria-hidden="true"></span>Profile</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

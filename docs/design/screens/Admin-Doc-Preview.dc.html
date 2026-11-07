@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Secure Document Preview</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.docl{height:10px;border-radius:4px;background:#D6D3C8}.wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(-24deg);font-size:26px;font-weight:800;letter-spacing:.04em;color:rgba(20,32,30,.13);text-align:center;line-height:1.5;pointer-events:none}.kv{display:flex;flex-direction:column;gap:2px}.kv small{font-size:12.5px;font-weight:650;color:var(--c-ink-3)}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:900px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:32px">
+  <div style="position:absolute;inset:0;padding:32px 40px;opacity:.5"><h1 style="font-size:32px;font-weight:750">Credential review</h1><div class="card" style="margin-top:24px;height:360px"></div></div>
+  <div class="scrim"></div>
+  <section class="modal" role="dialog" aria-labelledby="dp" style="position:relative;width:1000px;max-width:100%;display:flex;flex-direction:column;overflow:hidden">
+    <div class="row between" style="padding:18px 24px;border-bottom:1px solid var(--c-line);gap:16px;flex-wrap:wrap">
+      <div><h2 id="dp" style="font-size:20px;font-weight:750;letter-spacing:-.01em">Nursing license (renewal) · James Cook</h2><div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap"><span class="tag"><span class="ic i-lock" aria-hidden="true"></span>Secure preview</span><span class="tag tnum"><span class="ic i-clock" aria-hidden="true"></span>Link expires in 04:52</span><span class="tag">View only · no download</span></div></div>
+      <button class="iconbtn" aria-label="Close preview"><span class="ic i-x" aria-hidden="true"></span></button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap">
+      <div style="flex:999 1 560px;min-width:0;background:var(--c-sunken);padding:28px;display:flex;justify-content:center">
+        <div style="position:relative;width:100%;max-width:520px;aspect-ratio:8.5/11;background:#FBFAF6;border-radius:6px;box-shadow:var(--e-2);padding:36px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+          <div class="docl" style="width:55%;height:16px"></div><div class="docl" style="width:35%"></div>
+          <div style="height:16px"></div>
+          <div class="docl" style="width:90%"></div><div class="docl" style="width:82%"></div><div class="docl" style="width:88%"></div>
+          <div style="height:10px"></div>
+          <div class="row" style="gap:20px;align-items:flex-start"><div style="width:96px;height:120px;background:#D6D3C8;border-radius:4px;flex:none"></div><div class="col" style="gap:12px;flex:1"><div class="docl" style="width:70%"></div><div class="docl" style="width:50%"></div><div class="docl" style="width:62%"></div><div class="docl" style="width:40%"></div></div></div>
+          <div style="height:10px"></div>
+          <div class="docl" style="width:76%"></div><div class="docl" style="width:84%"></div><div class="docl" style="width:60%"></div>
+          <div class="wm">Viewed by Alex Kim<br>2026-10-02 08:16</div>
+        </div>
+      </div>
+      <aside style="flex:1 1 300px;padding:24px;display:flex;flex-direction:column;gap:16px;border-left:1px solid var(--c-line)">
+        <span class="badge b-pending" style="align-self:flex-start"><span class="ic i-clock" aria-hidden="true"></span>Pending review</span>
+        <div class="kv"><small>Nurse</small><b>James Cook</b></div>
+        <div class="kv"><small>Type</small>Nursing license (renewal)</div>
+        <div class="kv"><small>Expires</small><span class="tnum">2028-03-15</span></div>
+        <div class="kv"><small>Previous license</small><span class="tnum row" style="gap:6px"><span class="badge b-expired" style="min-height:24px"><span class="ic i-cal-x" aria-hidden="true"></span>Expired 2026-06-01</span></span></div>
+        <div class="kv"><small>Uploaded</small><span class="tnum">2026-10-01 14:05</span></div>
+        <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-primary btn-block" style="color: #E8EFEC"><span class="ic i-check" aria-hidden="true"></span>Verify</button>
+          <button class="btn btn-danger btn-block">Reject with note…</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

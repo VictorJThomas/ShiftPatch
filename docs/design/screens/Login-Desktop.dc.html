@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Login Desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:844px;display:flex;flex-wrap:wrap">
+  <aside style="flex:1 1 440px;background:var(--c-brand);color:var(--c-on-brand);padding:64px;display:flex;flex-direction:column;justify-content:space-between;gap:48px">
+    <div class="logo" style="gap:14px"><svg class="mark" style="width:48px;height:48px" viewBox="0 0 48 48" aria-hidden="true"><rect fill="#fff" width="48" height="48" rx="12"></rect><rect fill="#0E5A55" x="11" y="11" width="19" height="19" rx="5"></rect><rect class="m-b" style="stroke:#fff" x="19" y="19" width="19" height="19" rx="5"></rect></svg><span class="wordmark" style="font-size:34px;color:#fff">Shift<b style="color:#fff">Patch</b></span></div>
+    <div class="col" style="gap:20px;max-width:30ch">
+      <h2 style="font-size:44px;font-weight:750;letter-spacing:-.03em;line-height:1.08">Every shift covered. Every action on record.</h2>
+      <p style="font-size:18px;opacity:.9">Agencies post. Nurses claim. Hospitals see it all, as it happens.</p>
+    </div>
+    <ul style="display:flex;flex-direction:column;gap:10px;font-weight:600">
+      <li class="row" style="gap:10px"><span class="ic i-check-circle" aria-hidden="true"></span>Credentials checked before every claim</li>
+      <li class="row" style="gap:10px"><span class="ic i-check-circle" aria-hidden="true"></span>Live coverage across all agencies</li>
+      <li class="row" style="gap:10px"><span class="ic i-check-circle" aria-hidden="true"></span>Full audit log</li>
+    </ul>
+  </aside>
+  <main style="flex:1 1 460px;display:flex;align-items:center;justify-content:center;padding:48px 24px">
+    <form style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:6px" onsubmit="return false">
+      <h1 style="font-size:32px;font-weight:750;letter-spacing:-.03em">Sign in</h1>
+      <p style="color:var(--c-ink-2);margin-bottom:22px">Nurse, agency or hospital admin — same login.</p>
+      <div class="fld"><label class="lbl" for="e2">Email</label><div class="inp is-focus"><input id="e2" type="email" placeholder="you@example.com" style="border:0;background:none;outline:0;width:100%"></div></div>
+      <div class="fld"><label class="lbl" for="p2">Password</label><div class="inp"><input id="p2" type="password" placeholder="Your password" style="border:0;background:none;outline:0;width:100%"><button type="button" class="btn btn-ghost btn-sm">Show</button></div></div>
+      <button type="submit" class="btn btn-primary btn-block" style="min-height: 52px; font-size: 16px; color: #e8efec">Sign in</button>
+      <a href="#" style="align-self:flex-start;margin-top:8px;min-height:44px;display:inline-flex;align-items:center">Forgot password?</a>
+    </form>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>
