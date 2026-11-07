@@ -95,6 +95,12 @@ describe("GET /api/me", () => {
     err(await call("GET", "/api/shifts", "multi", { headers: { "x-agency-id": "agency-b" } }), 403, ErrorMessage.forbidden);
   });
 
+  it("a valid token for a user without a profile row is 401, not 500", async () => {
+    await t.db.insert(users).values({ id: "noprof", email: "noprof@example.com", role: "nurse", passwordHash: "x" });
+    roles.set("noprof", "nurse");
+    err(await call("GET", "/api/me", "noprof"), 401, ErrorMessage.unauthorized);
+  });
+
   it("never leaks the password hash", async () => expect(JSON.stringify((await call("GET", "/api/me", "nurse-1")).body)).not.toMatch(/hash|password/i));
 });
 
@@ -174,6 +180,24 @@ describe("GET /api/nurses/me/shifts", () => {
     expect(parsed.shifts.every((s) => s.claimedBy === "nurse-1" && ["filled", "completed"].includes(s.status))).toBe(true);
     expect(parsed.shifts.map((s) => s.id)).toEqual(expect.arrayContaining([filled, done, "shift-2"]));
     expect(parsed.shifts.map((s) => s.id)).not.toContain(open);
+  });
+
+  it("is capped at the 200 most recent shifts, newest date first", async () => {
+    await t.db.insert(users).values({ id: "nurse-cap", email: "cap@example.com", role: "nurse", passwordHash: "x" });
+    await t.db.insert(userProfiles).values({ userId: "nurse-cap", fullName: "Cap Nurse" });
+    await t.db.insert(nurseProfiles).values({ userId: "nurse-cap", networkId: "network-default" });
+    roles.set("nurse-cap", "nurse");
+    const day = (i: number) => new Date(Date.UTC(2090, 0, 1 + i)).toISOString().slice(0, 10);
+    await t.db.insert(shifts).values(
+      Array.from({ length: 205 }, (_, i) => ({
+        id: `shift-cap-${i}`, networkId: "network-default", agencyId: "agency-a", role: "RN" as const, shiftDate: day(i), startTime: "07:00", endTime: "19:00",
+        timezone: "America/New_York", status: "completed" as const, createdBy: "admin-1", claimedBy: "nurse-cap", claimedAt: new Date(),
+      })),
+    );
+    const r = NurseShiftsResponse.parse((await call("GET", "/api/nurses/me/shifts", "nurse-cap")).body);
+    expect(r.shifts).toHaveLength(200);
+    expect(r.shifts[0]!.date).toBe(day(204));
+    expect(r.shifts[199]!.date).toBe(day(5)); // the 5 oldest are cut
   });
 
   it("agency and admin 403, no token 401", async () => {
