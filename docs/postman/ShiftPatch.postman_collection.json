@@ -562,6 +562,25 @@
           }
         },
         {
+          "name": "GET /api/nurses/me/credentials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nurses/me/credentials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "nurses",
+                "me",
+                "credentials"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/nurses/me/shifts",
           "request": {
             "method": "GET",
@@ -612,6 +631,25 @@
                 "api",
                 "auth",
                 "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/nurses/me/credentials",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nurses/me/credentials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "nurses",
+                "me",
+                "credentials"
               ]
             }
           }
