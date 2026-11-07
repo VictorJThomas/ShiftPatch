@@ -14,7 +14,11 @@ export interface AgencyMembership {
   role: "owner" | "manager" | "viewer";
 }
 
-export type SessionStatus = "idle" | "restoring" | "authenticated" | "anonymous";
+/**
+ * `unavailable`: app-start restore gave up after bounded retries on 429 / 5xx / network. NOT signed out (the refresh
+ * cookie is still valid); guards show a "Try again" state instead of bouncing to /login.
+ */
+export type SessionStatus = "idle" | "restoring" | "authenticated" | "anonymous" | "unavailable";
 
 /** The ONLY value that ever touches browser storage. The access token lives in memory. */
 export const ACTIVE_AGENCY_KEY = "sp.activeAgencyId";
