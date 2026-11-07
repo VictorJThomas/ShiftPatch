@@ -39,7 +39,7 @@ export function shiftRoutes(app: FastifyInstance, db: () => Db) {
 
   // 3. Agency owner/manager posts an open shift in the validated active agency.
   app.post("/api/shifts", pre, async (req, reply) => {
-    const r = await service.createShift(db(), req.actor!, req.body);
+    const r = await service.createShift(db(), req.actor!, req.body, meta(req));
     if (r.ok) return reply.code(201).send(CreateShiftResponse.parse(toShift(r.value)));
     return fail(reply, r);
   });

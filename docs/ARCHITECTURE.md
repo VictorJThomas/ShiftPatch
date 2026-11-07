@@ -998,6 +998,8 @@ sequenceDiagram
 - `GET /api/audit-logs` (admin: whole network; agency: its own `agency_id`).
 - Rendered in the admin UI as `audit-log-table`.
 
+**As built (Stage 5a, `apps/api/src/modules/audit/`):** `GET /api/audit-logs` = `authorizeAuditRead(actor)` (`can("audit:read")`; admin: every active network, agency: validated active agency, viewer and nurse 403, several agencies + no `X-Agency-Id` 400) -> zod query (`entityType, entityId, action, from, to, cursor, limit`) -> keyset page on `id desc` -> `{ items, nextCursor }`. Authorization always answers before query validation. `changes` is redacted by `redact.ts` on write and on read; `ip` / `user_agent` are not returned. Writers share one model: `shift.created` / `shift.claimed` / `shift.cancelled` and `auth.login` (via `auditScopeOf`) all fill `network_id` + `agency_id`. Details: brain [[Decisions]] -> Audit read API.
+
 **Retention:** keep indefinitely in the MVP. A retention policy waits on legal review (§19).
 
 ---

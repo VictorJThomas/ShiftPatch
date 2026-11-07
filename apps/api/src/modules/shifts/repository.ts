@@ -83,7 +83,7 @@ export interface NewShift {
  * Insert from an explicit allowlist. agencyId comes from the scope, never from input; `id` (sequence), `status` (default open)
  * and `claimedBy` (null) are left to the database.
  */
-export async function insertShift(db: Db, scope: AgencyScope, f: NewShift) {
+export async function insertShift(db: Db | Tx, scope: AgencyScope, f: NewShift) {
   assertAgencyScope(scope);
   const agencyId = scope.agencyIds[0];
   if (scope.agencyIds.length !== 1 || !agencyId) throw new Error("insertShift: scope must name exactly one agency");

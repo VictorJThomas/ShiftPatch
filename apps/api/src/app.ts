@@ -2,6 +2,7 @@ import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
 import { createDb } from "./db/client.js";
+import { auditRoutes } from "./modules/audit/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { shiftRoutes } from "./modules/shifts/routes.js";
 import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
@@ -26,6 +27,7 @@ export function buildApp({ logger = false }: { logger?: boolean } = {}) {
   app.register(loadActorPlugin, { db });
   app.register(async (scope) => authRoutes(scope, db)); // after the plugins above, so their decorators exist
   app.register(async (scope) => shiftRoutes(scope, db));
+  app.register(async (scope) => auditRoutes(scope, db));
 
   app.get("/api/health", () => ({ status: "ok" }));
 

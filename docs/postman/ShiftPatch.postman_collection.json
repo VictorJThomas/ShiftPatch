@@ -511,6 +511,23 @@
       "name": "4. Other routes",
       "item": [
         {
+          "name": "GET /api/audit-logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit-logs"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/health",
           "request": {
             "method": "GET",

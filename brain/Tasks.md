@@ -7,7 +7,7 @@ Notion columns: `Task` (title) · `Status` (Pending / Active / Done) · `Scope` 
 - Match rows by **exact title**. Never rename a task in one place only.
 - Starting a task: set Status `Active` in BOTH places. Finishing: `Done` in both. New task: add to both, with Stage tag.
 - Edit here first (it is the diff-able record), then push to Notion (`notion-update-page` / `notion-create-pages`). If they disagree, read Notion (query rows), reconcile, note it in [[Session-Log]].
-- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-06.
+- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-07.
 
 Legend: ☐ Pending · ◐ Active · ☑ Done
 
@@ -59,11 +59,13 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
 
 ## 5 Audit+Notify
-- ☐ Audit module wired into every write (same transaction)
-- ☐ GET /api/audit-logs (admin network scope, agency own rows)
+- ◐ Audit module wired into every write (same transaction)
+- ☑ GET /api/audit-logs (admin network scope, agency own rows)
 - ☐ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
 - ☐ Audit log
 - ☐ Email notifications
+- ☐ Audit read: indexes (network_id, id desc) and (agency_id, id desc) for keyset paging · Later
+- ☐ Audit: scope logout and refresh-reuse rows (network_id/agency_id) like login · Later
 
 ## 6 Web UI
 - ☐ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts

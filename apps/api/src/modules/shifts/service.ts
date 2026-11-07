@@ -45,7 +45,7 @@ export async function listForAgency(db: Db, actor: Actor, agencyId: string): Pro
 }
 
 /** POST /api/shifts. Authorization first (403 / 400 "Select an agency" before any body error), then validation. */
-export async function createShift(db: Db, actor: Actor, body: unknown): Promise<Result<Awaited<ReturnType<typeof repo.insertShift>>>> {
+export async function createShift(db: Db, actor: Actor, body: unknown, meta: RequestMeta): Promise<Result<Awaited<ReturnType<typeof repo.insertShift>>>> {
   const decision = can(actor, "shift:create", { agencyId: actor.activeAgencyId });
   if (!decision.allow) return denied(decision);
   const agencyId = actor.activeAgencyId!; // allow implies a validated active agency
@@ -63,15 +63,33 @@ export async function createShift(db: Db, actor: Actor, body: unknown): Promise<
   } else {
     timezone = await repo.networkDefaultTimezone(db, networkId);
   }
-  const row = await repo.insertShift(db, agencyScope(actor, agencyId), {
-    role: input.role,
-    date: input.date,
-    startTime: input.startTime,
-    endTime: input.endTime,
-    facilityId: input.facilityId ?? null,
-    timezone,
-    networkId,
-    createdBy: actor.userId,
+  // Insert + audit in one transaction (ARCHITECTURE §11): no shift without its `shift.created` row, no row without its shift.
+  const row = await db.transaction(async (tx) => {
+    const created = await repo.insertShift(tx, agencyScope(actor, agencyId), {
+      role: input.role,
+      date: input.date,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      facilityId: input.facilityId ?? null,
+      timezone,
+      networkId,
+      createdBy: actor.userId,
+    });
+    await recordAudit(tx, {
+      ...meta,
+      actorUserId: actor.userId,
+      actorRole: actor.role,
+      networkId,
+      agencyId,
+      action: "shift.created",
+      entityType: "shift",
+      entityId: created.id,
+      changes: {
+        status: [null, "open"], role: [null, input.role], date: [null, input.date],
+        startTime: [null, input.startTime], endTime: [null, input.endTime], facilityId: [null, input.facilityId ?? null],
+      },
+    });
+    return created;
   });
   return { ok: true, value: row };
 }

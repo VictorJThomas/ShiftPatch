@@ -22,7 +22,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 | Email notifications | ☐ | §10, outbox |
 | Timesheets | ☐ | [Future] table; `timesheet-table` test ID still required → minimal view |
 | Admin dashboard + reporting | ☐ | `admin-dashboard-shift-table` |
-| Audit log | ☐ | §11, `audit-log-table` |
+| Audit log | ◐ | §11 — `GET /api/audit-logs` built + tested (admin network / agency own rows / nurse 403, filters, cursor, redaction); `audit-log-table` UI not built |
 | One-click license/TB export | ⛔ | [[ESCALATION]] |
 | PostHog analytics | ☐ | no health data in events |
 | Deployed to real URL | ◐ | Vercel + Railway live, /api rewrite verified; app features pending |
