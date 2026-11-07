@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ErrorMessage } from "@shiftpatch/contracts";
-import { ApiError, apiFetch, configureApiClient, refreshRetry } from "@/lib/api-client";
+import { ApiError, apiFetch, configureApiClient, refreshRetry, refreshSession, SHARED_TOKEN_FRESH_MS } from "@/lib/api-client";
 import { useSessionStore } from "@/stores/session";
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -210,6 +210,89 @@ describe("401 handling", () => {
     expect(callsTo("/api/shifts")).toHaveLength(1); // not retried: there is no new token
     expect(lost).toHaveBeenCalledTimes(1);
     expect(useSessionStore.getState().status).toBe("anonymous");
+  });
+});
+
+describe("throttled refresh (QA-006)", () => {
+  it.each([
+    [429, { "retry-after": "7" }, 7000],
+    [503, {}, undefined],
+  ])("a %i from the refresh reaches the caller as ApiError and keeps the session", async (status, headers, retryAfterMs) => {
+    signIn("nurse", "old");
+    const lost = vi.fn();
+    configureApiClient({ onSessionLost: lost });
+    handler = (call) =>
+      call.path === "/api/auth/refresh"
+        ? new Response(JSON.stringify({ error: "Too many requests, try again later" }), { status, headers })
+        : json(401, { error: "Unauthorized" });
+    const error = await apiFetch("/api/shifts").catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status, retryAfterMs });
+    expect(callsTo("/api/auth/refresh")).toHaveLength(1); // no retry storm from the 401 path
+    expect(lost).not.toHaveBeenCalled();
+    expect(useSessionStore.getState()).toMatchObject({ status: "authenticated", accessToken: "old", user: { id: "u1" } });
+  });
+});
+
+describe("cross-tab refresh", () => {
+  const otherTab = () => new BroadcastChannel("sp-session");
+  const messages = (ch: BroadcastChannel) => {
+    const got: unknown[] = [];
+    ch.onmessage = (e) => got.push(e.data);
+    return got;
+  };
+
+  it("runs the refresh under the sp-refresh Web Lock and shares the new token with other tabs", async () => {
+    const request = vi.fn((_name: string, fn: () => Promise<unknown>) => fn());
+    Object.defineProperty(navigator, "locks", { value: { request }, configurable: true });
+    const tab = otherTab();
+    const got = messages(tab);
+    try {
+      handler = () => refreshOk("rotated");
+      await expect(refreshSession()).resolves.toBe("rotated");
+      expect(request).toHaveBeenCalledWith("sp-refresh", expect.any(Function));
+      await vi.waitFor(() => expect(got).toContainEqual({ type: "token", token: "rotated", user: { id: "u1", name: "Maria Lopez", role: "nurse" } }));
+    } finally {
+      tab.close();
+      Reflect.deleteProperty(navigator, "locks");
+    }
+  });
+
+  it("adopts a token another tab just obtained instead of rotating again (no POST /api/auth/refresh)", async () => {
+    signIn("nurse", "old");
+    await refreshSession().catch(() => {}); // starts the listener (first refresh of the page)
+    calls = [];
+    const tab = otherTab();
+    try {
+      tab.postMessage({ type: "token", token: "from-other-tab", user: { id: "u1", name: "Maria Lopez", role: "nurse" } });
+      await new Promise((resolve) => setTimeout(resolve, 20)); // let the message land
+      handler = (call) => (call.headers.Authorization === "Bearer from-other-tab" ? json(200, { ok: true }) : json(401, { error: "Unauthorized" }));
+      await expect(apiFetch("/api/shifts")).resolves.toEqual({ ok: true });
+      expect(callsTo("/api/auth/refresh")).toHaveLength(0);
+      expect(useSessionStore.getState().accessToken).toBe("from-other-tab");
+    } finally {
+      tab.close();
+    }
+  });
+
+  it("ignores a malformed message and a token older than the freshness window", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    signIn("nurse", "old");
+    await refreshSession().catch(() => {});
+    const tab = otherTab();
+    try {
+      tab.postMessage({ type: "token", token: "evil", user: { id: "u1", role: "root" } });
+      tab.postMessage({ type: "token", token: "stale", user: { id: "u1", name: "Maria Lopez", role: "nurse" } });
+      await new Promise((resolve) => setTimeout(resolve, 20)); // let both messages land
+      vi.setSystemTime(Date.now() + SHARED_TOKEN_FRESH_MS + 1);
+      calls = [];
+      handler = (call) => (call.path === "/api/auth/refresh" ? refreshOk("rotated") : json(200, {}));
+      await expect(refreshSession()).resolves.toBe("rotated");
+      expect(callsTo("/api/auth/refresh")).toHaveLength(1);
+    } finally {
+      tab.close();
+      vi.useRealTimers();
+    }
   });
 });
 
