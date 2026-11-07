@@ -50,6 +50,13 @@ async function revokeFamily(tx: Tx, familyId: string) {
   return rows.length;
 }
 
+/** actor_role + network_id/agency_id for a session event (logout, reuse), same scoping as `auth.login`. No user row -> unscoped. */
+async function actorAuditFields(tx: Tx, userId: string) {
+  const [u] = await tx.select({ role: users.role }).from(users).where(eq(users.id, userId));
+  if (!u) return {};
+  return { actorRole: u.role, ...(await auditScopeOf(tx, userId, u.role)) };
+}
+
 /** `email` must already be normalized (trim + lowercase). Returns null for every failure: no hint which part was wrong. */
 export async function login(db: Db, email: string, password: string, meta: RequestMeta) {
   const [u] = await findUser(db, eq(users.email, email));
@@ -102,7 +109,7 @@ export function refresh(db: Db, rawToken: string, meta: RequestMeta): Promise<Re
       }
       if ((await revokeFamily(tx, row.familyId)) > 0) {
         await recordAudit(tx, {
-          action: "auth.refresh_reuse_detected", actorUserId: row.userId,
+          action: "auth.refresh_reuse_detected", actorUserId: row.userId, ...(await actorAuditFields(tx, row.userId)),
           entityType: "refresh_token_family", entityId: row.familyId, ...meta,
         });
       }
@@ -127,6 +134,6 @@ export async function logout(db: Db, rawToken: string, meta: RequestMeta) {
   await db.transaction(async (tx) => {
     const row = await lockFamilyOf(tx, rawToken);
     if (!row || (await revokeFamily(tx, row.familyId)) === 0) return;
-    await recordAudit(tx, { action: "auth.logout", actorUserId: row.userId, entityType: "refresh_token_family", entityId: row.familyId, ...meta });
+    await recordAudit(tx, { action: "auth.logout", actorUserId: row.userId, ...(await actorAuditFields(tx, row.userId)), entityType: "refresh_token_family", entityId: row.familyId, ...meta });
   });
 }

@@ -84,6 +84,8 @@ export const auditLog = pgTable(
     index("audit_entity_idx").on(t.entityType, t.entityId, t.occurredAt),
     index("audit_network_idx").on(t.networkId, t.occurredAt.desc()),
     index("audit_agency_idx").on(t.agencyId, t.occurredAt.desc()),
+    index("audit_network_id_idx").on(t.networkId, t.id.desc()), // keyset reads (GET /api/audit-logs): WHERE network_id ORDER BY id DESC
+    index("audit_agency_id_idx").on(t.agencyId, t.id.desc()),
     index("audit_actor_idx").on(t.actorUserId, t.occurredAt.desc()),
   ],
 );
