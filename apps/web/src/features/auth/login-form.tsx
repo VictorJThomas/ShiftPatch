@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
