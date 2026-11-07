@@ -94,6 +94,8 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Security pass: headers/CSP, IDOR, token tampering, upload abuse, dep audit
 - ☐ Production reseed to exact spec data before submission
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
+- ☑ Production DB: Railway Postgres (private), migrations, spec seed, least-privilege app role
+- ◐ QA: full workflow + UI/UX audit
 
 ## 9 Delivery
 - ☑ Email recruiter scope commitment (day 1)
