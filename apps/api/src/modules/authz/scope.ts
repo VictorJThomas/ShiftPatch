@@ -10,6 +10,12 @@ export interface AgencyScope { readonly [brand]: "agency"; readonly agencyIds: r
 /** Rows of one hospital network only. Obtainable solely from `networkScope()`. */
 export interface NetworkScope { readonly [brand]: "network"; readonly networkId: string }
 
+/**
+ * The full marketplace (GET /api/shifts is cross-agency by spec): every non-deleted shift, or one network's when `networkId` is set.
+ * Obtainable solely from `marketplaceScope()` (any authenticated actor) / `matchableScope()` (a nurse, own network).
+ */
+export interface MarketplaceScope { readonly [brand]: "marketplace"; readonly networkId: string | null }
+
 // Runtime twin of the compile-time brand: a forged object (cast, JS caller) is rejected by `assert*`.
 const issued = new WeakSet<object>();
 const issue = <T extends object>(scope: T): T => (issued.add(scope), Object.freeze(scope));
@@ -35,6 +41,21 @@ export function networkScope(actor: Actor, networkId: string): NetworkScope {
   return issue({ networkId } as unknown as NetworkScope);
 }
 
+/** All-network read for any authenticated actor. The spec makes the plain list public to every role. */
+export function marketplaceScope(actor: Actor): MarketplaceScope {
+  if (actor.status !== "active") throw new Error("marketplaceScope: inactive actor");
+  return issue({ networkId: null } as unknown as MarketplaceScope);
+}
+
+/** A nurse's own-network view (`?matchable=true`). */
+export function matchableScope(actor: Actor): MarketplaceScope {
+  if (actor.role !== "nurse" || actor.nurseNetworkId === null) throw new Error("matchableScope: actor is not a nurse with a network");
+  return issue({ networkId: actor.nurseNetworkId } as unknown as MarketplaceScope);
+}
+
+export function assertMarketplaceScope(scope: MarketplaceScope): asserts scope is MarketplaceScope {
+  if (!issued.has(scope)) throw new Error("repository called with a forged marketplace scope");
+}
 export function assertAgencyScope(scope: AgencyScope): asserts scope is AgencyScope {
   if (!issued.has(scope)) throw new Error("repository called with a forged agency scope");
 }

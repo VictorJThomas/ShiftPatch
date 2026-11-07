@@ -3,15 +3,16 @@ import rateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
 import { createDb } from "./db/client.js";
 import { authRoutes } from "./modules/auth/routes.js";
+import { shiftRoutes } from "./modules/shifts/routes.js";
 import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
 
-export function buildApp() {
+export function buildApp({ logger = false }: { logger?: boolean } = {}) {
   // TRUST_PROXY = number of proxy hops in front of the API (Vercel rewrite + Railway edge), so req.ip is the client.
   // ponytail: hop count trusts X-Forwarded-For, which a client calling the Railway domain directly can spoof, so per-IP
   // limits are advisory there. Upgrade: Vercel rewrite adds a secret header, trust XFF only with it (or block direct access).
   // The per-email login limit keys on the email hash, not the IP.
   const hops = Number(process.env.TRUST_PROXY ?? 0);
-  const app = Fastify({ trustProxy: (_addr: string, hop: number) => hop < hops });
+  const app = Fastify({ logger, trustProxy: (_addr: string, hop: number) => hop < hops });
 
   // Lazy: the DB client is created on first use, from DATABASE_URL (route probes and /api/health never connect).
   let conn: ReturnType<typeof createDb> | undefined;
@@ -24,12 +25,14 @@ export function buildApp() {
   app.register(authenticatePlugin, { db });
   app.register(loadActorPlugin, { db });
   app.register(async (scope) => authRoutes(scope, db)); // after the plugins above, so their decorators exist
+  app.register(async (scope) => shiftRoutes(scope, db));
 
   app.get("/api/health", () => ({ status: "ok" }));
 
   app.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: "Not found" }));
-  app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
+  app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
     const status = err.statusCode ?? 500;
+    if (status >= 500) req.log.error(err); // the client only gets a generic message; the real cause (with stack) goes to the server log
     reply.code(status).send({ error: status >= 500 ? "Internal server error" : err.message });
   });
 

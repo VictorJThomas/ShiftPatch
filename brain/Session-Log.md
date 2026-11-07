@@ -94,3 +94,27 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: task "authenticate + loadActor plugins, X-Agency-Id, can() policies" Pending -> Active -> Done (both sides); full `tasks_md.py diff` not rerun (single-row change, Notion query showed it Done).
 - Skills copied: none (all used skills already in `.claude/skills/`).
 - Open: commit + PR (Victor); Stage 4 handlers; deploy env vars.
+
+## 2026-11-06 — Stage 4a shift listing + creation
+- Done: marketplace, matchable, agency list and create routes (routes -> service -> scoped repo -> mapper); `MarketplaceScope`; `shift:list-matchable` policy; pure `isEligible`/`todayIn`/`roleMatchesLicense`; contract additions (optional `facilityId`, start!=end, `invalidFacility`, `ListShiftsQuery`); ~55 new tests (real Postgres) + pure eligibility tests; Postman collection regenerated.
+- Verify: `/verify` GREEN 4/4; 3 mutation checks red; review by `agent-skills:code-reviewer` (no Critical, Important items fixed or documented).
+- Decided: see [[Decisions]] -> Shift listing + creation (route 6 full Shift, optional facilityId, MarketplaceScope, unknown agency = 403, no-membership create = 403).
+- Board: 3 tasks (GET marketplace, POST create, GET agency shifts) Pending -> Done on both sides. "Withdraw route + GET matchable" stays Pending (matchable done, withdraw not). Full `tasks_md.py diff` not rerun; Notion queried, no other drift seen.
+- Skills copied: ponytail (to `.claude/skills/ponytail/`); others already present.
+- Open: commit + PR (Victor); claim/cancel/withdraw (Stage 4b); deploy env vars.
+
+## 2026-11-06 — Debug: new shift routes 404 in Postman (stale dist)
+- Done: `/systematic-debugging`. Symptom: only `/api/health` 200, rest 404 on port 3001. Root cause: server was `pnpm --filter api start` = `node dist/server.js`, and `dist/` predated the shift routes (`dist/app.js` had no `shiftRoutes`; `dist/modules/shifts` had only policy/repository). Fix: rebuilt contracts + api, restarted. Second cause found on restart: `node dist/server.js` loads no `.env` so login returned 500 (`JWT_SECRET` unset); restarted with `--env-file=../../.env`. Verified live: nurse/admin login 200, `GET /api/shifts` 200 exact shape, `?matchable=true` 200, `GET /api/agencies/agency-a/shifts` 200 as admin, no token 401. No code changed.
+- Decided: nothing new; gotcha recorded in [[Status]] (Environment gotchas). Offered, not added: a `start:local` script with `--env-file`.
+- Review: Stage 4a independent review result already recorded above (APPROVE, no Critical); no agent pending.
+- Board: full reconcile run, Notion 65 rows vs `Tasks.md` 65: 0 drift (26 Done match, none Active); `tasks_md.py touch`.
+- Skills copied: `systematic-debugging` already in `.claude/skills/` (identical modulo line endings).
+- Open: Victor commit + PR for `feature/4-shift-listing`; Stage 4b claim/cancel/withdraw; local API server running in background (kill orphan `node` before next dev start).
+
+## 2026-11-06 — start:local script + server logging
+- Done: `apps/api` script `start:local` (tsc build + `node --env-file=../../.env dist/server.js`); `buildApp({ logger })` (off in tests, on in `server.ts`); error handler logs every 5xx with `req.log.error(err)`; startup line `ShiftPatch API listening on http://localhost:<PORT>`. Why: Postman login returned a bare 500 and the terminal showed nothing. Checked on port 3055 with `JWT_SECRET=short`: login 500 body generic, terminal shows `JwtConfigError ... at least 32 bytes` with stack. `/verify` GREEN 4/4.
+- Decided: nothing new (gotcha in [[Status]]).
+- Board: no task change.
+- Open: Victor runs his own `pnpm dev` (tsx watch) on 3001; it reloads with the logger on.
+
+- Follow-up: `pnpm dev` (tsx watch) had no `--env-file`, so Victor login 500 `JwtConfigError` persisted on his 3001 server (stack paths `src/*.ts` = tsx, not dist). Added `--env-file=../../.env` to the `dev` script; login 200 on port 3056. Victor must restart his dev server (package.json changes do not trigger tsx watch).

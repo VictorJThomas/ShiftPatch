@@ -3,19 +3,18 @@
 **Last updated:** 2026-11-06
 
 ## Where we are
-- Branch `feature/3-auth-backend`. **Auth lifecycle + authorization infra built, all UNCOMMITTED** (last commit e5b7194 = auth routes).
-- Authz = `apps/api/src/modules/authz/{actor,plugin,decision,can,scope}.ts` + `policy.ts` in `modules/{shifts,memberships,audit,credentials,admin}` + `modules/{shifts,audit}/repository.ts` (scope-required). `authenticate`/`loadActor` are `onRequest` hooks (`{ onRequest: [app.authenticate, app.loadActor] }`); `req.actor`, `can()`, `sendDenial()`. Actor model, matrix, reason→HTTP map: ARCHITECTURE §7.2 "As built"; choices: [[Decisions]] → Authorization.
-- `/verify` **GREEN 4/4** after review fixes; `pnpm build` OK. 87 authz tests (policy matrix, real-Postgres pipeline/actor/X-Agency-Id/revocation, scope forgery); 4 mutation checks turned tests red. Contracts: `ErrorMessage.agencyRequired` ("Select an agency").
-- Independent review (`agent-skills:code-reviewer`): no Critical. Fixed: write-check order (403 before 400), credential reads w/o selection, `agencyScopeForAdmin`, `JwtConfigError`, deny-by-default route-collector test. Accepted/documented: scope ≠ `can()`; stray header 403 for nurse/admin; 2-query TOCTOU; viewer excluded from audit/credential reads.
-- No real route is protected yet (probe routes in tests). Deployed API/web unchanged (health only).
+- Branch `feature/4-shift-listing` (from master after PR #4). **Stage 4a built, UNCOMMITTED:** `GET /api/shifts`, `GET /api/shifts?matchable=true`, `GET /api/agencies/:agencyId/shifts`, `POST /api/shifts` in `apps/api/src/modules/shifts/{routes,service,repository,mappers,eligibility,policy}.ts`; `MarketplaceScope` in `authz/scope.ts`; contracts gained optional `facilityId`, start!=end refine, `ErrorMessage.invalidFacility`, `ListShiftsQuery`. Choices: [[Decisions]] -> Shift listing + creation.
+- `/verify` **GREEN 4/4** (re-run after the `start:local`/logging/`dev --env-file` changes). Local run: `pnpm --filter api start:local` or `pnpm --filter api dev`, both load root `.env` and log the port + 5xx causes (Victor confirmed login works). 3 mutation checks (matchable role gate, license-type filter, soft-delete filter) turned tests red. Contract tests: routes 2, 3, 6 live; claim/cancel blocks still skipped. `/postman-export --check` OK (collection regenerated, uncommitted).
+- Independent review (`agent-skills:code-reviewer`, `/agent-skills:review` + `/verify`): APPROVE, no Critical. Fixed: safe list ordering, memoised `todayIn`, fixed-clock eligibility service test, stray-header test, order-independent POST tests. Documented: one network per agency assumption, stale `X-Agency-Id` = 403 on every route, past open shifts are matchable.
+- Not yet built: claim, cancel, withdraw, audit wiring, `GET /api/shifts/:id/details`. Deployed API/web unchanged (health only).
 
 ## Next step
-1. Victor: review + commit `feature/3-auth-backend` (auth + authz), push, PR to `master`, CI green. Run `/postman-export --check` after (no route change expected).
-2. Stage 4 shifts: every `/api/*` route must carry both hooks (a test enforces it). Handlers: load resource facts (`networkId`, `agencyIdsHoldingNurse`) from the DB, `can()` → `sendDenial()`, then scoped repo (`agencyScope`/`agencyScopeForAdmin`/`networkScope`). Contract blocks auto-activate.
-3. Before real deploy (Stage 8): Railway env `JWT_SECRET` (>=32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app` (exact, no trailing slash; unset => browser refresh/logout 403), `TRUST_PROXY=2` (verify `req.ip` once), `NODE_ENV=production`. Consider secret header from the Vercel rewrite (review S2). Optional: argon2 concurrency cap (S5).
+1. Victor: review + commit `feature/4-shift-listing` (code + `docs/postman/` + brain), push, PR to `master`, CI green.
+2. Stage 4b: `POST /api/shifts/:id/claim` (reuse `isEligible` from `shifts/eligibility.ts`, atomic `UPDATE ... WHERE status='open'`, exact 403 text, `can("shift:claim")`), then cancel + `shift_cancellations`, withdraw. Every `/api/*` route needs `{ onRequest: [app.authenticate, app.loadActor] }` (a test enforces it). Un-skip the contract blocks automatically.
+3. Before real deploy (Stage 8): Railway env `JWT_SECRET` (>=32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app`, `TRUST_PROXY=2`, `NODE_ENV=production`; secret header from the Vercel rewrite (review S2); argon2 cap (S5).
 4. Still open from contracts: Fastify empty JSON body on claim (`FST_ERR_CTP_EMPTY_JSON_BODY`).
 5. Before first data deploy: Railway Postgres, migrations, `db:migrate` + `db:seed`, non-owner `app` DB role.
-6. Frontend: never send `X-Agency-Id` for nurse/admin (403).
+6. Frontend: never send `X-Agency-Id` for nurse/admin, and drop a stored one when the membership is revoked (403 on every route, incl. `GET /api/shifts`).
 
 ## Blockers / waiting
 - Founder decision on export (Option C vs D) — see [[ESCALATION]]. Doesn't block core build.
@@ -33,4 +32,6 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - `next build` rewrites `apps/web/next-env.d.ts` (adds a `root-params` import): revert with `git checkout -- apps/web/next-env.d.ts` before committing.
 - `@fastify/rate-limit`: `app.rateLimit()` handlers share a per-request "ran" flag — a 2nd one on the same route silently skips; use `app.createRateLimit()`. Its decorators exist only after the plugin loads → register routes in a nested `app.register`.
 - Fastify 5 types reject a numeric `trustProxy` (runtime accepts it) → use the function form `(addr, hop) => hop < n`.
+- **Running the built API locally:** `pnpm --filter api start:local` (background): runs `tsc` then `node --env-file=../../.env dist/server.js`, so no stale `dist/` and `.env` is loaded. Rebuild contracts first if `packages/contracts/src` changed. Plain `node dist/server.js` / `pnpm start` loads NO `.env` (login 500 = `JWT_SECRET` missing) and serves whatever `dist/` holds (stale `dist/` symptom: new routes 404, not 401). Or `pnpm --filter api dev` (tsx watch; also passes `--env-file=../../.env`). Postman local env = port 3001.
+- **Server logs:** `server.ts` runs Fastify with `logger: true` (pino JSON: listen address, each request, 5xx with stack via the error handler) and prints `ShiftPatch API listening on http://localhost:<PORT>`. Tests build the app with the logger off. A 500 body stays generic; read the terminal for the cause.
 - Tests: JWT test secret is set in both vitest configs (`test.env`); auth tests use a unique `remoteAddress` per request so the in-memory limiter only bites in the rate-limit tests.

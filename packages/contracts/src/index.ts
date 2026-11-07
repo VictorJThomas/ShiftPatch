@@ -37,6 +37,7 @@ export const ErrorMessage = {
   unauthorized: "Unauthorized", // 401 every route but login
   forbidden: "Forbidden", // 403 authorization
   agencyRequired: "Select an agency", // 400 write action by a multi-agency user without X-Agency-Id (ARCHITECTURE §7.2)
+  invalidFacility: "Facility not found in this network", // 400 POST /api/shifts facilityId outside the agency's network
 } as const;
 
 // ---------- Shift shape (shared by routes 2-6) ----------
@@ -67,15 +68,21 @@ export const LoginResponse = z.strictObject({
 // ---------- 2. GET /api/shifts ----------
 
 export const ListShiftsResponse = z.strictObject({ shifts: z.array(Shift) });
+/** Additive nurse view (ARCHITECTURE §8.3): `?matchable=true`. Absent or `false` = the full marketplace. */
+export const ListShiftsQuery = z.object({ matchable: z.enum(["true", "false"]).optional() });
 
 // ---------- 3. POST /api/shifts ----------
 
-export const CreateShiftRequest = z.object({
-  role: ShiftRole,
-  date: IsoDate,
-  startTime: HhMm,
-  endTime: HhMm,
-});
+/** Writable fields are exactly these; anything else (agencyId, status, claimedBy, id...) is stripped. facilityId is an additive optional. */
+export const CreateShiftRequest = z
+  .object({
+    role: ShiftRole,
+    date: IsoDate,
+    startTime: HhMm,
+    endTime: HhMm,
+    facilityId: Id.optional(),
+  })
+  .refine((s) => s.startTime !== s.endTime, { message: "endTime must differ from startTime", path: ["endTime"] }); // DB CHECK shifts_times_differ
 export const CreateShiftResponse = Shift.extend({ status: z.literal("open"), claimedBy: z.null() });
 
 // ---------- Path params (routes 4-6) ----------
@@ -116,6 +123,7 @@ export type Shift = z.infer<typeof Shift>;
 export type LoginRequest = z.input<typeof LoginRequest>;
 export type LoginResponse = z.infer<typeof LoginResponse>;
 export type ListShiftsResponse = z.infer<typeof ListShiftsResponse>;
+export type ListShiftsQuery = z.infer<typeof ListShiftsQuery>;
 export type CreateShiftRequest = z.input<typeof CreateShiftRequest>;
 export type CreateShiftResponse = z.infer<typeof CreateShiftResponse>;
 export type ShiftIdParams = z.infer<typeof ShiftIdParams>;
