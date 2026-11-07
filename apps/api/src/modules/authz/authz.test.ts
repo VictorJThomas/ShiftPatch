@@ -60,7 +60,7 @@ const expect401 = (res: { statusCode: number; json: () => unknown }) => {
 };
 const expect403 = (res: { statusCode: number; json: () => unknown }) => {
   expect(res.statusCode).toBe(403);
-  expect(res.json()).toEqual({ error: ErrorMessage.forbidden });
+  expect(res.json()).toEqual({ error: ErrorMessage.agencyNotAllowed });
 };
 
 describe("deny by default", () => {

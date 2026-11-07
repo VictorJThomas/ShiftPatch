@@ -22,6 +22,20 @@
       "when": 1793983662409,
       "tag": "0002_network_isolation_and_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794052723974,
+      "tag": "0003_audit_keyset_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794054136225,
+      "tag": "0004_outbox_sending_lease",
+      "breakpoints": true
     }
   ]
 }

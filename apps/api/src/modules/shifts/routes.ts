@@ -1,5 +1,5 @@
 import {
-  AgencyIdParams, AgencyShiftsResponse, CancelShiftResponse, ClaimShiftResponse, CreateShiftResponse, ErrorMessage, ListShiftsQuery, ListShiftsResponse, ShiftIdParams,
+  AgencyIdParams, AgencyShiftsResponse, CancelShiftResponse, ClaimShiftResponse, CreateShiftResponse, ErrorMessage, ListShiftsQuery, ListShiftsResponse, NurseShiftsResponse, ShiftIdParams, WithdrawShiftResponse,
 } from "@shiftpatch/contracts";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Db } from "../../db/client.js";
@@ -60,5 +60,21 @@ export function shiftRoutes(app: FastifyInstance, db: () => Db) {
     const r = await service.cancelShift(db(), req.actor!, params.data.id, req.body, meta(req));
     if (!r.ok) return fail(reply, r);
     return CancelShiftResponse.parse({ ...toShift(r.value.shift), cancellation: r.value.cancellation });
+  });
+
+  // Agency withdrawal: open -> cancelled (the other "cancel"). No body; no email (no nurse to tell).
+  app.post("/api/shifts/:id/withdraw", pre, async (req, reply) => {
+    const params = ShiftIdParams.safeParse(req.params);
+    if (!params.success) return reply.code(404).send({ error: ErrorMessage.shiftNotFound });
+    const r = await service.withdrawShift(db(), req.actor!, params.data.id, meta(req));
+    if (!r.ok) return fail(reply, r);
+    return WithdrawShiftResponse.parse(toShift(r.value));
+  });
+
+  // Nurse's own shifts (filled + completed).
+  app.get("/api/nurses/me/shifts", pre, async (req, reply) => {
+    const r = await service.listMine(db(), req.actor!);
+    if (!r.ok) return fail(reply, r);
+    return NurseShiftsResponse.parse({ shifts: r.value.map(toShift) });
   });
 }

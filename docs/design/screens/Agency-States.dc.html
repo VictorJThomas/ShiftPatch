@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agency States</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.cap{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c-ink-3);margin-bottom:8px}.cell{min-height:380px}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:980px;padding:32px;display:flex;flex-direction:column;gap:24px">
+  <div><h1 style="font-size:24px;font-weight:750;letter-spacing:-.02em">Agency shifts · states</h1><p class="muted" style="font-size:14px">Loading, empty, error, and success with a withdraw confirm.</p></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:24px">
+
+    <div class="col"><span class="cap">Loading</span>
+      <div class="card cell" aria-busy="true" style="padding:16px;display:flex;flex-direction:column;gap:14px">
+        <span class="sr" role="status">Loading shifts…</span>
+        <div class="row" style="gap:12px"><div class="skel" style="height:20px;width:60px"></div><div class="skel" style="height:20px;width:90px"></div><div class="skel" style="height:20px;width:120px"></div><div class="skel" style="height:20px;width:80px;margin-left:auto"></div></div>
+        <hr class="divider">
+        <div class="row" style="gap:12px"><div class="skel" style="height:28px;width:40px"></div><div class="skel" style="height:18px;width:90px"></div><div class="skel" style="height:18px;width:140px"></div><div class="skel" style="height:28px;width:80px;border-radius:999px"></div><div class="skel" style="height:36px;width:90px;margin-left:auto"></div></div>
+        <div class="row" style="gap:12px"><div class="skel" style="height:28px;width:40px"></div><div class="skel" style="height:18px;width:90px"></div><div class="skel" style="height:18px;width:140px"></div><div class="skel" style="height:28px;width:80px;border-radius:999px"></div><div class="skel" style="height:36px;width:90px;margin-left:auto"></div></div>
+        <div class="row" style="gap:12px"><div class="skel" style="height:28px;width:40px"></div><div class="skel" style="height:18px;width:90px"></div><div class="skel" style="height:18px;width:140px"></div><div class="skel" style="height:28px;width:80px;border-radius:999px"></div><div class="skel" style="height:36px;width:90px;margin-left:auto"></div></div>
+      </div></div>
+
+    <div class="col"><span class="cap">Empty</span>
+      <div class="card cell" style="display:flex;align-items:center;justify-content:center"><div class="empty"><div class="glyph"><span class="ic ic-lg i-brief" aria-hidden="true"></span></div><h3>No shifts posted yet</h3><p>Post your first shift and nurses will see it right away.</p><button class="btn btn-primary" style="margin-top: 8px; color: #E8EFEC"><span class="ic i-plus" aria-hidden="true"></span>Post shift</button></div></div></div>
+
+    <div class="col"><span class="cap">Error</span>
+      <div class="card cell" style="padding:20px;display:flex;flex-direction:column;gap:16px"><div class="alert al-err" role="alert"><span class="ic ic-lg i-alert-circle" aria-hidden="true"></span><div><b>Couldn't load shifts</b>The server didn't respond. Nothing was changed.</div></div><div class="empty"><div class="glyph"><span class="ic ic-lg i-wifi-off" aria-hidden="true"></span></div><h3>We'll keep trying</h3><p>Check your connection, then retry.</p><button class="btn btn-secondary" style="margin-top:8px"><span class="ic i-refresh" aria-hidden="true"></span>Try again</button></div></div></div>
+
+    <div class="col"><span class="cap">Success + withdraw confirm</span>
+      <div class="card cell" style="padding:20px;display:flex;flex-direction:column;gap:16px;background:var(--c-bg)">
+        <div class="alert al-ok toast" role="status" style="align-items:center"><span class="ic ic-lg i-check-circle" aria-hidden="true"></span><div style="flex:1"><b>Shift posted</b>RN · Sun, Oct 4 · 19:00 → Mon 07:00</div><button class="iconbtn" aria-label="Dismiss" style="color:inherit"><span class="ic i-x" aria-hidden="true"></span></button></div>
+        <section class="modal" role="dialog" aria-label="Withdraw shift" style="padding:20px;display:flex;flex-direction:column;gap:12px">
+          <h2 style="font-size:19px;font-weight:750">Withdraw this shift?</h2>
+          <p style="color:var(--c-ink-2);font-size:15px">RN · Fri, Oct 2 · 19:00 → Sat 07:00. It will be marked <span class="badge b-cancelled" style="vertical-align:middle"><span class="ic i-ban" aria-hidden="true"></span><span class="lbl-s">Cancelled</span></span> and disappear from nurses' lists.</p>
+          <div class="row" style="gap:10px;justify-content:flex-end"><button class="btn btn-secondary">Keep open</button><button class="btn btn-danger-solid" style="color: #e8efec">Withdraw shift</button></div>
+        </section>
+      </div></div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

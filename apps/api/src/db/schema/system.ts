@@ -54,12 +54,15 @@ export const notifications = pgTable(
     status: notificationStatus().notNull().default("pending"),
     attempts: smallint().notNull().default(0),
     nextAttemptAt: tstz().notNull().defaultNow(),
+    lockedUntil: tstz(), // lease while status = 'sending': a dispatcher claimed the row; after this instant it may be reclaimed
     lastError: text(),
     sentAt: tstz(),
     createdAt: createdAt(),
     updatedAt: createdAt(),
   },
-  (t) => [index("notifications_pending_idx").on(t.status, t.nextAttemptAt).where(sql`${t.status} = 'pending'`)],
+  (t) => [
+    index("notifications_pending_idx").on(t.status, t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
+  ],
 );
 
 /** Append-only: UPDATE/DELETE blocked by trigger (see custom migration). */
@@ -84,6 +87,8 @@ export const auditLog = pgTable(
     index("audit_entity_idx").on(t.entityType, t.entityId, t.occurredAt),
     index("audit_network_idx").on(t.networkId, t.occurredAt.desc()),
     index("audit_agency_idx").on(t.agencyId, t.occurredAt.desc()),
+    index("audit_network_id_idx").on(t.networkId, t.id.desc()), // keyset reads (GET /api/audit-logs): WHERE network_id ORDER BY id DESC
+    index("audit_agency_id_idx").on(t.agencyId, t.id.desc()),
     index("audit_actor_idx").on(t.actorUserId, t.occurredAt.desc()),
   ],
 );

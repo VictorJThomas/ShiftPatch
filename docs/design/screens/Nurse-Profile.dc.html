@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nurse Profile</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border-bottom:1px solid var(--c-line);text-decoration:none;color:var(--c-ink);font-weight:550}.li:last-child{border-bottom:0}.li .ic:first-child{color:var(--c-ink-3)}</style>
+</helmet>
+<div class="sp phone" data-theme="light">
+  <header class="appbar"><h1>Profile</h1></header>
+  <div class="body" style="display:flex;flex-direction:column;gap:16px">
+    <div class="card" style="padding:20px;display:flex;gap:16px;align-items:center"><span class="avatar avatar-lg">ML</span><div class="col" style="gap:4px"><b style="font-size:20px;letter-spacing:-.01em">Maria Lopez</b><span class="muted" style="font-size:14px">maria.lopez@example.com</span><span class="badge b-verified" style="align-self:flex-start"><span class="ic i-shield" aria-hidden="true"></span>License verified</span></div></div>
+    <div class="card"><a class="li" href="#"><span class="ic i-brief" aria-hidden="true"></span><span style="flex:1">Roles</span><span class="muted tnum">RN, LPN</span></a><a class="li" href="#"><span class="ic i-idcard" aria-hidden="true"></span><span style="flex:1">Credentials</span><span class="muted">3 of 4 valid</span><span class="ic ic-sm i-right muted" aria-hidden="true"></span></a><a class="li" href="#"><span class="ic i-mail" aria-hidden="true"></span><span style="flex:1">Email &amp; password</span><span class="ic ic-sm i-right muted" aria-hidden="true"></span></a><a class="li" href="#"><span class="ic i-clock" aria-hidden="true"></span><span style="flex:1">Time zone</span><span class="muted">Eastern (facility-local)</span></a></div>
+    <div class="card"><a class="li" href="#"><span class="ic i-logout" aria-hidden="true"></span><span style="flex:1">Sign out</span></a></div>
+  </div>
+  <nav class="tabbar" aria-label="Main"><a class="tab" href="#"><span class="ic ic-lg i-brief" aria-hidden="true"></span>Shifts</a><a class="tab" href="#"><span class="ic ic-lg i-list" aria-hidden="true"></span>My shifts</a><a class="tab" href="#"><span class="ic ic-lg i-idcard" aria-hidden="true"></span>Credentials</a><a class="tab on" href="#" aria-current="page"><span class="ic ic-lg i-user" aria-hidden="true"></span>Profile</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agency Profile</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:860px;display:flex;flex-direction:column">
+  <header style="background:var(--c-surface);border-bottom:1px solid var(--c-line)"><div style="max-width:1200px;margin:0 auto;padding:0 32px;min-height:64px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div class="logo"><svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"></rect><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"></rect><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"></rect></svg><span class="wordmark">Shift<b>Patch</b></span></div>
+    <nav class="row" style="gap:4px;flex:1"><a class="navi" href="#">Shifts</a><a class="navi on" href="#" aria-current="page">Agency profile</a></nav>
+    <div class="row" style="gap:10px"><span class="avatar">SC</span><span style="font-size:14px;color:var(--c-ink-2)">scheduler@sunrise-health.example</span></div>
+  </div></header>
+  <section style="background:#A24A00;color:#fff"><div style="max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <span style="width:52px;height:52px;border-radius:14px;background:#fff;color:#A24A00;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center">SH</span>
+    <div style="flex:1;min-width:220px"><div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Active agency</div><div style="font-size:24px;font-weight:750;letter-spacing:-.02em">Sunrise Health Staffing</div></div>
+    <button class="btn" style="border-color:#fff;color:#fff"><span class="ic i-swap" aria-hidden="true"></span>Switch agency<span class="ic i-down" aria-hidden="true"></span></button>
+  </div></section>
+
+  <main style="max-width:1200px;margin:0 auto;padding:32px;width:100%;display:flex;flex-direction:column;gap:20px">
+    <div class="alert al-ok toast" role="status" style="align-items:center;max-width:520px;align-self:flex-end"><span class="ic ic-lg i-check-circle" aria-hidden="true"></span><div style="flex:1"><b>Profile saved</b></div><button class="iconbtn" aria-label="Dismiss" style="color:inherit"><span class="ic i-x" aria-hidden="true"></span></button></div>
+    <h1 style="font-size:28px;font-weight:750;letter-spacing:-.02em">Agency profile</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <form class="card" style="flex:999 1 560px;min-width:0;padding:28px;display:flex;flex-direction:column;gap:4px" onsubmit="return false">
+        <div class="row" style="gap:20px;margin-bottom:20px;flex-wrap:wrap"><span style="width:96px;height:96px;border-radius:24px;background:#A24A00;color:#fff;font-weight:800;font-size:34px;display:flex;align-items:center;justify-content:center">SH</span><div class="col" style="gap:8px"><b>Logo</b><div class="row" style="gap:10px"><button type="button" class="btn btn-secondary"><span class="ic i-upload" aria-hidden="true"></span>Upload logo</button><button type="button" class="btn btn-ghost">Remove</button></div><span class="hint" style="margin:0">Square, PNG or SVG, max 2 MB. Initials are used if empty.</span></div></div>
+        <div class="fld"><label class="lbl" for="an">Agency name</label><div class="inp"><input id="an" value="Sunrise Health Staffing" style="border:0;background:none;outline:0;width:100%"></div></div>
+        <div class="two">
+          <div class="fld"><label class="lbl" for="ae">Contact email</label><div class="inp"><span class="ic i-mail muted" aria-hidden="true"></span><input id="ae" value="ops@sunrise-health.example" style="border:0;background:none;outline:0;width:100%"></div></div>
+          <div class="fld"><label class="lbl" for="ap">Phone</label><div class="inp"><span class="ic i-phone muted" aria-hidden="true"></span><input id="ap" value="(813) 555-0100" style="border:0;background:none;outline:0;width:100%"></div></div>
+        </div>
+        <div class="fld"><label class="lbl" for="aa">Address</label><div class="inp"><span class="ic i-pin muted" aria-hidden="true"></span><input id="aa" value="210 Harbor Street, Suite 400, Tampa, FL 33602" style="border:0;background:none;outline:0;width:100%"></div></div>
+        <div class="row" style="gap:12px;justify-content:flex-end"><button type="button" class="btn btn-secondary">Cancel</button><button type="submit" class="btn btn-primary" style="color: #ffffff">Save profile</button></div>
+      </form>
+      <aside class="card" style="flex:1 1 280px;padding:24px;display:flex;flex-direction:column;gap:12px">
+        <b>How nurses see you</b>
+        <div class="card" style="padding:16px;box-shadow:none;background:var(--c-bg);display:flex;flex-direction:column;gap:8px"><div class="row between"><span style="font-weight:700">Sunrise Health Staffing</span><span class="role">RN</span></div><div class="tnum" style="font-weight:650">Fri, Oct 2 · 19:00 → Sat 07:00</div><div class="muted" style="font-size:13px">Contact on shift detail: ops@sunrise-health.example · (813) 555-0100</div></div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cancel Filled Shift</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.opt{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1.5px solid var(--c-line-strong);border-radius:var(--r-md);min-height:var(--tap);background:var(--c-surface)}.opt.on{border-color:var(--c-brand);background:var(--c-brand-soft);box-shadow:inset 0 0 0 1px var(--c-brand)}.rd{width:22px;height:22px;border-radius:50%;border:2px solid var(--c-line-strong);flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center}.opt.on .rd{border-color:var(--c-brand)}.opt.on .rd::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--c-brand)}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:860px;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <header style="background:var(--c-surface);border-bottom:1px solid var(--c-line)"><div style="max-width:1200px;margin:0 auto;padding:0 32px;min-height:64px;display:flex;align-items:center;gap:24px"><div class="logo"><svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"></rect><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"></rect><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"></rect></svg><span class="wordmark">Shift<b>Patch</b></span></div></div></header>
+  <section style="background:#A24A00;color:#fff"><div style="max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;gap:16px"><span style="width:52px;height:52px;border-radius:14px;background:#fff;color:#A24A00;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center">SH</span><div><div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Active agency</div><div style="font-size:24px;font-weight:750">Sunrise Health Staffing</div></div></div></section>
+  <main style="max-width:1200px;margin:0 auto;padding:32px;width:100%"><h1 style="font-size:28px;font-weight:750">Shifts</h1>
+    <div class="card" style="margin-top:20px"><table class="tbl"><thead><tr><th>Role</th><th>Date</th><th>Time</th><th>Status</th><th>Claimed by</th></tr></thead><tbody><tr><td><span class="role">RN</span></td><td class="num">Fri, Oct 2</td><td class="num">19:00 → Sat 07:00</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td><td class="muted">—</td></tr><tr><td><span class="role">LPN</span></td><td class="num">Sat, Oct 3</td><td class="num">07:00 → 19:00</td><td><span class="badge b-filled"><span class="ic i-check-circle" aria-hidden="true"></span>Filled</span></td><td>Maria Lopez</td></tr></tbody></table></div></main>
+
+  <div class="scrim"></div>
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px">
+    <section class="modal" role="dialog" aria-labelledby="ct" style="width:520px;max-width:100%;padding:28px;display:flex;flex-direction:column;gap:18px">
+      <div class="row between" style="align-items:flex-start"><h2 id="ct" style="font-size:22px;font-weight:750;letter-spacing:-.02em">Cancel this filled shift?</h2><button class="iconbtn" aria-label="Close" style="margin:-8px -10px 0 0"><span class="ic i-x" aria-hidden="true"></span></button></div>
+      <div class="card" style="padding:14px 16px;box-shadow:none;background:var(--c-bg);display:flex;gap:14px;align-items:center"><span class="role">LPN</span><div class="col"><b class="tnum">Sat, Oct 3 · 07:00 → 19:00</b><span class="muted" style="font-size:14px">Filled by Maria Lopez</span></div></div>
+      <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px"><legend class="lbl" style="padding:0">Reason</legend>
+        <label class="opt"><span class="rd"></span><span><b>No-show</b><br><span class="muted" style="font-size:14px">The nurse did not arrive. This is recorded on their history.</span></span></label>
+        <label class="opt on"><span class="rd"></span><span><b>Cancelled in advance</b><br><span class="muted" style="font-size:14px">The agency is cancelling ahead of time. The nurse is notified.</span></span></label>
+      </fieldset>
+      <div class="row" style="gap:12px;justify-content:flex-end"><button class="btn btn-secondary">Keep shift</button><button class="btn btn-danger-solid" style="color: #E8EFEC">Cancel shift</button></div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

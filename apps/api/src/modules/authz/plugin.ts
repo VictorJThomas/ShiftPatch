@@ -6,6 +6,10 @@ import { type Actor, AgencyHeaderError, type AuthContext, findActiveUser, loadAc
 import { denialResponse, type Decision } from "./decision.js";
 
 declare module "fastify" {
+  interface FastifyContextConfig {
+    /** Route opt-out: X-Agency-Id is not read (not validated, no 403). Only for bootstrap calls such as GET /api/me. */
+    ignoreAgencyHeader?: boolean;
+  }
   interface FastifyRequest {
     auth: AuthContext | null; // set by authenticate
     actor: Actor | null; // set by loadActor
@@ -57,9 +61,9 @@ export const loadActorPlugin = shared(async (app: FastifyInstance, opts: { db: (
     req.actor = null;
     if (!req.auth) return reply.code(401).send({ error: ErrorMessage.unauthorized }); // authenticate must run first
     try {
-      req.actor = await loadActorFor(opts.db(), req.auth, req.headers["x-agency-id"]);
+      req.actor = await loadActorFor(opts.db(), req.auth, req.routeOptions.config.ignoreAgencyHeader ? undefined : req.headers["x-agency-id"]);
     } catch (err) {
-      if (err instanceof AgencyHeaderError) return reply.code(403).send({ error: ErrorMessage.forbidden });
+      if (err instanceof AgencyHeaderError) return reply.code(403).send({ error: ErrorMessage.agencyNotAllowed });
       throw err;
     }
   });

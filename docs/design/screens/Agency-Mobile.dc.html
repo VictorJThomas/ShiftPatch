@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agency Mobile</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sp phone" data-theme="light">
+  <section aria-label="Active agency" style="background:#A24A00;color:#fff;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;flex:none">
+    <div class="row" style="gap:12px"><span style="width:44px;height:44px;border-radius:12px;background:#fff;color:#A24A00;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none">SH</span><div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Active agency</div><div style="font-size:19px;font-weight:750;letter-spacing:-.02em;line-height:1.15">Sunrise Health Staffing</div></div></div>
+    <button class="btn btn-block" style="border-color:#fff;color:#fff"><span class="ic i-swap" aria-hidden="true"></span>Switch agency</button>
+  </section>
+  <div class="body" style="padding-top:16px;display:flex;flex-direction:column;gap:12px">
+    <div class="row between"><h1 style="font-size:24px;font-weight:750;letter-spacing:-.02em">Shifts</h1><button class="btn btn-primary" style="color: #ffffff"><span class="ic ic-sm i-plus" aria-hidden="true"></span>Post shift</button></div>
+    <div class="row" style="gap:8px"><button class="chip on">All · 2</button><button class="chip">Open</button><button class="chip">Filled</button></div>
+    <article class="card shift">
+      <div class="row between"><span class="role">RN</span><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></div>
+      <div class="when">Fri, Oct 2 · 19:00 <span class="arr">→</span> Sat 07:00</div>
+      <div class="row muted" style="font-size:14px">Claimed by —</div>
+      <button class="btn btn-secondary btn-block">Withdraw</button>
+    </article>
+    <article class="card shift">
+      <div class="row between"><span class="role">LPN</span><span class="badge b-filled"><span class="ic i-check-circle" aria-hidden="true"></span>Filled</span></div>
+      <div class="when">Sat, Oct 3 · 07:00 <span class="arr">→</span> 19:00</div>
+      <div class="row" style="gap:10px;font-size:14px"><span class="avatar" style="width:28px;height:28px;font-size:11px">ML</span>Maria Lopez</div>
+      <button class="btn btn-danger btn-block">Cancel shift</button>
+    </article>
+  </div>
+  <nav class="tabbar" aria-label="Agency" style="grid-template-columns:repeat(2,1fr)"><a class="tab on" href="#" aria-current="page"><span class="ic ic-lg i-brief" aria-hidden="true"></span>Shifts</a><a class="tab" href="#"><span class="ic ic-lg i-building" aria-hidden="true"></span>Agency profile</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import {
   agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, notifications, nurseProfiles, shiftCancellations, shifts, users,
@@ -188,6 +188,30 @@ export async function claimRow(tx: Tx, f: { id: string; nurseId: string; network
     .where(and(eq(shifts.id, f.id), eq(shifts.status, "open"), isNull(shifts.deletedAt), eq(shifts.networkId, f.networkId)))
     .returning({ id: shifts.id });
   return rows.length === 1;
+}
+
+/** open -> cancelled (agency withdrawal). One statement: false = no longer open (claimed, withdrawn or deleted meanwhile). */
+export async function withdrawRow(tx: Tx, id: string, now: Date): Promise<boolean> {
+  const rows = await tx
+    .update(shifts)
+    .set({ status: "cancelled", updatedAt: now })
+    .where(and(eq(shifts.id, id), eq(shifts.status, "open"), isNull(shifts.deletedAt)))
+    .returning({ id: shifts.id });
+  return rows.length === 1;
+}
+
+/** Cap on GET /api/nurses/me/shifts: most recent shifts only, so a long-tenured nurse can't make the response unbounded. */
+export const NURSE_SHIFTS_LIMIT = 200;
+
+/** The nurse's own shifts (filled + completed), newest date first, at most NURSE_SHIFTS_LIMIT. `nurseId` must be the authenticated actor's id. */
+export async function listClaimedBy(db: Db, nurseId: string) {
+  return db
+    .select(shiftColumns)
+    .from(shifts)
+    .innerJoin(agencies, eq(agencies.id, shifts.agencyId))
+    .where(and(eq(shifts.claimedBy, nurseId), inArray(shifts.status, ["filled", "completed"]), isNull(shifts.deletedAt)))
+    .orderBy(desc(shifts.shiftDate), desc(shifts.startTime), ...byNumericId)
+    .limit(NURSE_SHIFTS_LIMIT);
 }
 
 /** filled -> open. false = not filled any more (a racing cancel already reopened it). */

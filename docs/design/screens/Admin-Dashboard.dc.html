@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin Dashboard</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.side{flex:0 0 248px;background:var(--c-surface);border-right:1px solid var(--c-line);padding:20px 16px;display:flex;flex-direction:column;gap:6px}.sel{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1.5px solid var(--c-line-strong);border-radius:var(--r-md);background:var(--c-surface);font-size:14px;font-weight:550}.sel small{color:var(--c-ink-3);font-weight:600}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:900px;display:flex;flex-wrap:wrap">
+  <aside class="side" aria-label="Hospital admin">
+    <div class="logo" style="padding:4px 8px 4px"><svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"/><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"/><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"/></svg><span class="wordmark">Shift<b>Patch</b></span></div>
+    <div class="tag" style="align-self:flex-start;margin:4px 8px 16px"><span class="ic i-building" aria-hidden="true"></span>Hospital network</div>
+    <a class="navi on" href="#" aria-current="page"><span class="ic i-grid" aria-hidden="true"></span>Dashboard</a>
+    <a class="navi" href="#"><span class="ic i-idcard" aria-hidden="true"></span><span style="flex:1">Credentials</span><span class="badge b-pending" style="min-height:24px;padding:1px 8px"><span class="ic i-clock" aria-hidden="true"></span>3</span></a>
+    <a class="navi" href="#"><span class="ic i-file" aria-hidden="true"></span>Audit log</a>
+    <a class="navi" href="#"><span class="ic i-clock" aria-hidden="true"></span>Timesheets</a>
+    <div style="margin-top:auto;border-top:1px solid var(--c-line);padding-top:14px" class="row"><span class="avatar">AK</span><div class="col" style="flex:1;line-height:1.25"><b style="font-size:14px">Alex Kim</b><span class="muted" style="font-size:12.5px">Operations admin</span></div><button class="iconbtn" aria-label="Sign out"><span class="ic i-logout" aria-hidden="true"></span></button></div>
+  </aside>
+
+  <main style="flex:999 1 640px;min-width:0;padding:32px 40px;display:flex;flex-direction:column;gap:24px">
+    <div class="row between" style="flex-wrap:wrap;gap:12px">
+      <div><h1 style="font-size:32px;font-weight:750;letter-spacing:-.03em">Coverage</h1><p class="muted" style="font-size:14px">All agencies · facility-local time, Fri, Oct 2, 08:14</p></div>
+      <div class="pill-live" role="status"><span class="ic ic-sm i-refresh" aria-hidden="true"></span>Updated 10 s ago<span aria-hidden="true">·</span>refreshes every 15 s</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+      <div class="card stat"><span class="l"><span class="badge b-open" style="padding:3px 9px 3px 7px"><span class="ic i-dot" aria-hidden="true"></span>Open</span></span><span class="n">2</span><span class="muted" style="font-size:13px">Sunrise 1 · Metro 1</span></div>
+      <div class="card stat"><span class="l"><span class="badge b-filled"><span class="ic i-check-circle" aria-hidden="true"></span>Filled</span></span><span class="n">1</span><span class="muted" style="font-size:13px">Sunrise 1 · Metro 0</span></div>
+      <div class="card stat"><span class="l"><span class="badge b-cancelled"><span class="ic i-ban" aria-hidden="true"></span><span class="lbl-s">Cancelled</span></span></span><span class="n">0</span><span class="muted" style="font-size:13px">Withdrawn by agencies</span></div>
+      <div class="card stat" style="border-color:var(--st-pending-fg);box-shadow:inset 0 0 0 1px var(--st-pending-fg)"><span class="l" style="color:var(--st-pending-fg)"><span class="ic i-clock" aria-hidden="true"></span>Open · next 48 h</span><span class="n">1</span><span class="muted" style="font-size:13px">RN · Fri, Oct 2 · 19:00</span></div>
+    </div>
+
+    <section class="card" aria-label="All shifts">
+      <div class="row" style="padding:16px;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--c-line)">
+        <div class="sel" style="min-width:200px"><small>Agency</small>All agencies<span class="ic ic-sm i-down" aria-hidden="true" style="margin-left:auto"></span></div>
+        <div class="sel" style="min-width:150px"><small>Status</small>All<span class="ic ic-sm i-down" aria-hidden="true" style="margin-left:auto"></span></div>
+        <div class="sel" style="min-width:250px"><span class="ic ic-sm i-cal" aria-hidden="true"></span><small>Dates</small><span class="tnum">Oct 2 – Oct 4</span></div>
+        <button class="btn btn-ghost">Clear filters</button>
+      </div>
+      <div class="scrollx"><table class="tbl" style="min-width:760px">
+        <thead><tr><th>Agency</th><th>Role</th><th>Date</th><th>Time</th><th>Status</th><th>Claimed by</th></tr></thead>
+        <tbody>
+          <tr><td><b>Sunrise Health Staffing</b></td><td><span class="role">RN</span></td><td class="num">Fri, Oct 2</td><td class="num">19:00 → Sat 07:00</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td><td class="muted">—</td></tr>
+          <tr><td><b>Sunrise Health Staffing</b></td><td><span class="role">LPN</span></td><td class="num">Sat, Oct 3</td><td class="num">07:00 → 19:00</td><td><span class="badge b-filled"><span class="ic i-check-circle" aria-hidden="true"></span>Filled</span></td><td><span class="row" style="gap:10px"><span class="avatar" style="width:28px;height:28px;font-size:11px">ML</span>Maria Lopez</span></td></tr>
+          <tr><td><b>Metro Care Partners</b></td><td><span class="role">RN</span></td><td class="num">Sun, Oct 4</td><td class="num">19:00 → Mon 07:00</td><td><span class="badge b-open"><span class="ic i-dot" aria-hidden="true"></span>Open</span></td><td class="muted">—</td></tr>
+        </tbody>
+      </table></div>
+      <div class="row between" style="padding:12px 16px;border-top:1px solid var(--c-line);font-size:13px;color:var(--c-ink-3)"><span>3 shifts</span><span class="row" style="gap:6px"><span class="ic ic-sm i-info" aria-hidden="true"></span>Times are facility-local, 24-hour.</span></div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

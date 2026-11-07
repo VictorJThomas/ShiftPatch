@@ -3,23 +3,23 @@
 **Last updated:** 2026-11-07
 
 ## Where we are
-- Branch `feature/5-shift-claiming`. **UNCOMMITTED:** Stage 4b (claim + cancel, see [[Decisions]] -> Shift claim + cancel) **and Stage 5a: `GET /api/audit-logs`** (`modules/audit/{routes,service,repository,redact,audit}.ts`, contracts `AuditLogQuery/Entry/Response`, `audit-logs.test.ts`). Behaviour + scope: [[Decisions]] -> Audit read API; flow: ARCHITECTURE §11 "As built".
-- Audit read: admin = every network they actively administer (needs active network membership), agency = only rows with the validated active `agency_id` (owner/manager; viewer 403; several memberships + no `X-Agency-Id` = 400 `Select an agency`), nurse 403. Authorization runs BEFORE query validation. Filters `entityType/entityId/action/from/to/cursor` (+ additive `limit`, default 50, max 100); `{ items, nextCursor }`, keyset on `id desc`. `changes` redacted on write AND read; `ip`/`userAgent` never returned. No write route exists; DB trigger blocks UPDATE/DELETE/TRUNCATE.
-- Writers now share one model (`network_id` + `agency_id` set): `auth.login` (via `auditScopeOf`), `shift.created` (new, same tx as the insert), `shift.claimed`, `shift.cancelled`. Not scoped yet: `auth.logout`, `auth.refresh_reuse_detected`, `auth.login_failed` (unscoped = visible to nobody).
-- `/verify` **GREEN 4/4** after the review fixes: 281 unit/integration tests (33 new in `audit-logs.test.ts`, real Postgres), contract suite green. Independent review (`agent-skills:code-reviewer`): no Critical; fixed authz-before-validation (+ removed a probe query), word-based redaction + `__proto__`, `auditScopeOf` filters. Postman regenerated (14 requests, `--check` OK).
-- Board: GET /api/audit-logs Done; "Audit module wired into every write" Active (withdraw, credentials, logout scoping still open); 2 new Later tasks. Not built: withdraw, outbox dispatcher/emails, `GET /api/shifts/:id/details`, audit UI.
+- Branch `feature/6-web-auth` (HEAD `56e3a2a` + brain wrap commit), based on `feature/5-shift-claiming` (`355363f` Stage 5a + Victor's `5cfd698`). Nothing pushed. Stage 5a is committed now.
+- Built this session (3 parallel worktree agents, merged): API `GET /api/me`, `POST /api/shifts/:id/withdraw`, `GET /api/nurses/me/shifts`, tolerant empty JSON body, new 403 text `Agency not available` for stale `X-Agency-Id`; outbox dispatcher (lease-based) + mail transports + `shift.cancelled` email; audit scoping for logout/reuse + keyset indexes (migrations 0003, 0004); **web auth experience**: tokens + Schibsted Grotesk, route groups `(auth)/(nurse)/(agency)/(admin)` with shells per design, login (test IDs `login-email-input`, `login-password-input`, `login-submit-button`, `notification-banner`), Zustand session (token in memory), restore via refresh, `lib/api-client.ts` (single-flight refresh, retry once, 409 x3), `proxy.ts` role-cookie redirects (UX only), agency switcher, logout + cross-tab. Details: [[Decisions]] -> Web auth + new routes + outbox.
+- Verified on merged branch: `/verify` **GREEN 4/4** (api 319, contracts 93, web unit 34), web build OK, Playwright 32/32, postman `--check` OK (17 requests), drizzle-kit check OK. Fresh-context review: 0 Critical, 4 Important — all fixed and re-verified.
+- Shell pages other than login are placeholders (empty states). Only data call in the shells: agency shifts count (`GET /api/agencies/:id/shifts`).
+- Design deviations (accepted): login error is the shared toast not an inline alert; nurse shell is a 480 px column not a fixed phone frame; agency band color by membership index; admin nav lacks Credentials; no dark-mode toggle; no "Forgot password?" link.
 
 ## Next step
-1. Victor: review + commit `feature/5-shift-claiming` (code + `docs/postman/` + brain), push, PR to `master`, CI green.
-2. Stage 4c: `POST /api/shifts/:id/withdraw` (`open -> cancelled`, `shift:manage`, audit `shift.withdrawn` with network/agency), then outbox dispatcher + Resend/Mailpit emails for the `shift.cancelled` rows already written.
-3. Audit follow-ups (board, Later): indexes `(network_id, id desc)` / `(agency_id, id desc)` (queries sort by `id`, indexes lead with `occurred_at`); scope logout / refresh-reuse rows like login.
-4. Decide: claim also requires `roleMatchesLicense`? tolerant empty-JSON-body parser for claim? (see board.)
-5. Before real deploy (Stage 8): Railway env `JWT_SECRET` (>=32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app`, `TRUST_PROXY=2`, `NODE_ENV=production`; secret header from the Vercel rewrite; argon2 cap; non-owner `app` DB role with INSERT/SELECT only on `audit_log`; `db:migrate` + `db:seed`.
-6. Frontend: never send `X-Agency-Id` for nurse/admin; drop a stored one when the membership is revoked (403 on every route). Audit page: `audit-log-table`, call `GET /api/audit-logs`, follow `nextCursor`.
+1. Victor: review + push `feature/5-shift-claiming` (PR to `master`), then `feature/6-web-auth` (PR after #5 merges). CI must be green (CI does not run Playwright yet).
+2. Stage 6b feature UIs (design screens in `docs/design/screens/`): Nurse (shifts list `shift-list-item`/`shift-claim-button`, my shifts `shift-cancel-button`, lapsed-license fallback per ARCHITECTURE §12.4), Agency (shifts table, post form `agency-post-shift-button`/`-submit-button`, cancel, withdraw), Admin (dashboard table `admin-dashboard-shift-table`/`admin-shift-status-badge`, 15 s refetch; audit `audit-log-table` via `GET /api/audit-logs` + `nextCursor`; timesheets `timesheet-table`). Use api-client + query keys `["agency", id, ...]`.
+3. Mailpit smoke: `docker compose up -d mailpit`, API with `MAIL_TRANSPORT=smtp`, cancel a filled shift, see the mail at :8025.
+4. Update ARCHITECTURE §8.4 (me, withdraw, nurse shifts shapes) + §12 "As built" from [[Decisions]].
+5. Open decisions: claim also requires `roleMatchesLicense`? Before real deploy (Stage 8): Railway env `JWT_SECRET` (>=32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app`, `TRUST_PROXY=2`, `NODE_ENV=production`, `MAIL_TRANSPORT=resend` + `RESEND_API_KEY` + `MAIL_FROM` + `EMAIL_REDIRECT_TO`; secret header from the Vercel rewrite; argon2 cap; non-owner `app` DB role (INSERT/SELECT only on `audit_log`); `db:migrate` + `db:seed`.
+6. Playwright in CI (board: Stage 8) — web e2e already runs headless with mocked API.
 
 ## Blockers / waiting
 - Founder decision on export (Option C vs D) — see [[ESCALATION]]. Doesn't block core build.
-- Victor: visual QA of design canvas.
+- Victor: visual QA of design canvas; review of this session's merged branch.
 - Optional: `CONSTRAINTS.md` via `/constraints` (needs a 4-question interview with Victor; not done).
 
 ## Environment gotchas
@@ -37,3 +37,8 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **Server logs:** `server.ts` runs Fastify with `logger: true` (pino JSON: listen address, each request, 5xx with stack via the error handler) and prints `ShiftPatch API listening on http://localhost:<PORT>`. Tests build the app with the logger off. A 500 body stays generic; read the terminal for the cause.
 - Tests: JWT test secret is set in both vitest configs (`test.env`); auth tests use a unique `remoteAddress` per request so the in-memory limiter only bites in the rate-limit tests.
 - Docker Desktop may be stopped at session start: start it, then `docker compose up -d postgres` before `/verify`.
+- **Postman export:** run `pnpm --filter api exec tsx ../../.claude/skills/postman-export/scripts/export.mjs [--check]`. Plain `node` cannot import the TS app, skips route discovery with a WARN and writes a collection missing the 7 extra routes.
+- **Agent worktrees** (`.claude/worktrees/*`, branches `worktree-agent-*`) are created from `master`, not the current branch: tell agents to `git merge --ff-only <branch>` first. They need their own `pnpm install`.
+- **Web:** `pnpm --filter web test` (Vitest), `pnpm --filter web test:e2e` (Playwright, Chromium, own `next build && next start -p 3100`, API mocked with `page.route`). `next/font/google` needs network at build. `eslint-config-next` has peer conflicts with eslint 10 (not used).
+- **Outbox locally:** `docker compose up -d mailpit` + `MAIL_TRANSPORT=smtp` (UI http://localhost:8025). Default transport `log` prints recipient + subject only.
+- **Clock race in tests:** timestamp columns default to Postgres `now()` (microseconds) while app code compares with JS `new Date()` (milliseconds, truncated): a row inserted in the same ms looks up to ~1 ms in the future (measured 54/300). Tests that mean "due now" must set the timestamp explicitly in the past (`notifications.test.ts` `enqueue`). Caused the 2026-11-07 CI failure; prod impact = at most one dispatcher tick of delay.

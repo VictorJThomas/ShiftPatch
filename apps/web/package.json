@@ -6,19 +6,31 @@
     "build": "pnpm --filter @shiftpatch/contracts build && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@hookform/resolvers": "^7.0.3",
     "@shiftpatch/contracts": "workspace:^",
+    "@tanstack/react-query": "^5.107.1",
     "next": "^16.4.5",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
+    "zod": "^4.6.7",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^10.14.0",
-    "typescript": "^6.0.3"
+    "jsdom": "^31.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
   }
 }

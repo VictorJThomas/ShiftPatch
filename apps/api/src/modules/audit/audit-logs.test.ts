@@ -10,7 +10,7 @@ import {
 } from "../../db/schema/index.js";
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
-import { signAccessToken } from "../auth/tokens.js";
+import { REFRESH_COOKIE, signAccessToken } from "../auth/tokens.js";
 import { recordAudit } from "./audit.js";
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
@@ -111,7 +111,7 @@ describe("authorization and isolation", () => {
 
   it("admin cannot widen or switch the scope through the query (networkId / agencyId params are ignored)", async () => {
     expect(ids(await all("&entityType=iso&networkId=network-2&agencyId=agency-c", "admin-1"))).toEqual(["iso-a", "iso-b"]);
-    err(await get("?entityType=iso", "admin-1", { "x-agency-id": "agency-c" }), 403, "Forbidden"); // header names no membership
+    err(await get("?entityType=iso", "admin-1", { "x-agency-id": "agency-c" }), 403, "Agency not available"); // header names no membership
   });
 
   it("admin role without an active network membership (none, or revoked): 403", async () => {
@@ -128,7 +128,7 @@ describe("authorization and isolation", () => {
   it("agency cannot reach another agency's rows by entityId, agencyId param or header", async () => {
     expect((await get("?entityType=iso&entityId=iso-b", "agency-a")).body).toEqual({ items: [], nextCursor: null });
     expect(ids(await all("&entityType=iso&agencyId=agency-b&networkId=network-default", "agency-a"))).toEqual(["iso-a"]);
-    err(await get("?entityType=iso", "agency-a", { "x-agency-id": "agency-b" }), 403, "Forbidden");
+    err(await get("?entityType=iso", "agency-a", { "x-agency-id": "agency-b" }), 403, "Agency not available");
   });
 
   it("agency viewer is denied (least privilege, ARCHITECTURE §7.1)", async () => {
@@ -144,7 +144,7 @@ describe("authorization and isolation", () => {
   it("nurse is denied, even with a bad query (authorization answers before validation)", async () => {
     err(await get("", "nurse-1"), 403, "Forbidden");
     err(await get("?from=garbage&limit=0", "nurse-1"), 403, "Forbidden");
-    err(await get("?entityId=iso-a", "nurse-2", { "x-agency-id": "agency-a" }), 403, "Forbidden");
+    err(await get("?entityId=iso-a", "nurse-2", { "x-agency-id": "agency-a" }), 403, "Agency not available");
   });
 
   it("authorization answers before ANY validation: bad cursor / inverted range never turns a 403 or a 400-select into a 400-invalid", async () => {
@@ -336,6 +336,37 @@ describe("one audit model across the real writers (login, create, claim, cancel)
     expect(await all("&action=auth.login_failed", "admin-1")).toEqual([]);
     const [row] = await t.db.select().from(auditLog).where(eq(auditLog.action, "auth.login_failed"));
     expect(JSON.stringify(row)).not.toContain("ghost@example.com");
+  });
+
+  it("logout and refresh-reuse rows carry role + network/agency like login, so scoped readers see them", async () => {
+    const session = async (email: string) => {
+      const res = await login(email);
+      expect(res.statusCode).toBe(200);
+      return res.cookies.find((c) => c.name === REFRESH_COOKIE)!.value;
+    };
+    const cookies = (v: string) => ({ [REFRESH_COOKIE]: v });
+    // agency: logout
+    const agencyTok = await session("admin@sunrisehealth.example");
+    const out = await app.inject({ method: "POST", url: "/api/auth/logout", remoteAddress: `10.6.0.${++ip % 250}`, cookies: cookies(agencyTok) });
+    expect(out.statusCode).toBe(204);
+    // nurse: rotate, backdate the old token past the grace window, replay it -> reuse detected
+    const nurseTok = await session("maria.lopez@example.com");
+    const rotated = await app.inject({ method: "POST", url: "/api/auth/refresh", remoteAddress: `10.6.0.${++ip % 250}`, cookies: cookies(nurseTok) });
+    expect(rotated.statusCode).toBe(200);
+    await t.db.execute(sql`UPDATE refresh_tokens SET revoked_at = now() - interval '60 seconds' WHERE user_id = 'nurse-1' AND replaced_by IS NOT NULL`);
+    const replay = await app.inject({ method: "POST", url: "/api/auth/refresh", remoteAddress: `10.6.0.${++ip % 250}`, cookies: cookies(nurseTok) });
+    expect(replay.statusCode).toBe(401);
+
+    const logoutRows = await all("&action=auth.logout", "admin-1");
+    expect(logoutRows).toHaveLength(1);
+    expect(logoutRows[0]).toMatchObject({ actorUserId: "agency-a", actorRole: "agency", networkId: "network-default", agencyId: "agency-a" });
+    expect((await all("&action=auth.logout", "agency-a")).map((i) => i.actorUserId)).toEqual(["agency-a"]);
+    expect(await all("&action=auth.logout", "admin-2")).toEqual([]);
+
+    const reuseRows = await all("&action=auth.refresh_reuse_detected", "admin-1");
+    expect(reuseRows).toHaveLength(1);
+    expect(reuseRows[0]).toMatchObject({ actorUserId: "nurse-1", actorRole: "nurse", networkId: "network-default", agencyId: null });
+    expect(await all("&action=auth.refresh_reuse_detected", "agency-a")).toEqual([]); // nurse events are network-level
   });
 
   it("shift.created -> shift.claimed -> shift.cancelled: same columns, readable by the owning agency and the network admin, hidden from others", async () => {

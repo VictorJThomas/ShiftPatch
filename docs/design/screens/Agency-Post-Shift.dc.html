@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Post Shift Panel</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}</style>
+</helmet>
+<div class="sp" data-theme="light" style="min-height:860px;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <header style="background:var(--c-surface);border-bottom:1px solid var(--c-line)"><div style="max-width:1200px;margin:0 auto;padding:0 32px;min-height:64px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div class="logo"><svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-bg" width="48" height="48" rx="12"></rect><rect class="m-a" x="11" y="11" width="19" height="19" rx="5"></rect><rect class="m-b" x="19" y="19" width="19" height="19" rx="5"></rect></svg><span class="wordmark">Shift<b>Patch</b></span></div>
+    <nav class="row" style="gap:4px;flex:1"><a class="navi on" href="#">Shifts</a><a class="navi" href="#">Agency profile</a></nav>
+  </div></header>
+  <section style="background:#A24A00;color:#fff"><div style="max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;gap:16px">
+    <span style="width:52px;height:52px;border-radius:14px;background:#fff;color:#A24A00;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center">SH</span>
+    <div><div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Active agency</div><div style="font-size:24px;font-weight:750;letter-spacing:-.02em">Sunrise Health Staffing</div></div>
+  </div></section>
+  <main style="max-width:1200px;margin:0 auto;padding:32px;width:100%"><h1 style="font-size:28px;font-weight:750">Shifts</h1><div class="card" style="margin-top:20px;height:240px"></div></main>
+
+  <div class="scrim"></div>
+  <aside role="dialog" aria-label="Post shift" style="position:absolute;top:0;right:0;bottom:0;width:480px;max-width:100%;background:var(--c-surface);box-shadow:var(--e-3);display:flex;flex-direction:column">
+    <div class="row between" style="padding:20px 24px;border-bottom:1px solid var(--c-line)"><div><h2 style="font-size:22px;font-weight:750;letter-spacing:-.02em">Post a shift</h2><p class="muted" style="font-size:14px">for Sunrise Health Staffing</p></div><button class="iconbtn" aria-label="Close"><span class="ic i-x" aria-hidden="true"></span></button></div>
+    <form style="flex:1;overflow:hidden;padding:20px 24px;display:flex;flex-direction:column" onsubmit="return false">
+      <div class="alert al-err" role="alert" style="margin-bottom:18px"><span class="ic ic-lg i-alert-circle" aria-hidden="true"></span><div><b>Fix 3 things to post this shift</b>Role, end time and pay rate.</div></div>
+      <div class="fld"><label class="lbl" for="r">Role</label><div class="inp err"><select id="r" aria-invalid="true" style="border:0;background:none;outline:0;width:100%;appearance:none"><option>Select a role</option></select><span class="ic i-down muted" aria-hidden="true"></span></div><p class="errmsg"><span class="ic ic-sm i-alert-circle" aria-hidden="true"></span>Select a role (RN or LPN).</p></div>
+      <div class="fld"><label class="lbl" for="dt">Date</label><div class="inp"><span class="ic i-cal muted" aria-hidden="true"></span><input id="dt" value="2026-10-05" style="border:0;background:none;outline:0;width:100%"></div></div>
+      <div class="two">
+        <div class="fld"><label class="lbl" for="st">Start time</label><div class="inp"><input id="st" value="19:00" style="border:0;background:none;outline:0;width:100%"></div></div>
+        <div class="fld"><label class="lbl" for="en">End time</label><div class="inp err"><input id="en" value="19:00" aria-invalid="true" style="border:0;background:none;outline:0;width:100%"></div><p class="errmsg"><span class="ic ic-sm i-alert-circle" aria-hidden="true"></span>End must differ from start.</p></div>
+      </div>
+      <p class="hint" style="margin:-6px 0 16px">Ending earlier than the start is an overnight shift (ends next day).</p>
+      <div class="fld"><label class="lbl" for="fc">Facility <small>(optional)</small></label><div class="inp"><input id="fc" placeholder="Unit or building" style="border:0;background:none;outline:0;width:100%"></div></div>
+      <div class="fld"><label class="lbl" for="ds">Description <small>(optional)</small></label><textarea id="ds" class="inp" placeholder="Unit, handover time, dress code"></textarea></div>
+      <div class="fld"><label class="lbl" for="pr">Pay rate <small>(optional, $ / hour)</small></label><div class="inp err"><span class="muted">$</span><input id="pr" value="forty-eight" aria-invalid="true" style="border:0;background:none;outline:0;width:100%"></div><p class="errmsg"><span class="ic ic-sm i-alert-circle" aria-hidden="true"></span>Enter a number, like 48.</p></div>
+    </form>
+    <div class="row" style="padding:16px 24px;border-top:1px solid var(--c-line);gap:12px;justify-content:flex-end"><button class="btn btn-secondary">Cancel</button><button class="btn btn-primary" type="submit" style="color: #ffffff">Post shift</button></div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

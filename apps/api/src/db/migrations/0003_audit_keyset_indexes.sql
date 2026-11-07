@@ -1,0 +1,2 @@
+CREATE INDEX "audit_network_id_idx" ON "audit_log" USING btree ("network_id","id" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "audit_agency_id_idx" ON "audit_log" USING btree ("agency_id","id" DESC NULLS LAST);

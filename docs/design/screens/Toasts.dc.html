@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notification Banner</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}.tm{height:4px;background:color-mix(in srgb,var(--fg) 22%,transparent);border-radius:0 0 10px 10px;overflow:hidden}.tm i{display:block;height:100%;width:62%;background:var(--fg)}</style>
+</helmet>
+<div class="sp" data-theme="light" style="width:560px;height:844px;padding:32px;display:flex;flex-direction:column;gap:28px">
+  <div><h1 style="font-size:24px;font-weight:750;letter-spacing:-.02em">Notification banner</h1><p class="muted" style="font-size:14px;margin-top:4px">One component, two variants. They differ by icon, color and words — never color alone.</p></div>
+
+  <div class="col" style="gap:8px">
+    <span class="muted" style="font-size:12.5px;font-weight:700">SUCCESS · role="status" · auto-dismiss 5 s</span>
+    <div class="toast" style="border-radius:var(--r-md);overflow:hidden">
+      <div class="alert al-ok" role="status" style="border-radius:var(--r-md) var(--r-md) 0 0;border-bottom:0;align-items:center">
+        <span class="ic ic-lg i-check-circle" aria-hidden="true"></span>
+        <div style="flex:1"><b>Shift claimed</b>RN · Fri, Oct 2 · 19:00 → Sat 07:00</div>
+        <button class="iconbtn" aria-label="Dismiss" style="color:inherit"><span class="ic i-x" aria-hidden="true"></span></button>
+      </div>
+      <div class="tm al-ok" style="--fg:var(--st-filled-fg)"><i></i></div>
+    </div>
+  </div>
+
+  <div class="col" style="gap:8px">
+    <span class="muted" style="font-size:12.5px;font-weight:700">ERROR · role="alert" · stays until dismissed</span>
+    <div class="alert al-err toast" role="alert" style="align-items:flex-start">
+      <span class="ic ic-lg i-alert-circle" aria-hidden="true"></span>
+      <div style="flex:1"><b>Credential expired, cannot claim shift</b><a href="#" style="color:inherit;display:inline-flex;align-items:center;min-height:44px;text-decoration:underline">Upload renewed license</a></div>
+      <button class="iconbtn" aria-label="Dismiss" style="color:inherit"><span class="ic i-x" aria-hidden="true"></span></button>
+    </div>
+  </div>
+
+  <div class="sp" data-theme="dark" style="border-radius:var(--r-lg);padding:20px;display:flex;flex-direction:column;gap:12px">
+    <span class="muted" style="font-size:12.5px;font-weight:700">DARK THEME</span>
+    <div class="alert al-ok toast" role="status" style="align-items:center"><span class="ic ic-lg i-check-circle" aria-hidden="true"></span><div style="flex:1"><b>Shift claimed</b>RN · Fri, Oct 2 · 19:00 → Sat 07:00</div><button class="iconbtn" aria-label="Dismiss" style="color:inherit"><span class="ic i-x" aria-hidden="true"></span></button></div>
+    <div class="alert al-err toast" role="alert"><span class="ic ic-lg i-alert-circle" aria-hidden="true"></span><div style="flex:1"><b>Credential expired, cannot claim shift</b>Upload renewed license</div><button class="iconbtn" aria-label="Dismiss" style="color:inherit"><span class="ic i-x" aria-hidden="true"></span></button></div>
+  </div>
+
+  <p class="muted" style="font-size:13px;max-width:60ch">Placement: top of screen on mobile (below the app bar, above content); top-right on desktop, 24 px from edges, max 420 px wide. Same component also works inline as a page banner (no shadow, no close).</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":560,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>
