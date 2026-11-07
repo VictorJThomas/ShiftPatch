@@ -292,3 +292,60 @@ describe("login rate limit (10 failures/min per IP and per email)", () => {
     expect((await login({ email: email.toUpperCase(), password: PASSWORD })).statusCode).toBe(429);
   });
 });
+
+describe("session rate limits (QA-006: 10 refreshes/min per family, 30 invalid/min per IP, 300/min per IP ceiling)", () => {
+  const expect429 = (res: Awaited<ReturnType<typeof refresh>>) => {
+    expect(res.statusCode).toBe(429);
+    expect(ErrorBody.parse(res.json()).error).toMatch(/too many/i);
+    expect(Number(res.headers["retry-after"])).toBeGreaterThan(0);
+    expect(cookieOf(res)).toBeUndefined(); // a 429 never clears (or sets) the refresh cookie
+  };
+  /** Rotates `n` times from `ip`, asserting 200 each time; returns the latest token. */
+  async function rotate(token: string, n: number, ip?: string) {
+    for (let i = 0; i < n; i++) {
+      const res = await refresh(token, { ip });
+      expect(res.statusCode).toBe(200);
+      token = cookieOf(res)!.value;
+    }
+    return token;
+  }
+
+  it("429 on the 11th refresh of one family (across IPs), cookie kept, and the token still works for logout", async () => {
+    const s = await session((await makeUser()).email);
+    const latest = await rotate(s.refresh, 10);
+    expect429(await refresh(latest));
+    expect((await familyRows(s.refresh)).filter((r) => r.revokedAt === null)).toHaveLength(1); // nothing revoked by the 429
+    const out = await logout(latest); // logout is not behind the family limiter
+    expect(out.statusCode).toBe(204);
+    expect((await familyRows(s.refresh)).every((r) => r.revokedAt !== null)).toBe(true);
+  });
+
+  it("one IP (shared NAT) refreshes 300 times across 30 families; the 301st request from it gets 429", async () => {
+    const ip = newIp();
+    const families = await Promise.all(Array.from({ length: 30 }, async () => (await session((await makeUser()).email)).refresh));
+    for (const token of families) await rotate(token, 10, ip); // the old 30/IP cap is gone
+    const fresh = await session((await makeUser()).email);
+    expect429(await refresh(fresh.refresh, { ip }));
+    expect((await refresh(fresh.refresh)).statusCode).toBe(200); // same family from another IP: unaffected
+  });
+
+  it("invalid/missing cookies from one IP: 429 after 30, while a valid family from that IP still refreshes", async () => {
+    const ip = newIp();
+    for (let i = 0; i < 15; i++) {
+      expect((await refresh(`garbage-${i}`, { ip })).statusCode).toBe(401);
+      expect((await refresh(undefined, { ip })).statusCode).toBe(401);
+    }
+    expect429(await refresh("garbage-31", { ip }));
+    expect429(await refresh(undefined, { ip }));
+    const s = await session((await makeUser()).email);
+    expect((await refresh(s.refresh, { ip })).statusCode).toBe(200);
+  });
+
+  it("reuse detection still revokes the family under the new limiter", async () => {
+    const s = await session((await makeUser()).email);
+    await rotate(s.refresh, 1);
+    await t.db.update(refreshTokens).set({ revokedAt: new Date(Date.now() - 60_000) }).where(eq(refreshTokens.tokenHash, sha256(s.refresh)));
+    expect((await refresh(s.refresh)).statusCode).toBe(401);
+    expect((await familyRows(s.refresh)).every((r) => r.revokedAt !== null)).toBe(true);
+  });
+});
