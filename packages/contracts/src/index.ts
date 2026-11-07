@@ -38,6 +38,9 @@ export const ErrorMessage = {
   forbidden: "Forbidden", // 403 authorization
   agencyRequired: "Select an agency", // 400 write action by a multi-agency user without X-Agency-Id (ARCHITECTURE §7.2)
   invalidFacility: "Facility not found in this network", // 400 POST /api/shifts facilityId outside the agency's network
+  shiftNotFound: "Shift not found", // 404 claim / cancel (ARCHITECTURE §5.2); also an out-of-network shift (no existence leak)
+  shiftNotOpen: "Shift is no longer open", // 409 claim (ARCHITECTURE §5.2)
+  shiftNotFilled: "Shift is not filled", // 409 cancel of a shift that is not filled (ARCHITECTURE §5.1)
 } as const;
 
 // ---------- Shift shape (shared by routes 2-6) ----------
@@ -110,6 +113,34 @@ export const CancelShiftResponse = Shift.extend({
 
 export const AgencyShiftsResponse = z.strictObject({ agencyId: Id, shifts: z.array(Shift) });
 
+// ---------- GET /api/audit-logs (additive, not one of the 6 required routes; ARCHITECTURE §11) ----------
+
+const IsoInstant = z.iso.datetime({ offset: true });
+export const AuditLogQuery = z.object({
+  entityType: z.string().min(1).max(64).optional(),
+  entityId: z.string().min(1).max(128).optional(),
+  action: z.string().min(1).max(64).optional(),
+  from: IsoInstant.optional(), // inclusive
+  to: IsoInstant.optional(), // inclusive
+  cursor: z.string().min(1).max(64).optional(), // opaque: the `nextCursor` of the previous page
+  limit: z.coerce.number().int().min(1).max(100).optional(), // default 50
+});
+/** No ip / userAgent: request metadata stays in the table, it is not part of the read model. `changes` is `{ field: [before, after] }`, redacted. */
+export const AuditLogEntry = z.strictObject({
+  id: z.string().regex(/^\d{1,19}$/),
+  occurredAt: IsoInstant,
+  actorUserId: z.string().nullable(),
+  actorRole: UserRole.nullable(),
+  networkId: z.string().nullable(),
+  agencyId: z.string().nullable(),
+  action: z.string().min(1),
+  entityType: z.string().min(1),
+  entityId: z.string().min(1),
+  changes: z.record(z.string(), z.unknown()).nullable(),
+  requestId: z.string().nullable(),
+});
+export const AuditLogResponse = z.strictObject({ items: z.array(AuditLogEntry), nextCursor: z.string().nullable() });
+
 // ---------- Inferred types ----------
 // Requests use z.input (what a client sends), responses z.output (what the API returns).
 
@@ -134,3 +165,6 @@ export type CancelShiftRequest = z.input<typeof CancelShiftRequest>;
 export type Cancellation = z.infer<typeof Cancellation>;
 export type CancelShiftResponse = z.infer<typeof CancelShiftResponse>;
 export type AgencyShiftsResponse = z.infer<typeof AgencyShiftsResponse>;
+export type AuditLogQuery = z.infer<typeof AuditLogQuery>;
+export type AuditLogEntry = z.infer<typeof AuditLogEntry>;
+export type AuditLogResponse = z.infer<typeof AuditLogResponse>;

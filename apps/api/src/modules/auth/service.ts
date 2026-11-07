@@ -3,7 +3,7 @@ import { hash, verify } from "@node-rs/argon2";
 import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import { refreshTokens, userProfiles, users } from "../../db/schema/index.js";
-import { recordAudit, type RequestMeta, type Tx } from "../audit/audit.js";
+import { auditScopeOf, recordAudit, type RequestMeta, type Tx } from "../audit/audit.js";
 import { newRefreshToken, REFRESH_TOKEN_TTL_MS, type Role, sha256 } from "./tokens.js";
 
 export type SessionUser = { id: string; name: string; role: Role };
@@ -65,7 +65,8 @@ export async function login(db: Db, email: string, password: string, meta: Reque
   const refreshToken = await db.transaction(async (tx) => {
     const { raw } = await issueRefreshToken(tx, u.id, `rtf_${randomUUID()}`, meta);
     await tx.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, u.id));
-    await recordAudit(tx, { action: "auth.login", actorUserId: u.id, actorRole: u.role, entityType: "user", entityId: u.id, ...meta });
+    const scope = await auditScopeOf(tx, u.id, u.role); // same network_id / agency_id columns the shift writers fill
+    await recordAudit(tx, { action: "auth.login", actorUserId: u.id, actorRole: u.role, ...scope, entityType: "user", entityId: u.id, ...meta });
     return raw;
   });
   return { user, refreshToken };

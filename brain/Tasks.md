@@ -7,7 +7,7 @@ Notion columns: `Task` (title) · `Status` (Pending / Active / Done) · `Scope` 
 - Match rows by **exact title**. Never rename a task in one place only.
 - Starting a task: set Status `Active` in BOTH places. Finishing: `Done` in both. New task: add to both, with Stage tag.
 - Edit here first (it is the diff-able record), then push to Notion (`notion-update-page` / `notion-create-pages`). If they disagree, read Notion (query rows), reconcile, note it in [[Session-Log]].
-- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-06.
+- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-07.
 
 Legend: ☐ Pending · ◐ Active · ☑ Done
 
@@ -46,23 +46,31 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ GET /api/shifts (full marketplace) + contract mapper
 - ☑ POST /api/shifts (agency-scoped, shift-N ids, no mass assignment)
 - ☑ GET /api/agencies/:agencyId/shifts (membership/admin only, 403 cross-agency)
-- ☐ POST /api/shifts/:id/claim: isEligible + atomic UPDATE, exact 403 text
-- ☐ POST /api/shifts/:id/cancel (no-show/advance) + shift_cancellations
-- ☐ Withdraw route + GET /api/shifts?matchable=true
-- ☐ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
-- ☐ Shift matching blocks nurses with expired credentials
-- ☐ Cancellation and no-show handling
+- ☑ POST /api/shifts/:id/claim: isEligible + atomic UPDATE, exact 403 text
+- ☑ POST /api/shifts/:id/cancel (no-show/advance) + shift_cancellations
+- ◐ Withdraw route + GET /api/shifts?matchable=true
+- ☑ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
+- ☑ Shift matching blocks nurses with expired credentials
+- ☑ Cancellation and no-show handling
+- ☐ Claim: enforce license type vs shift role (CNA nurse can't claim RN shift)
+- ☐ Tolerate empty JSON body on POST claim (Fastify FST_ERR_CTP_EMPTY_JSON_BODY -> 400)
+- ☐ Cancel: authorize before body validation (403 before 400) · Later
+- ☐ Audit shift.claimed: record when a pending license was used · Later
+- ☐ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
+- ◐ GET /api/me (profile + agency memberships)
 
 ## 5 Audit+Notify
-- ☐ Audit module wired into every write (same transaction)
-- ☐ GET /api/audit-logs (admin network scope, agency own rows)
-- ☐ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
+- ◐ Audit module wired into every write (same transaction)
+- ☑ GET /api/audit-logs (admin network scope, agency own rows)
+- ◐ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
 - ☐ Audit log
 - ☐ Email notifications
+- ☐ Audit read: indexes (network_id, id desc) and (agency_id, id desc) for keyset paging · Later
+- ☐ Audit: scope logout and refresh-reuse rows (network_id/agency_id) like login · Later
 
 ## 6 Web UI
-- ☐ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
-- ☐ Login page, Zustand session, api-client (refresh on 401), route guards
+- ◐ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
+- ◐ Login page, Zustand session, api-client (refresh on 401), route guards
 - ☐ Nurse UI: shifts list, claim, my shifts, cancel, lapsed-license fallback
 - ☐ Agency UI: own shifts, post-shift form, cancel, agency selector
 - ☐ Admin dashboard: shift table + status badges, 15s refetch
@@ -77,6 +85,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Signed 5-min document links, audited views, 404 out of scope
 - ☐ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
+- ☐ Warn or unassign when a license is rejected after a claim · Later
 
 ## 8 Release
 - ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)

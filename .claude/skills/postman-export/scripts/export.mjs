@@ -30,8 +30,13 @@ try {
   await app.ready();
   // ponytail: parses printRoutes text (Fastify has no route-list API); breaks only if its tree format changes.
   registered = new Set();
-  for (const m of app.printRoutes({ commonPrefix: false }).matchAll(/(\/\S*) \(([A-Z, ]+)\)/g)) {
-    for (const method of m[2].split(", ")) registered.add(`${method} ${m[1]}`);
+  // Nested nodes print relative to their parent (`/api/shifts` > `/:id/claim`), 4 chars of indent per level: rebuild the full path.
+  const stack = [];
+  for (const m of app.printRoutes({ commonPrefix: false }).matchAll(/^((?:│   |    )*)(?:├── |└── )(\/\S*) \(([A-Z, ]+)\)/gm)) {
+    const depth = m[1].length / 4;
+    const full = (depth ? stack[depth - 1] : "") + m[2];
+    stack[depth] = full;
+    for (const method of m[3].split(", ")) registered.add(`${method} ${full}`);
   }
   await app.close();
 } catch (err) {
