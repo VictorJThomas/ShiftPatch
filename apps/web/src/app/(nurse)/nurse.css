@@ -1,0 +1,70 @@
+/* Nurse screens (designs: Nurse-*.dc.html). Tokens only, no new colours. Shell/grid live in globals.css. */
+
+.nurse-stack{display:flex;flex-direction:column;gap:var(--s-4)}
+.nurse-narrow{max-width:640px}
+.nurse-grow{flex:1;min-width:0}
+
+/* list heading: the design's muted count line, as a real h2 */
+.nurse-list-h{font-size:14px;font-weight:650;color:var(--c-ink-3);margin-bottom:var(--s-3)}
+
+/* filters: one scrollable row per group on phones, all in one wrapping row on wide screens */
+.nurse-filters{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.nurse-filters .chips{min-width:0}
+.nurse-clear{align-self:flex-start}
+@media (min-width:1000px){
+  .nurse-filters{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--s-2) var(--s-6)}
+  .nurse-clear{align-self:center}
+}
+
+/* shift card: fills its grid cell so the action rows line up across a row of cards */
+.nurse-shell .card-grid>li{display:flex;min-width:0}
+.nurse-shell .card-grid>li>.card{flex:1;min-width:0}
+.nurse-card{transition:box-shadow .15s ease,border-color .15s ease}
+@media (hover:hover){.nurse-card:hover{box-shadow:var(--e-2);border-color:var(--c-line-strong)}}
+.nurse-card-top{gap:var(--s-3);align-items:flex-start}
+.nurse-card-top h3{min-width:0;overflow-wrap:anywhere;text-wrap:balance}
+.nurse-card-meta{gap:6px}
+.nurse-card-tags{gap:var(--s-2);flex-wrap:wrap}
+.nurse-card-actions{gap:10px;margin-top:auto}
+.nurse-card-actions .btn{min-height:48px}
+.nurse-shell .btn:not([disabled]):active{transform:scale(.96)}
+@media (prefers-reduced-motion:no-preference){.nurse-shell .btn{transition:transform .1s ease,background-color .15s ease}}
+
+/* lapsed-license / info notices */
+.nurse-notice-link{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);margin-top:2px;padding:0;border:0;background:none;color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.nurse-notice .nurse-notice-link{display:flex;width:max-content}
+
+/* confirm sheets */
+.nurse-summary{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:var(--r-md);background:var(--c-bg);border:1px solid var(--c-line)}
+.nurse-summary-when{font-weight:650}
+.nurse-confirm-note{margin-top:14px;color:var(--c-ink-2);font-size:15px;text-wrap:pretty}
+.alert.nurse-confirm-note{color:var(--fg)}
+
+/* shift details (design .dl rows) */
+.nurse-dl{margin-top:var(--s-3)}
+.nurse-dl>div{display:grid;grid-template-columns:20px 1fr;column-gap:12px;padding:12px 0;border-bottom:1px solid var(--c-line)}
+.nurse-dl>div:last-child{border-bottom:0}
+.nurse-dl .ic{grid-row:span 2;color:var(--c-ink-3);margin-top:2px}
+.nurse-dl dt{font-size:12.5px;font-weight:650;color:var(--c-ink-3)}
+.nurse-dl dd{margin:0}
+
+/* credentials */
+.nurse-appbar-btn{min-height:var(--tap)}
+.nurse-cred{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.nurse-cred h3{font-size:16px;font-weight:700}
+.nurse-cred-meta{display:flex;align-items:flex-start;gap:6px;font-size:14px}
+.nurse-cred-meta .ic{margin-top:3px;flex:none}
+.nurse-cred .nurse-notice-link{color:var(--c-brand);align-self:flex-start}
+.nurse-file{position:relative;justify-content:flex-start}
+.nurse-file:has(input:focus-visible){outline:3px solid var(--c-focus);outline-offset:2px}
+.nurse-file-chip{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border:1px solid var(--c-line);border-radius:var(--r-md)}
+.nurse-file-chip>div{display:flex;flex-direction:column;min-width:0}
+.nurse-file-chip b{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.nurse-file-chip span{font-size:12.5px}
+
+/* profile */
+.nurse-profile{padding:20px;display:flex;gap:16px;align-items:center}
+.nurse-profile-who{gap:4px;min-width:0}
+.nurse-profile-who h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.nurse-profile-who .muted{font-size:14px;overflow-wrap:anywhere}
+.nurse-profile-who .badge{align-self:flex-start;margin-top:4px}
