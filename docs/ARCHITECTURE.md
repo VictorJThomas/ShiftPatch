@@ -793,6 +793,15 @@ flowchart TD
 - **Hiding records:** for resources like credential documents, IDs outside the caller's scope return **404**, so their existence isn't revealed.
 - **Database row-level security:** [Future] defense-in-depth, once pooled-connection settings are worked out.
 
+**As built (Stage 3, `apps/api/src/modules/authz/`):**
+- **Pipeline:** `authenticate` and `loadActor` are `onRequest` hooks (opt in per route: `{ onRequest: [app.authenticate, app.loadActor] }`), so a bad token gets 401 before body parsing or Zod can answer 400. `x-request-id` (Fastify's `req.id`, never client-supplied) is echoed on every response.
+- **authenticate:** strict `Bearer <token>` → `verifyAccessToken` (HS256 pinned, exp) → one DB read. 401 `{error:"Unauthorized"}` if the user is missing, deleted, suspended, an inactive nurse, or the JWT `role` ≠ DB role. Only `sub/role/jti` are used. Known limit: access tokens carry no refresh-family id, so logout doesn't kill a live access token (≤15 min).
+- **Actor** (rebuilt from the DB every request, frozen): `{ userId, role, status, agencies[{agencyId, role}], networkIds[], nurseNetworkId, activeAgencyId }`. Agency memberships load only for global role `agency` (active, agency not deleted/suspended); network memberships only for `admin` (active, network not deleted/suspended). A nurse is never an agency member.
+- **X-Agency-Id:** anything but one value naming an active membership → 403 `Forbidden` (nurses/admins included). Absent + one membership → implicit; absent + several → `activeAgencyId = null`.
+- **Denial reasons → HTTP:** `agency_selection_required` → 400 `Select an agency`; `out_of_scope` → 404 (hidden records); all others → 403 `Forbidden`.
+- **Policies** (`can(actor, action, resource)`, one `policy.ts` per module): agency writes need `activeAgencyId` = target agency + owner/manager (members: owner only; admins act inside their networks; admins cannot create shifts). Nurse cancel = own shift + `advance`. Claim = nurse in the shift's network (credential eligibility §5.3 stays in the service). `audit:read` and credential reads exclude viewers (least privilege; the matrix lists viewers for "view agency shifts" only). Credential reads for agencies need the nurse to hold one of the active agency's shifts (caller supplies `agencyIdsHoldingNurse`).
+- **Scopes:** `agencyScope(actor, id)` / `networkScope(actor, id)` are the only way to get an `AgencyScope` / `NetworkScope` (branded type + runtime WeakSet, so a forged object fails closed). Repositories require them.
+
 **Switching agencies safely:** the agency selector in the UI only changes the `X-Agency-Id` header. The server re-validates it on every request, so changing the header in the browser can't grant access to another agency.
 
 ---

@@ -3,21 +3,19 @@
 **Last updated:** 2026-11-06
 
 ## Where we are
-- Branch `feature/3-auth-backend` (from `master` after PR #3 merge). **Auth lifecycle built, uncommitted** (see `git status`).
-- `apps/api/src/modules/auth/` (`tokens.ts`, `service.ts`, `routes.ts`) + `modules/audit/audit.ts` (`recordAudit`). Routes live: `POST /api/auth/login`, `/refresh`, `/logout`. Details + trade-offs: [[Decisions]] → Auth lifecycle.
-  - Login: argon2id + dummy hash, exact `{token,user}` / exact 401 text, HS256 15-min JWT (`sub`,`role`,`jti`), refresh cookie `sp_refresh` (httpOnly, Strict, Path `/api/auth`, 7d, Secure in prod).
-  - Refresh: opaque 256-bit token, SHA-256 stored, rotation under per-family advisory lock, reuse → family revoked, 10 s grace → 409. Logout: idempotent family revoke. Origin check on refresh/logout. Login rate limit 10 failures/min per IP + per email hash.
-  - Not built (next task): `authenticate` / `loadActor` plugins — `verifyAccessToken()` exists, no route uses it yet.
-- `/verify` **GREEN 4/4**; `pnpm build` OK. Tests: contracts 93, api 69 (24 auth integration on real Postgres, incl. concurrency; mutation-checked: removing the family lock or the family revoke turns tests red). Contract gate: login block live (4 pass), 14 skipped until shift routes exist.
-- Independent review (`agent-skills:code-reviewer`): APPROVE WITH CHANGES → C1 (limiter key/cache DoS), I1 (logout/reuse vs rotation race), I2 (count failures only), I3 (grace after logout), S1 (secret check before DB write), S4 (audit reuse once) **all fixed + tested**. Deferred: S2/S3/S5 (see Next step).
-- `docs/postman/` regenerated (`--check` OK). Deployed API/web unchanged (health only; Railway has no DB / JWT_SECRET yet).
+- Branch `feature/3-auth-backend`. **Auth lifecycle + authorization infra built, all UNCOMMITTED** (last commit e5b7194 = auth routes).
+- Authz = `apps/api/src/modules/authz/{actor,plugin,decision,can,scope}.ts` + `policy.ts` in `modules/{shifts,memberships,audit,credentials,admin}` + `modules/{shifts,audit}/repository.ts` (scope-required). `authenticate`/`loadActor` are `onRequest` hooks (`{ onRequest: [app.authenticate, app.loadActor] }`); `req.actor`, `can()`, `sendDenial()`. Actor model, matrix, reason→HTTP map: ARCHITECTURE §7.2 "As built"; choices: [[Decisions]] → Authorization.
+- `/verify` **GREEN 4/4** after review fixes; `pnpm build` OK. 87 authz tests (policy matrix, real-Postgres pipeline/actor/X-Agency-Id/revocation, scope forgery); 4 mutation checks turned tests red. Contracts: `ErrorMessage.agencyRequired` ("Select an agency").
+- Independent review (`agent-skills:code-reviewer`): no Critical. Fixed: write-check order (403 before 400), credential reads w/o selection, `agencyScopeForAdmin`, `JwtConfigError`, deny-by-default route-collector test. Accepted/documented: scope ≠ `can()`; stray header 403 for nurse/admin; 2-query TOCTOU; viewer excluded from audit/credential reads.
+- No real route is protected yet (probe routes in tests). Deployed API/web unchanged (health only).
 
 ## Next step
-1. Victor: review + commit auth work on `feature/3-auth-backend`, push, PR to `master`, confirm CI green.
-2. Stage 3 next task: `authenticate` (Bearer → `verifyAccessToken` → load user, 401 if deleted/suspended) + `loadActor` (memberships, `X-Agency-Id`) + `can()` policies. Then stage 4 shifts (contract blocks auto-activate).
-3. Before real deploy (Stage 8): Railway env `JWT_SECRET` (≥32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app` (exact: scheme, no trailing slash; Vercel URL, not Railway, since browsers call `/api/*` via the rewrite; unset ⇒ every browser refresh/logout 403; Vercel preview URLs get 403 too; update if a custom domain is added), `TRUST_PROXY=2` (confirm by logging `req.ip` once — Railway XFF behavior unverified), `NODE_ENV=production`. Consider a secret header from the Vercel rewrite so direct Railway calls can't spoof XFF (review S2). Optional: `UV_THREADPOOL_SIZE` / argon2 concurrency cap (S5).
-4. Still open from contracts: Fastify empty JSON body on claim (`FST_ERR_CTP_EMPTY_JSON_BODY`). (Login malformed body → decided: 401.)
-5. Before first data deploy: Railway Postgres, ship migrations, `db:migrate` + `db:seed`, non-owner `app` DB role.
+1. Victor: review + commit `feature/3-auth-backend` (auth + authz), push, PR to `master`, CI green. Run `/postman-export --check` after (no route change expected).
+2. Stage 4 shifts: every `/api/*` route must carry both hooks (a test enforces it). Handlers: load resource facts (`networkId`, `agencyIdsHoldingNurse`) from the DB, `can()` → `sendDenial()`, then scoped repo (`agencyScope`/`agencyScopeForAdmin`/`networkScope`). Contract blocks auto-activate.
+3. Before real deploy (Stage 8): Railway env `JWT_SECRET` (>=32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app` (exact, no trailing slash; unset => browser refresh/logout 403), `TRUST_PROXY=2` (verify `req.ip` once), `NODE_ENV=production`. Consider secret header from the Vercel rewrite (review S2). Optional: argon2 concurrency cap (S5).
+4. Still open from contracts: Fastify empty JSON body on claim (`FST_ERR_CTP_EMPTY_JSON_BODY`).
+5. Before first data deploy: Railway Postgres, migrations, `db:migrate` + `db:seed`, non-owner `app` DB role.
+6. Frontend: never send `X-Agency-Id` for nurse/admin (403).
 
 ## Blockers / waiting
 - Founder decision on export (Option C vs D) — see [[ESCALATION]]. Doesn't block core build.

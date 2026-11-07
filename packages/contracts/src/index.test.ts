@@ -334,6 +334,7 @@ describe("type inference", () => {
       | "No valid credential on file, cannot claim shift"
       | "Unauthorized"
       | "Forbidden"
+      | "Select an agency"
     >();
   });
   it("specialised responses are assignable to the base Shift", () => {

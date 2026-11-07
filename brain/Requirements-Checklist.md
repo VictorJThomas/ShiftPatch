@@ -14,8 +14,8 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 ## Founder wish list
 | Item | State | Note |
 |---|---|---|
-| 3 roles with real permissions | ☐ | [[docs/ARCHITECTURE]] §7 |
-| Authentication | ◐ | §6 — login, refresh rotation, reuse detection, logout done; `authenticate`/`loadActor` pending |
+| 3 roles with real permissions | ◐ | §7 — actor, `can()` policies, scoped repos built + tested; no real route wired yet (Stage 4) |
+| Authentication | ◐ | §6 — login, refresh rotation, reuse detection, logout, `authenticate`/`loadActor` done |
 | Credential upload + expiry | ☐ | §9, test IDs |
 | Matching blocks lapsed credentials | ☐ | §5.3 |
 | Cancellation + no-show | ☐ | §5.4 |

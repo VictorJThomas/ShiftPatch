@@ -3,6 +3,7 @@ import rateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
 import { createDb } from "./db/client.js";
 import { authRoutes } from "./modules/auth/routes.js";
+import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
 
 export function buildApp() {
   // TRUST_PROXY = number of proxy hops in front of the API (Vercel rewrite + Railway edge), so req.ip is the client.
@@ -19,6 +20,9 @@ export function buildApp() {
 
   app.register(cookie);
   app.register(rateLimit, { global: false, cache: 50_000 }); // LRU keys are short (IPs, email hashes): ~100 B each
+  app.register(requestIdPlugin);
+  app.register(authenticatePlugin, { db });
+  app.register(loadActorPlugin, { db });
   app.register(async (scope) => authRoutes(scope, db)); // after the plugins above, so their decorators exist
 
   app.get("/api/health", () => ({ status: "ok" }));

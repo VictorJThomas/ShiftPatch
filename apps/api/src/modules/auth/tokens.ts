@@ -2,6 +2,8 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { UserRole } from "@shiftpatch/contracts";
 import { jwtVerify, SignJWT } from "jose";
 
+export class JwtConfigError extends Error {}
+
 export type Role = "nurse" | "agency" | "admin";
 
 export const ACCESS_TOKEN_TTL = "15m";
@@ -11,7 +13,7 @@ export const REFRESH_COOKIE = "sp_refresh";
 // ponytail: read per call, not at boot, so /api/health still serves on a deploy missing the secret (auth returns 500).
 function secret() {
   const s = process.env.JWT_SECRET;
-  if (!s || Buffer.byteLength(s) < 32) throw new Error("JWT_SECRET must be set to at least 32 bytes");
+  if (!s || Buffer.byteLength(s) < 32) throw new JwtConfigError("JWT_SECRET must be set to at least 32 bytes");
   return new TextEncoder().encode(s);
 }
 export const assertJwtConfigured = () => void secret();

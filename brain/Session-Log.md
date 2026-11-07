@@ -85,3 +85,12 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 2 tasks Pending → Active → Done via `/task` (both sides); Notion queried, no other drift (65 rows).
 - Skills used: ponytail, using-agent-skills, verify, review/code-review-and-quality, task, postman-export, wrap-session — all already in `.claude/skills/`; none copied.
 - Open: commit + PR (Victor); `authenticate`/`loadActor`; deploy env vars.
+
+## 2026-11-06 — Stage 3 authorization infra (actor, X-Agency-Id, can(), scoped repos)
+- Done: `modules/authz/*`, per-module `policy.ts` (shifts, memberships, audit, credentials, admin), scope-required repos (shifts, audit), plugins wired in `app.ts`, `ErrorMessage.agencyRequired`, ARCHITECTURE §7.2 "As built". 87 tests (39 policy matrix, authz integration on real Postgres, scope/repo isolation). Mutation checks (status, role mismatch, header validation, revoked membership) all red.
+- Review: `agent-skills:code-reviewer` fresh context, no Critical; 5 Important fixed with tests, rest documented (see [[Decisions]] → Authorization).
+- `/verify` GREEN 4/4; `pnpm build` OK.
+- Decided: see [[Decisions]] → Authorization (onRequest hooks, role-claim mismatch = 401, memberships only for matching global role, header invalid = 403, viewer excluded from audit/credential reads).
+- Board: task "authenticate + loadActor plugins, X-Agency-Id, can() policies" Pending -> Active -> Done (both sides); full `tasks_md.py diff` not rerun (single-row change, Notion query showed it Done).
+- Skills copied: none (all used skills already in `.claude/skills/`).
+- Open: commit + PR (Victor); Stage 4 handlers; deploy env vars.

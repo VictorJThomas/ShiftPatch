@@ -37,7 +37,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ packages/contracts: strict Zod schemas for 6 required routes + errors
 - ☑ POST /api/auth/login (argon2id, JWT, 401 text, rate limit)
 - ☑ Refresh + logout: rotating httpOnly cookie, reuse detection
-- ☐ authenticate + loadActor plugins, X-Agency-Id, can() policies
+- ☑ authenticate + loadActor plugins, X-Agency-Id, can() policies
 - ☐ Authentication
 - ☐ Three roles with real permissions: agency, nurse, admin
 - ☑ test:contract gate: seeded-DB harness + 6-route contract suite (skips until handlers exist)
