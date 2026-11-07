@@ -5,7 +5,9 @@ import { DrizzleQueryError } from "drizzle-orm";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { createDb } from "./db/client.js";
 import { auditRoutes } from "./modules/audit/routes.js";
+import type { ObjectStorage } from "./lib/storage.js";
 import { authRoutes } from "./modules/auth/routes.js";
+import { credentialRoutes } from "./modules/credentials/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
 import { shiftRoutes } from "./modules/shifts/routes.js";
 import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
@@ -38,7 +40,8 @@ function loggable(err: Error): Error {
 
 type LoggerOption = boolean | Exclude<FastifyServerOptions["logger"], boolean | undefined>;
 
-export function buildApp({ logger = false }: { logger?: LoggerOption } = {}) {
+/** `storage`: tests inject an in-memory fake; unset = the private bucket from the S3_ENDPOINT / R2_* env, read on first upload. */
+export function buildApp({ logger = false, storage }: { logger?: LoggerOption; storage?: ObjectStorage } = {}) {
   // TRUST_PROXY = number of proxy hops in front of the API (Vercel rewrite + Railway edge), so req.ip is the client.
   // ponytail: hop count trusts X-Forwarded-For, which a client calling the Railway domain directly can spoof, so per-IP
   // limits are advisory there. Upgrade: Vercel rewrite adds a secret header, trust XFF only with it (or block direct access).
@@ -80,6 +83,7 @@ export function buildApp({ logger = false }: { logger?: LoggerOption } = {}) {
   app.register(async (scope) => shiftRoutes(scope, db));
   app.register(async (scope) => meRoutes(scope, db));
   app.register(async (scope) => auditRoutes(scope, db));
+  app.register(async (scope) => credentialRoutes(scope, db, storage));
 
   app.get("/api/health", () => ({ status: "ok" }));
 
