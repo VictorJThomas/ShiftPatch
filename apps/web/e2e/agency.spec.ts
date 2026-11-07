@@ -71,11 +71,11 @@ test("a 403 for the selected agency drops the selection and shows the server err
   await page.getByRole("option", { name: /Sunrise Health Staffing/ }).click();
   await expect(page.getByTestId("agency-shift-count")).toBeVisible();
 
-  api.shiftsStatus["agency-b"] = { status: 403, body: { error: "Forbidden" } }; // membership revoked meanwhile
+  api.shiftsStatus["agency-b"] = { status: 403, body: { error: "Agency not available" } }; // membership revoked meanwhile
   await page.getByRole("button", { name: /switch agency/i }).click();
   await page.getByRole("option", { name: /Metro Care Partners/ }).click();
 
-  await expect(banner(page)).toHaveText(/Forbidden/);
+  await expect(banner(page)).toHaveText(/Agency not available/);
   await expect(banner(page).getByRole("alert")).toBeVisible();
   await expect(page.getByTestId("active-agency-name")).toHaveText("Select an agency");
   expect(await page.evaluate(() => localStorage.getItem("sp.activeAgencyId"))).toBeNull();

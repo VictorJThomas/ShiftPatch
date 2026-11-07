@@ -1,7 +1,7 @@
 import type { ZodType } from "zod";
-import { LoginResponse } from "@shiftpatch/contracts";
+import { ErrorMessage, LoginResponse } from "@shiftpatch/contracts";
 import { setRoleCookie } from "@/lib/role-cookie";
-import { useSessionStore } from "@/stores/session";
+import { getSessionEpoch, useSessionStore } from "@/stores/session";
 
 /**
  * Same-origin client for `/api/*` (Next rewrites to the API, so the refresh cookie stays first-party).
@@ -34,8 +34,8 @@ export function configureApiClient(next: Partial<ApiHooks>): void {
   hooks = { ...hooks, ...next };
 }
 
-/** Delay before retrying a refresh that lost a concurrent-rotation race (409). Mutable for tests. */
-export const refreshRetry = { delayMs: 150 };
+/** 409 = lost a concurrent rotation (e.g. another tab). Retry up to `attempts` times with a small jittered backoff. Mutable for tests. */
+export const refreshRetry = { delayMs: 150, attempts: 3 };
 
 const NETWORK_MESSAGE = "Network error. Check your connection and try again.";
 const SESSION_MESSAGE = "Your session expired. Sign in again.";
@@ -69,14 +69,17 @@ async function safeFetch(input: string, init: RequestInit): Promise<Response> {
 let inflightRefresh: Promise<string> | null = null;
 
 async function doRefresh(): Promise<string> {
-  for (let attempt = 0; ; attempt++) {
+  const epoch = getSessionEpoch();
+  for (let attempt = 1; ; attempt++) {
     const res = await safeFetch("/api/auth/refresh", { method: "POST", headers: { Accept: "application/json" } });
-    // 409 = lost a concurrent rotation: the winner already set the new cookie, so retry once after a short delay.
-    if (res.status === 409 && attempt === 0) {
-      await sleep(refreshRetry.delayMs);
+    // 409 = lost a concurrent rotation: the winner already set the new cookie, so retry after a short jittered delay.
+    if (res.status === 409 && attempt < refreshRetry.attempts) {
+      await sleep(refreshRetry.delayMs * attempt * (0.5 + Math.random()));
       continue;
     }
     if (!res.ok) throw await toApiError(res);
+    // Logged out (or re-logged-in) while this was in flight: applying it would resurrect a dead session.
+    if (getSessionEpoch() !== epoch) throw new ApiError(401, SESSION_MESSAGE);
     const parsed = LoginResponse.safeParse(await res.json().catch(() => null));
     if (!parsed.success) throw new ApiError(502, "Unexpected response from the server.");
     const { token, user } = parsed.data;
@@ -152,8 +155,9 @@ export async function apiFetch<T = unknown>(path: string, opts: ApiRequest<T> = 
   const { res, agencyId } = await request(path, opts, false);
   if (!res.ok) {
     const error = await toApiError(res);
-    if (res.status === 403 && agencyId) {
-      // Never assume authorization: the selection is stale or revoked. Drop it and let the UI ask again.
+    if (res.status === 403 && agencyId && error.message === ErrorMessage.agencyNotAllowed) {
+      // The API says this X-Agency-Id is stale/foreign/revoked. Drop it and let the UI ask again.
+      // A plain "Forbidden" is a normal permission denial (e.g. a viewer): the selection stays.
       useSessionStore.getState().setActiveAgency(null);
       hooks.onAgencyRejected(error.message);
     }

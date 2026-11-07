@@ -2,13 +2,15 @@ import { LoginResponse, MeResponse, type LoginRequest } from "@shiftpatch/contra
 import { apiFetch, refreshSession } from "@/lib/api-client";
 import { getQueryClient } from "@/lib/query-client";
 import { clearRoleCookie, setRoleCookie } from "@/lib/role-cookie";
-import { pickActiveAgency, useSessionStore } from "@/stores/session";
+import { broadcastSignedOut } from "@/lib/session-channel";
+import { bumpSessionEpoch, getSessionEpoch, pickActiveAgency, useSessionStore } from "@/stores/session";
 
 /** Drop everything session-shaped on this device: store, role cookie, cached server state. */
-export function endSessionLocally(): void {
+export function endSessionLocally({ broadcast = true } = {}): void {
   useSessionStore.getState().clearSession();
   clearRoleCookie();
   getQueryClient().clear();
+  if (broadcast) broadcastSignedOut(); // other tabs end their session too
 }
 
 export const fetchMe = () => apiFetch("/api/me", { schema: MeResponse });
@@ -30,6 +32,7 @@ async function commitSession(): Promise<void> {
 
 export async function login(credentials: LoginRequest): Promise<void> {
   const { token, user } = await apiFetch("/api/auth/login", { method: "POST", body: credentials, schema: LoginResponse });
+  bumpSessionEpoch(); // a restore/refresh still in flight belongs to the previous session and must not touch this one
   useSessionStore.getState().applyToken(token, user);
   try {
     await commitSession();
@@ -70,12 +73,13 @@ async function restore(): Promise<void> {
   const store = useSessionStore.getState();
   if (store.status === "authenticated") return;
   store.setStatus("restoring");
+  const epoch = getSessionEpoch();
   try {
     await refreshSession();
     await commitSession();
   } catch {
     // Not signed in (or the API is down). A login in the meantime wins; otherwise this is an anonymous visit.
-    if (useSessionStore.getState().status !== "authenticated") {
+    if (getSessionEpoch() === epoch && useSessionStore.getState().status !== "authenticated") {
       const s = useSessionStore.getState();
       s.setStatus("anonymous");
       useSessionStore.setState({ accessToken: null, user: null, agencies: [] });

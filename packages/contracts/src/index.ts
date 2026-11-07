@@ -36,6 +36,7 @@ export const ErrorMessage = {
   noValidCredential: "No valid credential on file, cannot claim shift", // 403 claim
   unauthorized: "Unauthorized", // 401 every route but login
   forbidden: "Forbidden", // 403 authorization
+  agencyNotAllowed: "Agency not available", // 403 X-Agency-Id is stale, foreign or revoked (distinct from a permission denial)
   agencyRequired: "Select an agency", // 400 write action by a multi-agency user without X-Agency-Id (ARCHITECTURE §7.2)
   invalidFacility: "Facility not found in this network", // 400 POST /api/shifts facilityId outside the agency's network
   shiftNotFound: "Shift not found", // 404 claim / cancel (ARCHITECTURE §5.2); also an out-of-network shift (no existence leak)

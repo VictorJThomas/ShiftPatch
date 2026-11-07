@@ -82,9 +82,9 @@ async function call(method: "GET" | "POST", url: string, who?: string, opts: { b
   const res = await app.inject({ method, url, headers, remoteAddress: `10.1.${Math.floor(++ip / 250)}.${ip % 250}`, ...(opts.body === undefined ? {} : { payload: opts.body as object }) });
   return { status: res.statusCode, body: res.json() as Json };
 }
-const forbidden = (r: { status: number; body: unknown }) => {
+const forbidden = (r: { status: number; body: unknown }, error = "Forbidden") => {
   expect(r.status).toBe(403);
-  expect(r.body).toEqual({ error: "Forbidden" }); // exact
+  expect(r.body).toEqual({ error }); // exact
 };
 const ids = (r: { body: Json }) => r.body.shifts.map((s) => s.id);
 const SHIFT_KEYS = ["agencyId", "agencyName", "claimedBy", "date", "endTime", "id", "role", "startTime", "status"];
@@ -108,8 +108,8 @@ describe("GET /api/shifts (marketplace)", () => {
   });
 
   it("a stray X-Agency-Id (non-member) is 403 even here: the header is validated for every request (frontend must not send stale ones)", async () => {
-    forbidden(await call("GET", "/api/shifts", "agency-a", { headers: { "x-agency-id": "agency-b" } }));
-    forbidden(await call("GET", "/api/shifts", "nurse-1", { headers: { "x-agency-id": "agency-a" } }));
+    forbidden(await call("GET", "/api/shifts", "agency-a", { headers: { "x-agency-id": "agency-b" } }), "Agency not available");
+    forbidden(await call("GET", "/api/shifts", "nurse-1", { headers: { "x-agency-id": "agency-a" } }), "Agency not available");
     expect((await call("GET", "/api/shifts", "agency-a", { headers: { "x-agency-id": "agency-a" } })).status).toBe(200);
   });
 
@@ -195,7 +195,7 @@ describe("GET /api/agencies/:agencyId/shifts", () => {
   it("multi-agency user: any member agency works; the header must still name a membership", async () => {
     expect(ids(await call("GET", "/api/agencies/agency-a/shifts", "multi"))).toEqual(["shift-1", "shift-2"]);
     expect(ids(await call("GET", "/api/agencies/agency-b/shifts", "multi", { headers: { "x-agency-id": "agency-a" } }))).toEqual(["shift-3"]); // URL, not header, picks the agency
-    forbidden(await call("GET", "/api/agencies/agency-a/shifts", "multi", { headers: { "x-agency-id": "agency-c" } })); // stray header
+    forbidden(await call("GET", "/api/agencies/agency-a/shifts", "multi", { headers: { "x-agency-id": "agency-c" } }), "Agency not available"); // stray header
     forbidden(await call("GET", "/api/agencies/agency-c/shifts", "multi"));
   });
   it("revoked membership loses access immediately", async () => {
@@ -261,9 +261,9 @@ describe("POST /api/shifts", () => {
     expect(b).toMatchObject({ status: 201, body: { agencyId: "agency-b", agencyName: "Metro Care Partners" } });
     const a = await call("POST", "/api/shifts", "multi", { body: { ...body, agencyId: "agency-b" }, headers: { "x-agency-id": "agency-a" } });
     expect(a.body.agencyId).toBe("agency-a"); // header wins over body
-    forbidden(await call("POST", "/api/shifts", "multi", { body, headers: { "x-agency-id": "agency-c" } }));
-    forbidden(await call("POST", "/api/shifts", "multi", { body, headers: { "x-agency-id": "" } }));
-    forbidden(await call("POST", "/api/shifts", "agency-a", { body, headers: { "x-agency-id": "agency-b" } })); // single-agency user, other agency
+    forbidden(await call("POST", "/api/shifts", "multi", { body, headers: { "x-agency-id": "agency-c" } }), "Agency not available");
+    forbidden(await call("POST", "/api/shifts", "multi", { body, headers: { "x-agency-id": "" } }), "Agency not available");
+    forbidden(await call("POST", "/api/shifts", "agency-a", { body, headers: { "x-agency-id": "agency-b" } }), "Agency not available"); // single-agency user, other agency
   });
   it("invalid fields: 400 { error } and nothing inserted", async () => {
     const before = (await t.db.select().from(shifts)).length;

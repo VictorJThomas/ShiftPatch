@@ -142,7 +142,7 @@ export class MockApi {
       const override = this.shiftsStatus[agencyId];
       if (override) return this.json(route, override.status, override.body);
       if (user.user.role !== "agency" || header !== agencyId || !user.agencies.some((a) => a.agencyId === agencyId)) {
-        return this.json(route, 403, { error: "Forbidden" });
+        return this.json(route, 403, { error: "Agency not available" });
       }
       const count = agencyId === "agency-a" ? 1 : 2;
       return this.json(route, 200, {

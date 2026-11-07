@@ -171,7 +171,7 @@ test.describe("access-token expiry", () => {
     await expect(page.getByTestId("agency-shift-count")).toBeVisible();
     await expect.poll(() => api.calls("/api/auth/refresh").length - refreshBase).toBe(1);
     // original (401) + retry (200)
-    expect(api.calls("/api/agencies/agency-a/shifts").length - shiftsBase).toBe(2);
+    await expect.poll(() => api.calls("/api/agencies/agency-a/shifts").length - shiftsBase).toBe(2);
     await expect(page).toHaveURL(/\/agency\/shifts$/);
   });
 

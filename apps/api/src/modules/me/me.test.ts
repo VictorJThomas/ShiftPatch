@@ -92,7 +92,7 @@ describe("GET /api/me", () => {
     const r = await call("GET", "/api/me", "multi", { headers: { "x-agency-id": "agency-b" } });
     expect(r.status).toBe(200);
     // ...while every other route keeps the 403
-    err(await call("GET", "/api/shifts", "multi", { headers: { "x-agency-id": "agency-b" } }), 403, ErrorMessage.forbidden);
+    err(await call("GET", "/api/shifts", "multi", { headers: { "x-agency-id": "agency-b" } }), 403, ErrorMessage.agencyNotAllowed);
   });
 
   it("a valid token for a user without a profile row is 401, not 500", async () => {
