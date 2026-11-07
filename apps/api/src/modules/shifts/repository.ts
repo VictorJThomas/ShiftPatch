@@ -1,6 +1,9 @@
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
-import { agencies, credentials, facilities, hospitalNetworks, networkAgencies, nurseProfiles, shifts } from "../../db/schema/index.js";
+import {
+  agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, notifications, nurseProfiles, shiftCancellations, shifts, users,
+} from "../../db/schema/index.js";
+import type { Tx } from "../audit/audit.js";
 import {
   type AgencyScope,
   assertAgencyScope,
@@ -142,3 +145,89 @@ export async function licensesOf(db: Db, nurseId: string) {
     .from(credentials)
     .where(and(eq(credentials.nurseId, nurseId), eq(credentials.type, "license"), isNull(credentials.deletedAt)));
 }
+
+// ---- Claim / cancel (run inside the service's transaction; callers authorize first) ----
+
+type Q = Db | Tx;
+
+/** A non-deleted shift's facts. `lock` = `FOR UPDATE`, so racing cancels serialize and read the previous nurse reliably. */
+export async function findLiveShift(q: Q, id: string, opts: { lock?: boolean } = {}) {
+  const query = q
+    .select({
+      id: shifts.id,
+      networkId: shifts.networkId,
+      agencyId: shifts.agencyId,
+      role: shifts.role,
+      shiftDate: shifts.shiftDate,
+      startTime: shifts.startTime,
+      endTime: shifts.endTime,
+      timezone: shifts.timezone,
+      status: shifts.status,
+      claimedBy: shifts.claimedBy,
+    })
+    .from(shifts)
+    .where(and(eq(shifts.id, id), isNull(shifts.deletedAt)));
+  const [row] = await (opts.lock ? query.for("update") : query);
+  return row ?? null;
+}
+
+/** The nurse's license rows under `FOR SHARE`: a concurrent credential UPDATE waits for us (and we wait for it), so no stale check. */
+export async function lockLicenses(tx: Tx, nurseId: string) {
+  return tx
+    .select({ status: credentials.status, expiresOn: credentials.expiresOn, deletedAt: credentials.deletedAt })
+    .from(credentials)
+    .where(and(eq(credentials.nurseId, nurseId), eq(credentials.type, "license"), isNull(credentials.deletedAt)))
+    .for("share");
+}
+
+/** The atomic claim: one statement, so exactly one concurrent caller sees the row still `open`. false = someone else won. */
+export async function claimRow(tx: Tx, f: { id: string; nurseId: string; networkId: string; now: Date }): Promise<boolean> {
+  const rows = await tx
+    .update(shifts)
+    .set({ status: "filled", claimedBy: f.nurseId, claimedAt: f.now, updatedAt: f.now })
+    .where(and(eq(shifts.id, f.id), eq(shifts.status, "open"), isNull(shifts.deletedAt), eq(shifts.networkId, f.networkId)))
+    .returning({ id: shifts.id });
+  return rows.length === 1;
+}
+
+/** filled -> open. false = not filled any more (a racing cancel already reopened it). */
+export async function reopenRow(tx: Tx, id: string, now: Date): Promise<boolean> {
+  const rows = await tx
+    .update(shifts)
+    .set({ status: "open", claimedBy: null, claimedAt: null, updatedAt: now })
+    .where(and(eq(shifts.id, id), eq(shifts.status, "filled"), isNull(shifts.deletedAt)))
+    .returning({ id: shifts.id });
+  return rows.length === 1;
+}
+
+/** The mapper input for one shift (same columns as the lists). */
+export async function shiftView(q: Q, id: string) {
+  const [row] = await q.select(shiftColumns).from(shifts).innerJoin(agencies, eq(agencies.id, shifts.agencyId)).where(eq(shifts.id, id));
+  return row!;
+}
+
+export const insertCancellation = (tx: Tx, c: typeof shiftCancellations.$inferInsert) => tx.insert(shiftCancellations).values(c);
+
+/** Active owners/managers of the agency (+ the previous nurse when given), with the email to notify. One row per user. */
+export async function cancelRecipients(q: Q, agencyId: string, previousNurseId: string) {
+  const managers = await q
+    .select({ userId: users.id, email: users.email })
+    .from(agencyMemberships)
+    .innerJoin(users, eq(users.id, agencyMemberships.userId))
+    .where(
+      and(
+        eq(agencyMemberships.agencyId, agencyId),
+        isNull(agencyMemberships.revokedAt),
+        inArray(agencyMemberships.role, ["owner", "manager"]),
+        isNull(users.deletedAt),
+        eq(users.status, "active"),
+      ),
+    );
+  const [nurse] = await q
+    .select({ userId: users.id, email: users.email })
+    .from(users)
+    .where(and(eq(users.id, previousNurseId), isNull(users.deletedAt), eq(users.status, "active")));
+  return { managers, nurse: nurse ?? null };
+}
+
+export const insertNotifications = (tx: Tx, rows: (typeof notifications.$inferInsert)[]) => (rows.length ? tx.insert(notifications).values(rows) : Promise.resolve());

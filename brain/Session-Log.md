@@ -118,3 +118,11 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Open: Victor runs his own `pnpm dev` (tsx watch) on 3001; it reloads with the logger on.
 
 - Follow-up: `pnpm dev` (tsx watch) had no `--env-file`, so Victor login 500 `JwtConfigError` persisted on his 3001 server (stack paths `src/*.ts` = tsx, not dist). Added `--env-file=../../.env` to the `dev` script; login 200 on port 3056. Victor must restart his dev server (package.json changes do not trigger tsx watch).
+
+## 2026-11-06 — Stage 4b: shift claim + cancel
+- Done: `claimShift` / `cancelShift` (service, repository SQL, routes), `ineligibility()` + soft-delete handling in `isEligible`, 3 `ErrorMessage` texts, `claim-cancel.test.ts` (23 real-Postgres tests incl. 20 concurrent claims, `FOR SHARE` blocking test, cancel races, trigger-forced rollback). `/verify` GREEN 4/4; mutation-checked; generated SQL reviewed (atomic `UPDATE ... WHERE status='open'`, `FOR SHARE` licenses, `FOR UPDATE` cancel). Fresh-context `agent-skills:code-reviewer`: APPROVE, no Critical; fixed lock-before-authz in cancel + test gaps. ARCHITECTURE §5.4 "As built" + §16.2 status; Requirements-Checklist updated.
+- Decided: see [[Decisions]] -> Shift claim + cancel (404 for out-of-network nurse, cancel check order, expired vs none).
+- Board: 5 tasks set Done (Tasks.md + Notion), diff 0 drift (65/65).
+- Skills copied: none new (using-agent-skills, ponytail, verify, task, postman-export, wrap-session, review already in `.claude/skills/`). Edited the project copy of `postman-export/scripts/export.mjs` (nested-route parsing bug: claim/cancel were reported "not implemented").
+- Open: withdraw route; outbox dispatcher/emails; audit wiring for create; claim vs `roleMatchesLicense`; empty-JSON-body parser; nothing committed yet.
+- Board (later, same day): added 6 Pending tasks for the 4b remaining risks (2 MVP: claim license-type vs role, empty JSON body on claim; 4 Later: cancel authz-before-validation, audit pending-license flag, nurse overlap exclusion, rejected-license-after-claim). Diff 0 drift (71/71).

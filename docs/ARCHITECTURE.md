@@ -683,6 +683,14 @@ sequenceDiagram
     end
 ```
 
+**As built (Stage 4b, `apps/api/src/modules/shifts/{service,repository,eligibility,routes}.ts`):**
+- `claimShift` / `cancelShift` are the only code that moves a shift between `open` and `filled`; each is one `db.transaction` (READ COMMITTED).
+- Claim: `findLiveShift` → `can("shift:claim")` (missing shift and out-of-network shift are the same 404 `Shift not found`) → `lockLicenses` (`SELECT … FOR SHARE`) → `ineligibility()` (`expired` / `none` pick the two exact 403 texts) → `claimRow` (`UPDATE … WHERE id AND status='open' AND deleted_at IS NULL AND network_id = ? RETURNING id`; 0 rows = 409 `Shift is no longer open`) → `shift.claimed` audit. A refusal before the UPDATE writes nothing.
+- Cancel: `findLiveShift` with `FOR UPDATE` (racing cancels serialize; the previous nurse is read from the locked row) → body 400 → `can("shift:cancel")` 403 → not filled 409 `Shift is not filled` → `reopenRow` → `shift_cancellations` row (`cxl_<uuid>`) → `shift.cancelled` audit → outbox rows (`ntf_<uuid>`, template `shift.cancelled`). Recipients per §10, actor excluded; payload has no credential data. The dispatcher is Stage 5.
+- `isEligible` ignores soft-deleted rows itself; `todayIn(shift.timezone)` supplies `today`. Pending counts, rejected never, no annual TB rule.
+- Tests (`claim-cancel.test.ts`, real Postgres, one app + pool per request): 20 concurrent claims → 1×200 + 19×409 + one audit row; same/different nurse pairs; filled/deleted/unknown; expired/none/rejected/pending; license UPDATE in flight blocks the claim (`FOR SHARE`); cancel authz matrix; cancel×cancel and cancel×claim races; forced audit/outbox failures roll everything back.
+- Not built: withdraw (`open → cancelled`), nurse overlap exclusion, tolerant empty-JSON-body parser (Fastify answers 400 to `Content-Type: application/json` with no body).
+
 ---
 
 ## 6. Authentication
@@ -1179,7 +1187,7 @@ shiftpatch/
 1. Monorepo, Docker Compose, CI skeleton (typecheck, lint, test), first deploy of a health endpoint.
 2. Drizzle schema + migrations + idempotent seed (§4.6).
 3. `packages/contracts`, then the auth module (login, refresh, logout) with contract tests.
-4. Shifts module: list, create, agency list, claim (eligibility + atomic), cancel. Contract, authorization and concurrency tests.
+4. Shifts module: list, create, agency list, claim (eligibility + atomic), cancel. Contract, authorization and concurrency tests. **Status: list, create, agency list, matchable, claim, cancel built and tested; withdraw pending.**
 5. Audit module, wired into every write; outbox + dispatcher + cancellation emails.
 6. Web app: login and session, nurse flow, agency flow, admin dashboard + audit table. All required test IDs.
 7. Credentials + files: upload, review, signed download links.

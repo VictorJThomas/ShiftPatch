@@ -403,7 +403,7 @@
                 }
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nNurse token, empty body. As nurse-2: 403 `Credential expired, cannot claim shift`.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {}\n}\n```"
+            "description": "Nurse token, empty body. As nurse-2: 403 `Credential expired, cannot claim shift`.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {}\n}\n```"
           }
         },
         {
@@ -457,7 +457,7 @@
                 }
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nReopens a filled shift. `reason`: `no-show` or `advance`. Returns the shift + `cancellation`.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"reason\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"no-show\",\n        \"advance\"\n      ]\n    }\n  },\n  \"required\": [\n    \"reason\"\n  ]\n}\n```"
+            "description": "Reopens a filled shift. `reason`: `no-show` or `advance`. Returns the shift + `cancellation`.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"reason\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"no-show\",\n        \"advance\"\n      ]\n    }\n  },\n  \"required\": [\n    \"reason\"\n  ]\n}\n```"
           }
         }
       ]

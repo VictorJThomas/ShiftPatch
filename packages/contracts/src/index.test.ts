@@ -128,6 +128,9 @@ describe("errors", () => {
     expect(ErrorMessage.noValidCredential).toBe("No valid credential on file, cannot claim shift");
     expect(ErrorMessage.unauthorized).toBe("Unauthorized");
     expect(ErrorMessage.forbidden).toBe("Forbidden");
+    expect(ErrorMessage.shiftNotFound).toBe("Shift not found");
+    expect(ErrorMessage.shiftNotOpen).toBe("Shift is no longer open");
+    expect(ErrorMessage.shiftNotFilled).toBe("Shift is not filled");
   });
 });
 
@@ -336,6 +339,9 @@ describe("type inference", () => {
       | "Forbidden"
       | "Select an agency"
       | "Facility not found in this network"
+      | "Shift not found"
+      | "Shift is no longer open"
+      | "Shift is not filled"
     >();
   });
   it("specialised responses are assignable to the base Shift", () => {

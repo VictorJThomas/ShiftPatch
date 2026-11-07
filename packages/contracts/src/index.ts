@@ -38,6 +38,9 @@ export const ErrorMessage = {
   forbidden: "Forbidden", // 403 authorization
   agencyRequired: "Select an agency", // 400 write action by a multi-agency user without X-Agency-Id (ARCHITECTURE §7.2)
   invalidFacility: "Facility not found in this network", // 400 POST /api/shifts facilityId outside the agency's network
+  shiftNotFound: "Shift not found", // 404 claim / cancel (ARCHITECTURE §5.2); also an out-of-network shift (no existence leak)
+  shiftNotOpen: "Shift is no longer open", // 409 claim (ARCHITECTURE §5.2)
+  shiftNotFilled: "Shift is not filled", // 409 cancel of a shift that is not filled (ARCHITECTURE §5.1)
 } as const;
 
 // ---------- Shift shape (shared by routes 2-6) ----------

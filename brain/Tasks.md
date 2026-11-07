@@ -46,12 +46,17 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ GET /api/shifts (full marketplace) + contract mapper
 - ☑ POST /api/shifts (agency-scoped, shift-N ids, no mass assignment)
 - ☑ GET /api/agencies/:agencyId/shifts (membership/admin only, 403 cross-agency)
-- ☐ POST /api/shifts/:id/claim: isEligible + atomic UPDATE, exact 403 text
-- ☐ POST /api/shifts/:id/cancel (no-show/advance) + shift_cancellations
+- ☑ POST /api/shifts/:id/claim: isEligible + atomic UPDATE, exact 403 text
+- ☑ POST /api/shifts/:id/cancel (no-show/advance) + shift_cancellations
 - ☐ Withdraw route + GET /api/shifts?matchable=true
-- ☐ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
-- ☐ Shift matching blocks nurses with expired credentials
-- ☐ Cancellation and no-show handling
+- ☑ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
+- ☑ Shift matching blocks nurses with expired credentials
+- ☑ Cancellation and no-show handling
+- ☐ Claim: enforce license type vs shift role (CNA nurse can't claim RN shift)
+- ☐ Tolerate empty JSON body on POST claim (Fastify FST_ERR_CTP_EMPTY_JSON_BODY -> 400)
+- ☐ Cancel: authorize before body validation (403 before 400) · Later
+- ☐ Audit shift.claimed: record when a pending license was used · Later
+- ☐ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
 
 ## 5 Audit+Notify
 - ☐ Audit module wired into every write (same transaction)
@@ -77,6 +82,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Signed 5-min document links, audited views, 404 out of scope
 - ☐ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
+- ☐ Warn or unassign when a license is rejected after a claim · Later
 
 ## 8 Release
 - ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)

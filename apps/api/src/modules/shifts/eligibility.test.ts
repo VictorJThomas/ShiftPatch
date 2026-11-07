@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isEligible, roleMatchesLicense, todayIn } from "./eligibility.js";
+import { ineligibility, isEligible, roleMatchesLicense, todayIn } from "./eligibility.js";
 
 const lic = (expiresOn: string | null, status = "verified") => ({ status, expiresOn });
 const shift = { shiftDate: "2026-10-04" };
@@ -20,6 +20,25 @@ describe("isEligible (ARCHITECTURE §5.3)", () => {
     expect(isEligible([lic(null)], shift, "2026-10-01")).toBe(false);
   });
   it("one good license among bad ones is enough", () => expect(isEligible([lic("2020-01-01"), lic("2027-01-01")], shift, "2026-10-01")).toBe(true));
+});
+
+describe("isEligible: soft-deleted", () => {
+  it("a soft-deleted license never counts", () => {
+    expect(isEligible([{ ...lic("2027-01-01"), deletedAt: new Date() }], shift, "2026-10-01")).toBe(false);
+    expect(isEligible([{ ...lic("2027-01-01"), deletedAt: null }], shift, "2026-10-01")).toBe(true);
+  });
+});
+
+describe("ineligibility (which exact 403 text)", () => {
+  it("null when eligible", () => expect(ineligibility([lic("2027-01-01")], shift, "2026-10-01")).toBeNull());
+  it("no licenses -> none", () => expect(ineligibility([], shift, "2026-10-01")).toBe("none"));
+  it("only rejected -> none, even when unexpired", () => expect(ineligibility([lic("2027-01-01", "rejected")], shift, "2026-10-01")).toBe("none"));
+  it("only soft-deleted -> none", () => expect(ineligibility([{ ...lic("2027-01-01"), deletedAt: new Date() }], shift, "2026-10-01")).toBe("none"));
+  it("only expired -> expired (spec text)", () => expect(ineligibility([lic("2026-06-01")], shift, "2026-10-01")).toBe("expired"));
+  it("pending but expired -> expired", () => expect(ineligibility([lic("2026-06-01", "pending")], shift, "2026-10-01")).toBe("expired"));
+  it("expired + rejected -> expired (a usable-status license exists)", () =>
+    expect(ineligibility([lic("2026-06-01"), lic("2027-01-01", "rejected")], shift, "2026-10-01")).toBe("expired"));
+  it("valid today but lapses before the shift day -> expired", () => expect(ineligibility([lic("2026-10-03")], shift, "2026-10-01")).toBe("expired"));
 });
 
 describe("todayIn", () => {
