@@ -63,7 +63,7 @@ export const loadActorPlugin = shared(async (app: FastifyInstance, opts: { db: (
     try {
       req.actor = await loadActorFor(opts.db(), req.auth, req.routeOptions.config.ignoreAgencyHeader ? undefined : req.headers["x-agency-id"]);
     } catch (err) {
-      if (err instanceof AgencyHeaderError) return reply.code(403).send({ error: ErrorMessage.forbidden });
+      if (err instanceof AgencyHeaderError) return reply.code(403).send({ error: ErrorMessage.agencyNotAllowed });
       throw err;
     }
   });

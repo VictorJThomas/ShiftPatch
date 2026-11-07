@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ErrorMessage } from "@shiftpatch/contracts";
 import { ApiError, apiFetch, configureApiClient, refreshRetry } from "@/lib/api-client";
 import { useSessionStore } from "@/stores/session";
 
@@ -173,13 +174,13 @@ describe("401 handling", () => {
     expect(refreshes).toBe(2);
   });
 
-  it("gives up after a second 409 and clears the session", async () => {
+  it("gives up after the third 409 and clears the session", async () => {
     signIn("nurse", "old");
     const lost = vi.fn();
     configureApiClient({ onSessionLost: lost });
     handler = (call) => (call.path === "/api/auth/refresh" ? json(409, { error: "retry" }) : json(401, { error: "Unauthorized" }));
     await expect(apiFetch("/api/shifts")).rejects.toMatchObject({ status: 401 });
-    expect(callsTo("/api/auth/refresh")).toHaveLength(2);
+    expect(callsTo("/api/auth/refresh")).toHaveLength(3);
     expect(lost).toHaveBeenCalledTimes(1);
   });
 
@@ -195,16 +196,49 @@ describe("401 handling", () => {
   });
 });
 
+describe("session epoch", () => {
+  it("discards a refresh that resolves after logout (no token, no role cookie)", async () => {
+    signIn("nurse", "old");
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    handler = async (call) => {
+      if (call.path === "/api/auth/refresh") {
+        await gate;
+        return refreshOk("zombie");
+      }
+      return json(401, { error: "Unauthorized" });
+    };
+    const request = apiFetch("/api/shifts").catch((e: unknown) => e);
+    await vi.waitFor(() => expect(callsTo("/api/auth/refresh")).toHaveLength(1));
+    useSessionStore.getState().clearSession(); // logout while the refresh is in flight
+    document.cookie = "sp_role=; Max-Age=0; Path=/";
+    release();
+    expect(await request).toBeInstanceOf(ApiError);
+    expect(useSessionStore.getState()).toMatchObject({ accessToken: null, user: null, status: "anonymous" });
+    expect(document.cookie).not.toContain("sp_role=nurse");
+  });
+});
+
 describe("403 with an agency selection", () => {
-  it("drops activeAgencyId and reports it", async () => {
+  it("keeps the selection on a plain permission denial (403 Forbidden)", async () => {
     signIn("agency", "tok-1", "agency-b");
     const rejected = vi.fn();
     configureApiClient({ onAgencyRejected: rejected });
-    handler = () => json(403, { error: "Forbidden" });
+    handler = () => json(403, { error: ErrorMessage.forbidden });
+    await expect(apiFetch("/api/shifts/s1/withdraw", { method: "POST" })).rejects.toMatchObject({ status: 403, message: "Forbidden" });
+    expect(useSessionStore.getState().activeAgencyId).toBe("agency-b");
+    expect(rejected).not.toHaveBeenCalled();
+  });
+
+  it("drops activeAgencyId only on the agencyNotAllowed message and reports it", async () => {
+    signIn("agency", "tok-1", "agency-b");
+    const rejected = vi.fn();
+    configureApiClient({ onAgencyRejected: rejected });
+    handler = () => json(403, { error: ErrorMessage.agencyNotAllowed });
     await expect(apiFetch("/api/agencies/agency-b/shifts")).rejects.toMatchObject({ status: 403 });
     expect(useSessionStore.getState().activeAgencyId).toBeNull();
     expect(window.localStorage.getItem("sp.activeAgencyId")).toBeNull();
-    expect(rejected).toHaveBeenCalledWith("Forbidden");
+    expect(rejected).toHaveBeenCalledWith(ErrorMessage.agencyNotAllowed);
   });
 
   it("leaves the selection alone when no X-Agency-Id was sent", async () => {

@@ -37,6 +37,14 @@ function writeActiveAgency(id: string | null): void {
   }
 }
 
+/**
+ * Bumped by clearSession (logout / expiry) and by every fresh login. Async flows capture it before they start and
+ * discard their result if it moved, so a slow refresh or restore can never clobber (or resurrect) a newer session.
+ */
+let epoch = 0;
+export const getSessionEpoch = () => epoch;
+export const bumpSessionEpoch = () => ++epoch;
+
 export interface SessionState {
   user: SessionUser | null;
   accessToken: string | null;
@@ -69,6 +77,7 @@ export const useSessionStore = create<SessionState>()((set) => ({
     }));
   },
   clearSession: () => {
+    epoch++;
     writeActiveAgency(null);
     set({ user: null, accessToken: null, agencies: [], activeAgencyId: null, status: "anonymous" });
   },

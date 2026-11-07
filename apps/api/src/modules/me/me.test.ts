@@ -92,7 +92,7 @@ describe("GET /api/me", () => {
     const r = await call("GET", "/api/me", "multi", { headers: { "x-agency-id": "agency-b" } });
     expect(r.status).toBe(200);
     // ...while every other route keeps the 403
-    err(await call("GET", "/api/shifts", "multi", { headers: { "x-agency-id": "agency-b" } }), 403, ErrorMessage.forbidden);
+    err(await call("GET", "/api/shifts", "multi", { headers: { "x-agency-id": "agency-b" } }), 403, ErrorMessage.agencyNotAllowed);
   });
 
   it("never leaks the password hash", async () => expect(JSON.stringify((await call("GET", "/api/me", "nurse-1")).body)).not.toMatch(/hash|password/i));

@@ -1,6 +1,7 @@
 import { configureApiClient } from "@/lib/api-client";
 import { getQueryClient } from "@/lib/query-client";
 import { LOGIN_PATH } from "@/lib/routes";
+import { onSignedOutElsewhere } from "@/lib/session-channel";
 import { notify } from "@/stores/toasts";
 import { endSessionLocally } from "./session-flow";
 
@@ -19,3 +20,11 @@ configureApiClient({
     notify.error(message, "Pick an agency again to continue.");
   },
 });
+
+// Another tab signed out: end this tab session too (no re-broadcast).
+if (typeof window !== "undefined") {
+  onSignedOutElsewhere(() => {
+    endSessionLocally({ broadcast: false });
+    if (window.location.pathname !== LOGIN_PATH) window.location.replace(LOGIN_PATH);
+  });
+}

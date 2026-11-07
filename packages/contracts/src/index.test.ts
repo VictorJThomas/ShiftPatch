@@ -337,6 +337,7 @@ describe("type inference", () => {
       | "No valid credential on file, cannot claim shift"
       | "Unauthorized"
       | "Forbidden"
+      | "Agency not available"
       | "Select an agency"
       | "Facility not found in this network"
       | "Shift not found"

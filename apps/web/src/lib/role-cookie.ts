@@ -6,16 +6,18 @@ import { isRole, type Role } from "@/lib/routes";
  */
 export const ROLE_COOKIE = "sp_role";
 
+const secure = () => (typeof location !== "undefined" && location.protocol === "https:" ? "; Secure" : "");
+
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // same horizon as the refresh token
 
 export function setRoleCookie(role: Role): void {
   if (typeof document === "undefined") return;
-  document.cookie = `${ROLE_COOKIE}=${role}; Path=/; Max-Age=${MAX_AGE_SECONDS}; SameSite=Lax`;
+  document.cookie = `${ROLE_COOKIE}=${role}; Path=/; Max-Age=${MAX_AGE_SECONDS}; SameSite=Lax${secure()}`;
 }
 
 export function clearRoleCookie(): void {
   if (typeof document === "undefined") return;
-  document.cookie = `${ROLE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  document.cookie = `${ROLE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure()}`;
 }
 
 export function readRoleCookie(): Role | null {

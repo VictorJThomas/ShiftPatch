@@ -111,7 +111,7 @@ describe("authorization and isolation", () => {
 
   it("admin cannot widen or switch the scope through the query (networkId / agencyId params are ignored)", async () => {
     expect(ids(await all("&entityType=iso&networkId=network-2&agencyId=agency-c", "admin-1"))).toEqual(["iso-a", "iso-b"]);
-    err(await get("?entityType=iso", "admin-1", { "x-agency-id": "agency-c" }), 403, "Forbidden"); // header names no membership
+    err(await get("?entityType=iso", "admin-1", { "x-agency-id": "agency-c" }), 403, "Agency not available"); // header names no membership
   });
 
   it("admin role without an active network membership (none, or revoked): 403", async () => {
@@ -128,7 +128,7 @@ describe("authorization and isolation", () => {
   it("agency cannot reach another agency's rows by entityId, agencyId param or header", async () => {
     expect((await get("?entityType=iso&entityId=iso-b", "agency-a")).body).toEqual({ items: [], nextCursor: null });
     expect(ids(await all("&entityType=iso&agencyId=agency-b&networkId=network-default", "agency-a"))).toEqual(["iso-a"]);
-    err(await get("?entityType=iso", "agency-a", { "x-agency-id": "agency-b" }), 403, "Forbidden");
+    err(await get("?entityType=iso", "agency-a", { "x-agency-id": "agency-b" }), 403, "Agency not available");
   });
 
   it("agency viewer is denied (least privilege, ARCHITECTURE §7.1)", async () => {
@@ -144,7 +144,7 @@ describe("authorization and isolation", () => {
   it("nurse is denied, even with a bad query (authorization answers before validation)", async () => {
     err(await get("", "nurse-1"), 403, "Forbidden");
     err(await get("?from=garbage&limit=0", "nurse-1"), 403, "Forbidden");
-    err(await get("?entityId=iso-a", "nurse-2", { "x-agency-id": "agency-a" }), 403, "Forbidden");
+    err(await get("?entityId=iso-a", "nurse-2", { "x-agency-id": "agency-a" }), 403, "Agency not available");
   });
 
   it("authorization answers before ANY validation: bad cursor / inverted range never turns a 403 or a 400-select into a 400-invalid", async () => {
