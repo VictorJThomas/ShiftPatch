@@ -15,9 +15,13 @@ beforeEach(async () => { await t.db.delete(notifications); });
 
 const payload = { shiftId: "s1", date: "2026-12-05", startTime: "07:00", endTime: "19:00", role: "RN", agencyName: "Sunrise Health Staffing", reason: "no-show" };
 let seq = 0;
+// Rows are due one minute ago unless a test says otherwise. Relying on the column default (Postgres now(), microseconds) races the
+// dispatcher's JS clock (milliseconds, truncated): a row inserted in the same millisecond as tick() is still "in the future".
 const enqueue = async (over: Partial<typeof notifications.$inferInsert> = {}) => {
   const id = `ntf_${++seq}`;
-  await t.db.insert(notifications).values({ id, recipientEmail: `r${seq}@example.com`, template: "shift.cancelled", payload, ...over });
+  await t.db.insert(notifications).values({
+    id, recipientEmail: `r${seq}@example.com`, template: "shift.cancelled", payload, nextAttemptAt: new Date(Date.now() - 60_000), ...over,
+  });
   return id;
 };
 const row = async (id: string) => (await t.db.select().from(notifications).where(eq(notifications.id, id)))[0]!;
