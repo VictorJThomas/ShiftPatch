@@ -1,9 +1,8 @@
-import { LoginResponse, type LoginRequest } from "@shiftpatch/contracts";
+import { LoginResponse, MeResponse, type LoginRequest } from "@shiftpatch/contracts";
 import { apiFetch, refreshSession } from "@/lib/api-client";
 import { getQueryClient } from "@/lib/query-client";
 import { clearRoleCookie, setRoleCookie } from "@/lib/role-cookie";
 import { pickActiveAgency, useSessionStore } from "@/stores/session";
-import { MeResponse } from "./me-contract";
 
 /** Drop everything session-shaped on this device: store, role cookie, cached server state. */
 export function endSessionLocally(): void {
