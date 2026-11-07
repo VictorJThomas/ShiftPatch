@@ -10,6 +10,7 @@ import { createTestDb } from "./db/test-db.js";
 import { REFRESH_COOKIE } from "./modules/auth/tokens.js";
 
 const PASSWORD = "Trial2026!";
+const WRONG_PASSWORD = "Wrong-Secret-123"; // gitleaks:allow (fake fixture: a failed login must not log the attempted password)
 const lines: string[] = [];
 let t: Awaited<ReturnType<typeof createTestDb>>;
 let app: FastifyInstance;
@@ -61,7 +62,7 @@ describe("logs never contain secrets", () => {
     const token2 = LoginResponse.parse(refresh.json()).token;
 
     expect((await inject({ method: "GET", url: "/api/shifts", headers: { authorization: `Bearer ${token}` } })).statusCode).toBe(200);
-    expect((await inject({ method: "POST", url: "/api/auth/login", payload: { email: "maria.lopez@example.com", password: "Wrong-Secret-123" } })).json())
+    expect((await inject({ method: "POST", url: "/api/auth/login", payload: { email: "maria.lopez@example.com", password: WRONG_PASSWORD } })).json())
       .toEqual({ error: ErrorMessage.invalidCredentials });
 
     // Anything that logs a request-like object (a future serializer, a debug line) is redacted too.
@@ -71,7 +72,7 @@ describe("logs never contain secrets", () => {
 
     const out = lines.join("");
     expect(out).toContain("debug body"); // capture is live
-    for (const secret of [PASSWORD, "Wrong-Secret-123", token, token2, refreshValue, rotated, "X-Amz-Signature"]) expect(out).not.toContain(secret);
+    for (const secret of [PASSWORD, WRONG_PASSWORD, token, token2, refreshValue, rotated, "X-Amz-Signature"]) expect(out).not.toContain(secret);
     expect(out).not.toMatch(/eyJ[\w-]+\.[\w-]+\.[\w-]+/); // no JWT at all
     expect(out).toContain("[redacted]");
   });

@@ -1,0 +1,4 @@
+# False positives: fake wrong-password fixture in a log-redaction test (now a single constant with an inline gitleaks:allow).
+# Listed by fingerprint because the PR scan covers the commit that introduced it.
+e61e62c5de918076123b01e4a1f820e1a93b648d:apps/api/src/security.test.ts:generic-api-key:64
+e61e62c5de918076123b01e4a1f820e1a93b648d:apps/api/src/security.test.ts:generic-api-key:74
