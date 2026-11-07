@@ -85,12 +85,21 @@ export async function login(db: Db, email: string, password: string, meta: Reque
  * inserted by a concurrent rotation, leaving a live token after logout / reuse detection.
  */
 async function lockFamilyOf(tx: Tx, rawToken: string) {
-  const hashed = eq(refreshTokens.tokenHash, sha256(rawToken));
-  const [found] = await tx.select({ familyId: refreshTokens.familyId }).from(refreshTokens).where(hashed);
-  if (!found) return undefined;
-  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${found.familyId}))`);
-  const [row] = await tx.select().from(refreshTokens).where(hashed); // re-read after the lock: fresh snapshot
+  const familyId = await familyIdOf(tx, rawToken);
+  if (!familyId) return undefined;
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${familyId}))`);
+  const [row] = await tx.select().from(refreshTokens).where(eq(refreshTokens.tokenHash, sha256(rawToken))); // re-read after the lock: fresh snapshot
   return row;
+}
+
+/**
+ * Family of a refresh token (any state: live, rotated, revoked), or undefined if the token is unknown.
+ * One lookup on the unique `token_hash` index; lets the route rate-limit per family BEFORE rotating.
+ */
+export async function familyIdOf(db: Db | Tx, rawToken: string): Promise<string | undefined> {
+  const [found] = await db.select({ familyId: refreshTokens.familyId }).from(refreshTokens)
+    .where(eq(refreshTokens.tokenHash, sha256(rawToken))).limit(1);
+  return found?.familyId;
 }
 
 /** Rotates the refresh token. Concurrent refreshes of one token serialize on the family lock: exactly one wins. */
