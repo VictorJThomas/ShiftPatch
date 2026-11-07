@@ -41,6 +41,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Authentication
 - ☐ Three roles with real permissions: agency, nurse, admin
 - ☑ test:contract gate: seeded-DB harness + 6-route contract suite (skips until handlers exist)
+- ◐ Decide QA-006: refresh rate limit per session, not per IP (grader/NAT logout)
 
 ## 4 Shifts
 - ☑ GET /api/shifts (full marketplace) + contract mapper
@@ -72,19 +73,19 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 ## 6 Web UI
 - ☑ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
 - ☑ Login page, Zustand session, api-client (refresh on 401), route guards
-- ☐ Nurse UI: shifts list, claim, my shifts, cancel, lapsed-license fallback
-- ☐ Agency UI: own shifts, post-shift form, cancel, agency selector
-- ☐ Admin dashboard: shift table + status badges, 15s refetch
-- ☐ Audit log page + minimal timesheets view
-- ☐ All 15 required data-testid attributes + notification-banner
+- ◐ Nurse UI: shifts list, claim, my shifts, cancel, lapsed-license fallback
+- ◐ Agency UI: own shifts, post-shift form, cancel, agency selector
+- ◐ Admin dashboard: shift table + status badges, 15s refetch
+- ◐ Audit log page + minimal timesheets view
+- ◐ All 15 required data-testid attributes + notification-banner
 - ☐ Admin dashboard and reporting
 - ☐ Timesheets
 
 ## 7 Credentials
-- ☐ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
+- ◐ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
 - ☐ Admin credential review queue (verify/reject)
 - ☐ Signed 5-min document links, audited views, 404 out of scope
-- ☐ Credential uploads with expiry dates
+- ◐ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
 - ☐ Warn or unassign when a license is rejected after a claim · Later
 - ☐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
