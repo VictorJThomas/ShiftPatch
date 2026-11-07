@@ -109,6 +109,22 @@ export const CancelShiftResponse = Shift.extend({
   cancellation: Cancellation,
 });
 
+// ---------- POST /api/shifts/:id/withdraw (additive): agency pulls an open shift, open -> cancelled ----------
+
+export const WithdrawShiftResponse = Shift.extend({ status: z.literal("cancelled"), claimedBy: z.null() });
+
+// ---------- GET /api/nurses/me/shifts (additive): shifts the calling nurse holds or worked (filled + completed) ----------
+
+export const NurseShiftsResponse = z.strictObject({ shifts: z.array(Shift) });
+
+// ---------- GET /api/me (additive): who am I + which agencies can I act for ----------
+
+export const AgencyMembershipRole = z.enum(["owner", "manager", "viewer"]);
+export const MeResponse = z.strictObject({
+  user: z.strictObject({ id: Id, name: z.string().min(1), email: z.email(), role: UserRole }),
+  agencies: z.array(z.strictObject({ agencyId: Id, name: z.string().min(1), role: AgencyMembershipRole })),
+});
+
 // ---------- 6. GET /api/agencies/:agencyId/shifts ----------
 
 export const AgencyShiftsResponse = z.strictObject({ agencyId: Id, shifts: z.array(Shift) });
@@ -164,6 +180,10 @@ export type ClaimShiftResponse = z.infer<typeof ClaimShiftResponse>;
 export type CancelShiftRequest = z.input<typeof CancelShiftRequest>;
 export type Cancellation = z.infer<typeof Cancellation>;
 export type CancelShiftResponse = z.infer<typeof CancelShiftResponse>;
+export type WithdrawShiftResponse = z.infer<typeof WithdrawShiftResponse>;
+export type NurseShiftsResponse = z.infer<typeof NurseShiftsResponse>;
+export type AgencyMembershipRole = z.infer<typeof AgencyMembershipRole>;
+export type MeResponse = z.infer<typeof MeResponse>;
 export type AgencyShiftsResponse = z.infer<typeof AgencyShiftsResponse>;
 export type AuditLogQuery = z.infer<typeof AuditLogQuery>;
 export type AuditLogEntry = z.infer<typeof AuditLogEntry>;
