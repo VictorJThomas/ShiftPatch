@@ -48,7 +48,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ GET /api/agencies/:agencyId/shifts (membership/admin only, 403 cross-agency)
 - ☑ POST /api/shifts/:id/claim: isEligible + atomic UPDATE, exact 403 text
 - ☑ POST /api/shifts/:id/cancel (no-show/advance) + shift_cancellations
-- ☐ Withdraw route + GET /api/shifts?matchable=true
+- ◐ Withdraw route + GET /api/shifts?matchable=true
 - ☑ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
 - ☑ Shift matching blocks nurses with expired credentials
 - ☑ Cancellation and no-show handling
@@ -57,19 +57,20 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Cancel: authorize before body validation (403 before 400) · Later
 - ☐ Audit shift.claimed: record when a pending license was used · Later
 - ☐ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
+- ◐ GET /api/me (profile + agency memberships)
 
 ## 5 Audit+Notify
 - ◐ Audit module wired into every write (same transaction)
 - ☑ GET /api/audit-logs (admin network scope, agency own rows)
-- ☐ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
+- ◐ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
 - ☐ Audit log
 - ☐ Email notifications
 - ☐ Audit read: indexes (network_id, id desc) and (agency_id, id desc) for keyset paging · Later
 - ☐ Audit: scope logout and refresh-reuse rows (network_id/agency_id) like login · Later
 
 ## 6 Web UI
-- ☐ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
-- ☐ Login page, Zustand session, api-client (refresh on 401), route guards
+- ◐ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
+- ◐ Login page, Zustand session, api-client (refresh on 401), route guards
 - ☐ Nurse UI: shifts list, claim, my shifts, cancel, lapsed-license fallback
 - ☐ Agency UI: own shifts, post-shift form, cancel, agency selector
 - ☐ Admin dashboard: shift table + status badges, 15s refetch
