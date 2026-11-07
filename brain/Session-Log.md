@@ -76,3 +76,21 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 2 tasks added as Done (both sides).
 - Skills copied: skill-creator already current; new project skill `postman-export`.
 - Open: commit; Postman import smoke test by Victor; run `--check` when routes land.
+
+## 2026-11-06 — Stage 3 auth lifecycle (login, refresh, logout)
+- Done: `modules/auth/{tokens,service,routes}.ts` + `modules/audit/audit.ts`; deps `jose`, `@fastify/cookie`, `@fastify/rate-limit`; lazy DB in `buildApp()`; `TRUST_PROXY` hop count; `.env.example` + vitest test secret. 24 auth integration tests on real Postgres (valid/wrong email/wrong password/malformed, suspended, deleted, tampered/alg-none/wrong-key/expired JWT, rotation, reuse → family revoke, grace 409, concurrent refresh 5x → 1 winner, logout vs refresh race, expired refresh, suspended-after-login, Origin 403, cookie attrs incl. Secure, rate limits per IP/email, successes don't count). Mutation checks: removing row/family lock or family revoke → red. Login contract block now live.
+- Review: separate `agent-skills:code-reviewer` (via `/agent-skills:review`) → APPROVE WITH CHANGES. Fixed C1, I1, I2, I3, S1, S4 with tests; deferred S2 (XFF spoof via direct Railway), S3 (APP_ORIGIN boot warning), S5 (argon2 threadpool) to Stage 8 — in [[Status]] Next step.
+- `/verify`: GREEN 4/4 (api 69 tests, contracts 93, contract 4 pass/14 skip); `pnpm build` OK; `/postman-export --check` OK.
+- Decided: see [[Decisions]] → Auth lifecycle (advisory family lock, 10 s grace → 409, failures-only login limit keyed by IP + email hash, malformed login body → 401, secret checked per call, Origin check allows missing Origin).
+- Board: 2 tasks Pending → Active → Done via `/task` (both sides); Notion queried, no other drift (65 rows).
+- Skills used: ponytail, using-agent-skills, verify, review/code-review-and-quality, task, postman-export, wrap-session — all already in `.claude/skills/`; none copied.
+- Open: commit + PR (Victor); `authenticate`/`loadActor`; deploy env vars.
+
+## 2026-11-06 — Stage 3 authorization infra (actor, X-Agency-Id, can(), scoped repos)
+- Done: `modules/authz/*`, per-module `policy.ts` (shifts, memberships, audit, credentials, admin), scope-required repos (shifts, audit), plugins wired in `app.ts`, `ErrorMessage.agencyRequired`, ARCHITECTURE §7.2 "As built". 87 tests (39 policy matrix, authz integration on real Postgres, scope/repo isolation). Mutation checks (status, role mismatch, header validation, revoked membership) all red.
+- Review: `agent-skills:code-reviewer` fresh context, no Critical; 5 Important fixed with tests, rest documented (see [[Decisions]] → Authorization).
+- `/verify` GREEN 4/4; `pnpm build` OK.
+- Decided: see [[Decisions]] → Authorization (onRequest hooks, role-claim mismatch = 401, memberships only for matching global role, header invalid = 403, viewer excluded from audit/credential reads).
+- Board: task "authenticate + loadActor plugins, X-Agency-Id, can() policies" Pending -> Active -> Done (both sides); full `tasks_md.py diff` not rerun (single-row change, Notion query showed it Done).
+- Skills copied: none (all used skills already in `.claude/skills/`).
+- Open: commit + PR (Victor); Stage 4 handlers; deploy env vars.

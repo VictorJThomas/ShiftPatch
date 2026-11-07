@@ -3,19 +3,19 @@
 **Last updated:** 2026-11-06
 
 ## Where we are
-- Branch `chore/2-data-model`: stage 2 Data committed (`cf72b44`…`ea36d14`), not pushed, no PR. Stage 3 contracts committed `a7c6730`. **Contract gate + `/postman-export` done but uncommitted** (see `git status`).
-- `packages/contracts`: Zod schemas for the 6 required routes + `ErrorBody` + `ErrorMessage` texts, one file `src/index.ts`; requests strip unknown keys, responses strict. Exports `development`→src, default→`dist` (build: `pnpm --filter @shiftpatch/contracts build`). Consumed by api + web (workspace deps). See [[Decisions]] → Contracts.
-- `apps/api/src/db/`: Drizzle schema (16 tables), migrations `0000`–`0002`, idempotent seed. Local dev DB `shiftpatch` seeded (next id `shift-4`).
-- `/verify`: **GREEN 4/4** (typecheck, lint, test, contract). Tests: contracts 93, api 45 (44 DB + 1 consumer probe). `test:contract`: 18 tests in `apps/api/src/contract/`, **all skipped until handlers are registered** (auto-activate per route). CI runs `pnpm test`, `pnpm test:contract`, `pnpm build`.
-- `/postman-export` skill: `docs/postman/` collection + local/prod environments generated from contracts + Fastify routes (all 6 required routes flagged "not implemented yet"). Regenerate/`--check` after route or schema changes.
-- Independent review of contracts: APPROVE, required items fixed.
-- Deployed API/web unchanged (health only; Railway has no DB yet).
+- Branch `feature/3-auth-backend`. **Auth lifecycle + authorization infra built, all UNCOMMITTED** (last commit e5b7194 = auth routes).
+- Authz = `apps/api/src/modules/authz/{actor,plugin,decision,can,scope}.ts` + `policy.ts` in `modules/{shifts,memberships,audit,credentials,admin}` + `modules/{shifts,audit}/repository.ts` (scope-required). `authenticate`/`loadActor` are `onRequest` hooks (`{ onRequest: [app.authenticate, app.loadActor] }`); `req.actor`, `can()`, `sendDenial()`. Actor model, matrix, reason→HTTP map: ARCHITECTURE §7.2 "As built"; choices: [[Decisions]] → Authorization.
+- `/verify` **GREEN 4/4** after review fixes; `pnpm build` OK. 87 authz tests (policy matrix, real-Postgres pipeline/actor/X-Agency-Id/revocation, scope forgery); 4 mutation checks turned tests red. Contracts: `ErrorMessage.agencyRequired` ("Select an agency").
+- Independent review (`agent-skills:code-reviewer`): no Critical. Fixed: write-check order (403 before 400), credential reads w/o selection, `agencyScopeForAdmin`, `JwtConfigError`, deny-by-default route-collector test. Accepted/documented: scope ≠ `can()`; stray header 403 for nurse/admin; 2-query TOCTOU; viewer excluded from audit/credential reads.
+- No real route is protected yet (probe routes in tests). Deployed API/web unchanged (health only).
 
 ## Next step
-1. Victor: commit the contract gate + postman work (offered), push `chore/2-data-model`, open PR to `master`, confirm CI green (new `test:contract` + `pnpm build` steps). Optional: import `docs/postman/` into Postman once.
-2. Stage 3 auth: `POST /api/auth/login` (argon2id, `jose` JWT, exact 401 text, rate limit) validated with `LoginRequest`/`LoginResponse`; its contract block in `required-routes.contract.test.ts` goes live as soon as the route is registered. Then refresh/logout. Regenerate `docs/postman/`.
-3. Handler-stage decisions open ([[Decisions]] → Contracts): Fastify empty JSON body on claim (`FST_ERR_CTP_EMPTY_JSON_BODY`), login malformed body 400 vs 401 text.
-4. Before first real deploy of data: Railway Postgres, ship `src/db/migrations` with API build, `db:migrate` + `db:seed`, non-owner `app` DB role.
+1. Victor: review + commit `feature/3-auth-backend` (auth + authz), push, PR to `master`, CI green. Run `/postman-export --check` after (no route change expected).
+2. Stage 4 shifts: every `/api/*` route must carry both hooks (a test enforces it). Handlers: load resource facts (`networkId`, `agencyIdsHoldingNurse`) from the DB, `can()` → `sendDenial()`, then scoped repo (`agencyScope`/`agencyScopeForAdmin`/`networkScope`). Contract blocks auto-activate.
+3. Before real deploy (Stage 8): Railway env `JWT_SECRET` (>=32 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app` (exact, no trailing slash; unset => browser refresh/logout 403), `TRUST_PROXY=2` (verify `req.ip` once), `NODE_ENV=production`. Consider secret header from the Vercel rewrite (review S2). Optional: argon2 concurrency cap (S5).
+4. Still open from contracts: Fastify empty JSON body on claim (`FST_ERR_CTP_EMPTY_JSON_BODY`).
+5. Before first data deploy: Railway Postgres, migrations, `db:migrate` + `db:seed`, non-owner `app` DB role.
+6. Frontend: never send `X-Agency-Id` for nurse/admin (403).
 
 ## Blockers / waiting
 - Founder decision on export (Option C vs D) — see [[ESCALATION]]. Doesn't block core build.
@@ -31,3 +31,6 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - Notion query tool needs `"mode": "sql"` inside `data`.
 - Contracts: prod (`node dist/server.js`, `next build`) reads `packages/contracts/dist` → stale if `src` changed without rebuild. pnpm doesn't run `pre*` scripts. Fastify parses empty JSON bodies as an error before Zod.
 - `next build` rewrites `apps/web/next-env.d.ts` (adds a `root-params` import): revert with `git checkout -- apps/web/next-env.d.ts` before committing.
+- `@fastify/rate-limit`: `app.rateLimit()` handlers share a per-request "ran" flag — a 2nd one on the same route silently skips; use `app.createRateLimit()`. Its decorators exist only after the plugin loads → register routes in a nested `app.register`.
+- Fastify 5 types reject a numeric `trustProxy` (runtime accepts it) → use the function form `(addr, hop) => hop < n`.
+- Tests: JWT test secret is set in both vitest configs (`test.env`); auth tests use a unique `remoteAddress` per request so the in-memory limiter only bites in the rate-limit tests.

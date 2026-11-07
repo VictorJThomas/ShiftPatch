@@ -36,6 +36,7 @@ export const ErrorMessage = {
   noValidCredential: "No valid credential on file, cannot claim shift", // 403 claim
   unauthorized: "Unauthorized", // 401 every route but login
   forbidden: "Forbidden", // 403 authorization
+  agencyRequired: "Select an agency", // 400 write action by a multi-agency user without X-Agency-Id (ARCHITECTURE §7.2)
 } as const;
 
 // ---------- Shift shape (shared by routes 2-6) ----------
