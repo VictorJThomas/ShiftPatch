@@ -169,3 +169,7 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - Railway Postgres stays **private** (no TCP proxy). One-off ops (migrate as owner, seed, role SQL) run inside the containers via `railway ssh` (`apps/api/scripts/railway-db-setup.sh`). Why: the database is never internet-reachable.
 - Runtime `DATABASE_URL` = `shiftpatch_app` built from Railway references (`${{APP_DB_PASSWORD}}`, `${{Postgres.PGHOST}}`…). `MIGRATE_DATABASE_URL = ${{Postgres.DATABASE_URL}}` is read only by `db:migrate` / `db:seed` (pre-deploy and manual).
 - Prod email = `MAIL_TRANSPORT=log` until Resend is set up (Victor sets `RESEND_API_KEY` in Railway himself).
+
+## 2026-11-07 — QA run
+- **QA approach: audit first.** Missing Stage 6b UI is recorded as MISSING (backend rule checked from the logged-in Chrome tab), not built inside the QA loop; only defects in existing code are fixed. Why: Victor's choice; keeps fixes minimal and the redesign a separate work package (`docs/stage-6b-feature-ui-plan.md`).
+- **`db:reset` (local only) drops and recreates the database** instead of TRUNCATE. Why: `audit_log` triggers are `ENABLE ALWAYS` and block TRUNCATE for every role; disabling them would undermine the append-only guarantee. Guard: localhost + `shiftpatch[_x]` name + driver-parsed host match + no deployed-env flags. Prod reseed stays `railway-db-setup.sh`.

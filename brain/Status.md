@@ -3,24 +3,23 @@
 **Last updated:** 2026-11-07
 
 ## Where we are
-- `master` includes PR #8 (security pass, Stage 8). **Production is live and seeded** (2026-11-07). Web https://shiftpatch-web-orcin.vercel.app proxies `/api/*` to the Railway API https://api-production-1811a.up.railway.app, which uses Railway Postgres (private network only, no public proxy).
-- Prod DB: migrations 0000–0004 applied, exact spec seed (3 shifts, 5 users). The API runs as least-privilege `shiftpatch_app` (verified in prod: DELETE on audit_log and CREATE denied). The owner URL is only in `MIGRATE_DATABASE_URL` (pre-deploy migrate).
-- Prod smoke (read-only, 21/21): 5 logins, exact 3-shift list, agency lists, cross-agency 403, nurse-2 exact 403 with shift-1 still open, nurse POST 403, 401 without token, audit admin 200 / nurse 403, refresh Origin 403/200, Secure cookie, helmet + web CSP headers. Runtime logs: no errors, no tokens.
-- Last local checks: `/verify` GREEN 4/4 (api 421, contract 18, contracts 93, web unit 34). Playwright 34/34.
-- Not built yet: Stage 6b feature UIs (11 of 15 test IDs missing) and Stage 7 credential upload.
+- Branch `qa/10-full-audit` (cut from `chore/9-prod-db-setup`, 3 commits, not pushed): full QA of the local app for all 5 seeded users in Chrome + audits. Deliverables in `docs/qa/` (WORKFLOW_TEST_RESULTS, DEFECT_LOG, FEATURE_COMPLETENESS, API_ENDPOINT_AUDIT, UI_UX_AUDIT, REMEDIATION_ROADMAP, screenshots) + build plan `docs/stage-6b-feature-ui-plan.md`.
+- **Backend verdict:** all 6 spec routes exact, tenant isolation held in every probe, nurse-2 gets 403 `Credential expired, cannot claim shift` exactly and shift stays open, cancel emails reach Mailpit, audit trail + cursor paging correct.
+- **UI verdict:** Stage 6b not built. 4 of 15 test IDs exist; every workflow after login is MISSING in the UI. No credential/timesheet routes.
+- Fixed this session: QA-002 toast timer restart (`NotificationBanner.tsx`, regression test `Toaster.test.tsx`). Added a local-only `db:reset`. **Escalated QA-006**: refresh limiter 30/IP/min + client treats a 429 as logged out → grader click-through / NAT can be bounced to /login.
+- `/verify` GREEN 4/4 (api 429, contract 18, contracts 93, web 36). Web build ✓, Playwright 34/34, `pnpm audit` clean. Local DB restored to the exact seed. Prod untouched (still live + seeded as of 2026-11-07).
 
 ## Next step
-1. Victor: review and push `feature/7-…`, open a PR to `master`. CI should pass (frozen lockfile verified locally).
-2. Stage 6b feature UIs (design in `docs/design/screens/`): Nurse (`shift-list-item`, `shift-claim-button`, my shifts `shift-cancel-button`, lapsed-license fallback when `?matchable=true` is empty for an expired license, see §12.4), Agency (`agency-post-shift-button`/`-submit-button`, cancel, withdraw), Admin (`admin-dashboard-shift-table`, `admin-shift-status-badge`, 15 s refetch; `audit-log-table` via `GET /api/audit-logs` + `nextCursor`; `timesheet-table`). **Every new module that builds zod schemas must `import "@/lib/zod-csp"` first.** Then convert `e2e-flow.mjs` into Playwright against the real API.
-3. Stage 7 credentials: upload route (10 MB → 413, sniffed type → 415, nurse-only, PII-free keys, private bucket, signed 5-min links), then the board task "Upload abuse tests".
-4. Decide: reject past-dated shifts on create/claim/matchable? (board task). If yes, move the fixture dates in `matrix.test.ts` forward (they must stay before nurse-1's license expiry, 2027-01-01).
-5. **Prod ops:** re-run DB setup with `bash apps/api/scripts/railway-db-setup.sh` (over SSH, private network, re-runnable, never creates services). Code deploys: Railway API `npx @railway/cli up --service api --ci` (pre-deploy migrates as owner); web `npx vercel deploy --prod`. **Never run `e2e-flow.mjs` against prod** (it writes shift-4). Before submission, check prod still holds the exact seed (shift-1 open). Read-only smoke script: copy it from this session's scratchpad into the repo if needed. Still open: delete the orphan volume `postgres-volume-mBHD` (0 GB; Claude was blocked); secret header on the Vercel rewrite; argon2 cap; Resend.
-6. Mailpit smoke; ARCHITECTURE §8.4/§12 "As built" update from [[Decisions]].
+1. Victor: decide QA-006 (`docs/qa/DEFECT_LOG.md`; options in `docs/stage-6b-feature-ui-plan.md` step 0). Board task "Decide QA-006…".
+2. Victor: review/push `qa/10-full-audit` (and the earlier `chore/9-prod-db-setup`), open a PR to `master`.
+3. Build Stage 6b per `docs/stage-6b-feature-ui-plan.md` (shell fixes first, then nurse → agency → admin → audit/timesheets), then Stage 7 credentials (upload route + `GET /api/nurses/me/credentials`).
+4. Then Playwright E2E against the real API, and re-run the QA matrix in `docs/qa/WORKFLOW_TEST_RESULTS.md`.
+5. Prod ops unchanged: see Environment gotchas; before submission check prod still holds the exact seed (shift-1 open). Still open: orphan volume `postgres-volume-mBHD`, secret header on the Vercel rewrite, argon2 cap, Resend.
 
 ## Blockers / waiting
+- Victor: QA-006 decision; past-date product rule; visual QA of the design canvas.
 - Founder decision on export (Option C vs D), see [[ESCALATION]]. Doesn't block the core build.
-- Victor: past-date product rule; visual QA of the design canvas.
-- Optional: `CONSTRAINTS.md` via `/constraints` (needs a 4-question interview with Victor; not done).
+- Optional: `CONSTRAINTS.md` via `/constraints` (needs a 4-question interview with Victor).
 
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
@@ -47,3 +46,7 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - Don't hand-edit dependency versions in package.json: it desyncs `pnpm-lock.yaml` and CI's `--frozen-lockfile` fails. Use `pnpm add pkg@x.y.z`, and check with `pnpm install --frozen-lockfile --offline`.
 - **Railway SSH:** key `~/.ssh/id_ed25519` is registered with Railway as `shiftpatch-claude` (remove: `npx @railway/cli ssh keys remove`), and the ssh.railway.com host key is in known_hosts. `railway ssh -s <service> -- sh -c '...'` runs commands in the containers: the api container has pnpm + tsx + sources at /app, the Postgres container has psql + `$DATABASE_URL`.
 - The auto-mode classifier blocks some Railway/Vercel prod actions (`railway add`, volume delete): Victor runs those, or adds an allow rule.
+- **Local reset:** `pnpm --filter api db:reset` drops + recreates + migrates + seeds the local DB (exact spec seed). Guarded: localhost only, DB name `shiftpatch[_x]`, no `?`/`#`, driver-parsed host must match, refuses Railway/Vercel/production env. It drops connections of a running API (pool reconnects). Never use it for prod.
+- **QA in Chrome (claude-in-chrome):** the extension's network monitor shows bodiless 204s (logout) as **503**; trust `performance.getEntriesByType('resource')[].responseStatus`. `resize_window` doesn't work on Victor's window (second monitor, `screenX -1709`); for viewports use `apps/web/scripts/qa-responsive.mjs` (Playwright, real app, one login per role). The Grammarly extension causes a dev hydration warning.
+- **Refresh limiter bites QA:** more than 30 full page loads/min from one IP → refresh 429 → app shows `/login` (QA-006). Space out reloads in scripted runs.
+
