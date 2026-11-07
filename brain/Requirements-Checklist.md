@@ -14,12 +14,12 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 ## Founder wish list
 | Item | State | Note |
 |---|---|---|
-| 3 roles with real permissions | ◐ | §7 — actor, `can()` policies, scoped repos built + tested; shift list/create/agency routes wired (Stage 4a); claim/cancel wired (Stage 4b) |
-| Authentication | ◐ | §6 — login, refresh rotation, reuse detection, logout, `authenticate`/`loadActor` done |
+| 3 roles with real permissions | ◐ | §7 — actor, `can()` policies, scoped repos built + tested; shift list/create/agency/claim/cancel/withdraw/nurse-shifts wired; web role route groups + guards (UX only) built 2026-11-07; role feature UIs pending |
+| Authentication | ☑ | §6 — API: login, refresh rotation, reuse detection, logout, `GET /api/me`. Web (2026-11-07): login page, Zustand session (token in memory), session restore, api-client single-flight refresh, logout, cross-tab sign-out; Vitest + Playwright |
 | Credential upload + expiry | ☐ | §9, test IDs |
 | Matching blocks lapsed credentials | ☑ | §5.3 — matchable filter + claim 403 (exact texts), `isEligible`/`ineligibility` unit-tested |
-| Cancellation + no-show | ◐ | §5.4 — route + history + audit + outbox rows built; emails need the Stage 5 dispatcher |
-| Email notifications | ☐ | §10, outbox |
+| Cancellation + no-show | ◐ | §5.4 — API done incl. emails (dispatcher); nurse/agency cancel UI not built |
+| Email notifications | ☑ | §10 — outbox dispatcher (lease-based claim, backoff, max 5), `shift.cancelled` template, log/smtp(Mailpit)/resend transports; manual Mailpit smoke still to do |
 | Timesheets | ☐ | [Future] table; `timesheet-table` test ID still required → minimal view |
 | Admin dashboard + reporting | ☐ | `admin-dashboard-shift-table` |
 | Audit log | ◐ | §11 — `GET /api/audit-logs` built + tested (admin network / agency own rows / nurse 403, filters, cursor, redaction); `audit-log-table` UI not built |
