@@ -190,6 +190,26 @@ export async function claimRow(tx: Tx, f: { id: string; nurseId: string; network
   return rows.length === 1;
 }
 
+/** open -> cancelled (agency withdrawal). One statement: false = no longer open (claimed, withdrawn or deleted meanwhile). */
+export async function withdrawRow(tx: Tx, id: string, now: Date): Promise<boolean> {
+  const rows = await tx
+    .update(shifts)
+    .set({ status: "cancelled", updatedAt: now })
+    .where(and(eq(shifts.id, id), eq(shifts.status, "open"), isNull(shifts.deletedAt)))
+    .returning({ id: shifts.id });
+  return rows.length === 1;
+}
+
+/** The nurse's own shifts (filled + completed). `nurseId` must be the authenticated actor's id. */
+export async function listClaimedBy(db: Db, nurseId: string) {
+  return db
+    .select(shiftColumns)
+    .from(shifts)
+    .innerJoin(agencies, eq(agencies.id, shifts.agencyId))
+    .where(and(eq(shifts.claimedBy, nurseId), inArray(shifts.status, ["filled", "completed"]), isNull(shifts.deletedAt)))
+    .orderBy(...byNumericId);
+}
+
 /** filled -> open. false = not filled any more (a racing cancel already reopened it). */
 export async function reopenRow(tx: Tx, id: string, now: Date): Promise<boolean> {
   const rows = await tx

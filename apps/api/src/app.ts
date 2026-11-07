@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { createDb } from "./db/client.js";
 import { auditRoutes } from "./modules/audit/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
+import { meRoutes } from "./modules/me/routes.js";
 import { shiftRoutes } from "./modules/shifts/routes.js";
 import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
 
@@ -20,6 +21,14 @@ export function buildApp({ logger = false }: { logger?: boolean } = {}) {
   const db = () => (conn ??= createDb(process.env.DATABASE_URL ?? "")).db;
   app.addHook("onClose", async () => conn?.sql.end());
 
+  // Tolerate `Content-Type: application/json` with an empty body (Fastify's default is FST_ERR_CTP_EMPTY_JSON_BODY, 400): read as no body.
+  // Everything else still goes through Fastify's default parser (prototype-poisoning guard, 400 on malformed JSON -> `{ error }`).
+  const defaultJson = app.getDefaultJsonParser("error", "error");
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+    const text = body.toString();
+    return text.trim() === "" ? done(null, undefined) : defaultJson(req, text, done);
+  });
+
   app.register(cookie);
   app.register(rateLimit, { global: false, cache: 50_000 }); // LRU keys are short (IPs, email hashes): ~100 B each
   app.register(requestIdPlugin);
@@ -27,6 +36,7 @@ export function buildApp({ logger = false }: { logger?: boolean } = {}) {
   app.register(loadActorPlugin, { db });
   app.register(async (scope) => authRoutes(scope, db)); // after the plugins above, so their decorators exist
   app.register(async (scope) => shiftRoutes(scope, db));
+  app.register(async (scope) => meRoutes(scope, db));
   app.register(async (scope) => auditRoutes(scope, db));
 
   app.get("/api/health", () => ({ status: "ok" }));

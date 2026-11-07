@@ -545,6 +545,42 @@
           }
         },
         {
+          "name": "GET /api/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/nurses/me/shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nurses/me/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "nurses",
+                "me",
+                "shifts"
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/auth/logout",
           "request": {
             "method": "POST",
@@ -576,6 +612,25 @@
                 "api",
                 "auth",
                 "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/shifts/:id/withdraw",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/shifts/:id/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shifts",
+                ":id",
+                "withdraw"
               ]
             }
           }

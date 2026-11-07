@@ -131,6 +131,43 @@ export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: Re
 }
 
 /**
+ * POST /api/shifts/:id/withdraw: open -> cancelled, by the owning agency's owner/manager or a network admin. Nothing to notify (an
+ * open shift has no nurse). Foreign / unknown shifts are 404 for every would-be writer; viewers and nurses are 403.
+ */
+export async function withdrawShift(db: Db, actor: Actor, shiftId: string, meta: RequestMeta, now = new Date()): Promise<Result<ShiftView>> {
+  return db.transaction(async (tx): Promise<Result<ShiftView>> => {
+    const shift = await repo.findLiveShift(tx, shiftId);
+    const decision = can(actor, "shift:manage", { agencyId: shift?.agencyId ?? "", networkId: shift?.networkId ?? "" });
+    if (!decision.allow) {
+      // Not a member of the owning agency / not admin of its network = the shift does not exist for you (no existence leak).
+      const hidden = decision.reason === "not_a_member" || decision.reason === "out_of_scope" || actor.role === "admin";
+      return hidden ? failed(404, ErrorMessage.shiftNotFound) : denied(decision);
+    }
+    if (!shift) return failed(404, ErrorMessage.shiftNotFound);
+    if (!(await repo.withdrawRow(tx, shift.id, now))) return failed(409, ErrorMessage.shiftNotOpen);
+    await recordAudit(tx, {
+      ...meta,
+      actorUserId: actor.userId,
+      actorRole: actor.role,
+      networkId: shift.networkId,
+      agencyId: shift.agencyId,
+      action: "shift.withdrawn",
+      entityType: "shift",
+      entityId: shift.id,
+      changes: { status: ["open", "cancelled"] },
+    });
+    return { ok: true, value: await repo.shiftView(tx, shift.id) };
+  });
+}
+
+/** GET /api/nurses/me/shifts. */
+export async function listMine(db: Db, actor: Actor): Promise<Result<Awaited<ReturnType<typeof repo.listClaimedBy>>>> {
+  const decision = can(actor, "shift:list-mine", {});
+  if (!decision.allow) return denied(decision);
+  return { ok: true, value: await repo.listClaimedBy(db, actor.userId) };
+}
+
+/**
  * POST /api/shifts/:id/cancel (ARCHITECTURE §5.4): filled -> open. The shift row is locked first, so racing cancels serialize
  * (the loser sees `open` -> 409) and the previous nurse is read from the locked row. History, audit and outbox commit together.
  * Not the agency withdrawal (open -> cancelled).

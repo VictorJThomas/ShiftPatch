@@ -7,7 +7,7 @@ export interface CancelShiftResource extends AgencyShiftResource { claimedBy: st
 export interface ClaimShiftResource { networkId: string }
 export type ListMatchableResource = Record<string, never>; // no resource: the nurse is the actor
 
-export type ShiftAction = "shift:read-agency" | "shift:create" | "shift:manage" | "shift:cancel" | "shift:claim" | "shift:list-matchable";
+export type ShiftAction = "shift:read-agency" | "shift:create" | "shift:manage" | "shift:cancel" | "shift:claim" | "shift:list-matchable" | "shift:list-mine";
 export interface ShiftResources {
   "shift:read-agency": AgencyShiftResource;
   "shift:create": CreateShiftResource;
@@ -15,6 +15,7 @@ export interface ShiftResources {
   "shift:cancel": CancelShiftResource;
   "shift:claim": ClaimShiftResource;
   "shift:list-matchable": ListMatchableResource;
+  "shift:list-mine": ListMatchableResource;
 }
 
 const WRITERS = ["owner", "manager"] as const;
@@ -45,4 +46,6 @@ export const shiftPolicy: { [A in ShiftAction]: (actor: Actor, r: ShiftResources
   },
   // GET /api/shifts?matchable=true: nurse-only discovery view (ARCHITECTURE §8.3). The plain list needs no policy: any authenticated user.
   "shift:list-matchable": (actor) => (actor.role === "nurse" && actor.nurseNetworkId !== null ? allow : deny("role_not_permitted")),
+  // GET /api/nurses/me/shifts: the nurse's own history. Nurse-only; the data is keyed on the actor's id, never on input.
+  "shift:list-mine": (actor) => (actor.role === "nurse" ? allow : deny("role_not_permitted")),
 };
