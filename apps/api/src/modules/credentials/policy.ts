@@ -8,8 +8,12 @@ export interface CredentialResource {
   agencyIdsHoldingNurse: readonly string[];
 }
 
-export type CredentialAction = "credential:read-metadata" | "credential:read-document";
-export interface CredentialResources { "credential:read-metadata": CredentialResource; "credential:read-document": CredentialResource }
+export type CredentialAction = "credential:read-metadata" | "credential:read-document" | "credential:manage-own";
+export interface CredentialResources {
+  "credential:read-metadata": CredentialResource;
+  "credential:read-document": CredentialResource;
+  "credential:manage-own": Record<string, never>;
+}
 
 // ARCHITECTURE §4.5/§7.1: the nurse, admins of the nurse's network, and an agency only while the nurse holds one of its shifts.
 // Everything else is `out_of_scope` -> 404, so a record's existence is not revealed.
@@ -31,4 +35,6 @@ function readCredentials(actor: Actor, r: CredentialResource): Decision {
 export const credentialPolicy: { [A in CredentialAction]: (actor: Actor, r: CredentialResources[A]) => Decision } = {
   "credential:read-metadata": readCredentials,
   "credential:read-document": readCredentials,
+  // GET/POST /api/nurses/me/credentials: nurse-only, keyed on the actor's id (never on input), so no resource to check.
+  "credential:manage-own": (actor) => (actor.role === "nurse" ? allow : deny("role_not_permitted")),
 };
