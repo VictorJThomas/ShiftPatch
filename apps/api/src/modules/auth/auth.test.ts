@@ -327,7 +327,7 @@ describe("session rate limits (QA-006: 10 refreshes/min per family, 30 invalid/m
     const fresh = await session((await makeUser()).email);
     expect429(await refresh(fresh.refresh, { ip }));
     expect((await refresh(fresh.refresh)).statusCode).toBe(200); // same family from another IP: unaffected
-  });
+  }, 30_000); // ~330 real rotations against Postgres: over the 5 s default when the whole suite runs in parallel
 
   it("invalid/missing cookies from one IP: 429 after 30, while a valid family from that IP still refreshes", async () => {
     const ip = newIp();
