@@ -50,6 +50,9 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+      <a className="skip" href="#main">
+        Skip to content
+      </a>
       <header className="ag-header">
         <div className="ag-wrap">
           <Logo />
@@ -75,7 +78,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <AgencyBand />
-      <main className="ag-main">
+      <main id="main" tabIndex={-1} className="ag-main">
         {activeId ? (
           children
         ) : (
