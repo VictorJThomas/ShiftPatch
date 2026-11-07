@@ -2,6 +2,20 @@
 
 Source: QA run 2026-11-07 (`docs/qa/REMEDIATION_ROADMAP.md` §1–3, §5–6, §8). Not started. Build on branch `feature/6b-feature-ui` cut from `master` after `qa/10-full-audit` merges.
 
+## Execution (2026-11-07, branch `feature/6b-feature-ui` cut from `qa/10-full-audit`)
+QA-006 decided by Victor: differentiated limits (see step 0, revised). Orchestrator committed the shared interfaces first (`63d098c`): credential schemas + upload error texts + `AuditLogQuery.agencyId` in `packages/contracts`, `apiFetch` FormData body.
+
+| Wave | Agent | Owns (only these paths) |
+|---|---|---|
+| 1 | A Foundation | `components/shells/*`, `components/ui/*` (new primitives), `app/globals.css`, `lib/format.ts`, `app/(nurse\|agency\|admin)/layout.tsx` |
+| 1 | E Credentials API | `apps/api/src/modules/credentials/*`, `apps/api/src/lib/storage*`, `apps/api/src/app.ts` (register only), api `package.json` (`@fastify/multipart`), `.env.example`, `docs/postman/*` |
+| 1 | G QA-006 | `apps/api/src/modules/auth/*`, `apps/web/src/features/auth/session-flow*`, refresh section of `lib/api-client.ts`, `lib/session-channel.ts`, `brain/Decisions.md` rate-limit line |
+| 2 | B Nurse | `app/(nurse)/nurse/**`, `features/nurse/**`, `app/(nurse)/nurse.css` |
+| 2 | C Agency | `app/(agency)/agency/**`, `features/agency/**`, `app/(agency)/agency.css` |
+| 2 | D Admin | `app/(admin)/admin/**`, `features/admin/**`, `app/(admin)/admin.css`, `apps/api/src/modules/audit/*` (QA-005) |
+| 3 | F QA (read-only first) | `apps/web/e2e/**`, `docs/qa/**` |
+Shared files (`globals.css`, `api-client.ts`, contracts, shells) change only through the orchestrator after wave 1. Agents run targeted typecheck/tests only (no dev servers, no `next build`: memory-constrained machine); the orchestrator integrates each worktree branch, then runs `/verify`, build, Playwright and the seeded-user matrix.
+
 ## Goal
 The backend is complete for every spec workflow: 6 spec routes, plus withdraw, `GET /api/nurses/me/shifts`, `GET /api/audit-logs` (cursor), `?matchable=true`. All are tested and verified in Chrome. The web app stops after login: nurse, agency and admin pages are placeholders, and 11 of the 15 required `data-testid`s are missing, so the graders' automated test-ID click-through fails. Build the role screens on the existing routes (6b), then the credential upload route + form (7). Do the QA-006 session fix first, because graders reload often from one IP.
 
@@ -22,8 +36,10 @@ The backend is complete for every spec workflow: 6 spec routes, plus withdraw, `
 
 ## Steps
 
-### 0. QA-006 session robustness (decision first, small)
-Victor decides between (a) keying the refresh/logout limiter by the refresh-family hash and (b) raising the per-IP cap.
+### 0. QA-006 session robustness — DECIDED 2026-11-07 (supersedes the a/b options below)
+Login unchanged (10/min per IP + per normalized email, failures). Valid refresh: 10/min per refresh-token **family** + an IP safety ceiling of 300/min. Invalid/missing refresh cookie: separate per-IP failure limiter. Client: restore once per hydration, single-flight in-tab, cross-tab coordination, 429 keeps the session and honours `Retry-After` with bounded backoff, never infinite, reuse detection preserved.
+
+~~Victor decides between (a) keying the refresh/logout limiter by the refresh-family hash and (b) raising the per-IP cap.~~
 - (a) `apps/api/src/modules/auth/routes.ts`: replace `limiter("session-ip", 30, (req) => req.ip)` with a key of `sha256(req.cookies[REFRESH_COOKIE])` when the cookie is present, else `ip:${req.ip}`, max 30. Keep logout on the same limiter. Update `brain/Decisions.md` rate-limit line.
 - Client (both options): `apps/web/src/features/auth/session-flow.ts restore()`. When `refreshSession()` throws an `ApiError` with status 429 or ≥500, or a network error, retry up to 2× (honour `retry-after`, cap 5 s) before going anonymous. A 401 still means anonymous.
 - Tests: an API test where 31 refreshes from one IP with distinct sessions all succeed (option a); a web `session-flow.test.ts` where restore on 429 then 200 keeps the session.
