@@ -153,3 +153,12 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: Security pass → Done. Added "Upload abuse tests … (needs Stage 7 upload route)" and "Decide: reject past-dated shifts…". `diff` = 0 drift (76/76), synced.
 - Skills copied: refreshed code-review-and-quality and security-and-hardening (the plugin versions had changed); added `review/review.md`.
 - Open: Stage 6b UIs, Stage 7 upload, Playwright vs the real API in CI, applying the DB role on Railway, the past-date decision.
+
+## 2026-11-07 — Production database live (Railway)
+- Done: added `MIGRATE_DATABASE_URL` (owner) support to migrate/seed and a pre-deploy `db:migrate` in `railway.json` (merged in PR #8). On prod, over SSH into the containers (private network): migrate + exact seed as owner, `shiftpatch_app` role created and proven (audit_log DELETE and CREATE denied, sees 3 shifts / 5 users), api vars set (`DATABASE_URL` = app role via `${{Postgres.PGHOST}}`, `MIGRATE_DATABASE_URL`, `APP_DB_PASSWORD` set via stdin, `MAIL_TRANSPORT=log`, `MAIL_FROM`, `OUTBOX_DISPATCHER=on`, `COOKIE_SECURE=true`), redeployed. Read-only prod smoke 21/21. Runtime logs clean.
+- Incident (mine): the first setup script found no `DATABASE_PUBLIC_URL` (Postgres has no public proxy) and fell through to `railway add --database postgres`, creating a duplicate `Postgres-s4Ve`. With Victor's OK I deleted the service; deleting its empty volume `postgres-volume-mBHD` was blocked by the classifier → Victor removes it. The script was rewritten: SSH/private-network only, never creates services.
+- Also fixed earlier: CI gitleaks false positives on the fake wrong-password fixture (`.gitleaksignore` fingerprints + `gitleaks:allow`), commit `91a97ea`.
+- Decided: see [[Decisions]] → Production database.
+- Board: no status change (prod reseed task stays Pending until the pre-submission check).
+- Skills copied: none.
+- Open: orphan volume; Vercel rewrite secret header; argon2 cap; Resend; Stage 6b/7.
