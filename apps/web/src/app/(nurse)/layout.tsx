@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NurseShell } from "@/components/shells/NurseShell";
 import { RoleGuard } from "@/features/auth/role-guard";
+import "./nurse.css";
 
 export default function NurseLayout({ children }: { children: ReactNode }) {
   return (
