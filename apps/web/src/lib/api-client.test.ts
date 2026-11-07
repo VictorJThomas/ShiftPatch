@@ -40,6 +40,23 @@ describe("headers", () => {
     expect(callsTo("/api/shifts")[0]?.headers.Authorization).toBe("Bearer tok-1");
   });
 
+  it("sends FormData as-is with no JSON Content-Type (browser sets the multipart boundary)", async () => {
+    signIn("nurse");
+    let sentBody: unknown;
+    vi.stubGlobal("fetch", async (input: string, init: RequestInit = {}) => {
+      calls.push({ path: input, method: init.method ?? "GET", headers: (init.headers ?? {}) as Record<string, string> });
+      sentBody = init.body;
+      return json(201, { ok: true });
+    });
+    const form = new FormData();
+    form.set("type", "license");
+    await apiFetch("/api/nurses/me/credentials", { method: "POST", body: form });
+    const call = callsTo("/api/nurses/me/credentials")[0];
+    expect(call?.method).toBe("POST");
+    expect(call?.headers["Content-Type"]).toBeUndefined();
+    expect(sentBody).toBe(form);
+  });
+
   it("sends no Authorization header when signed out", async () => {
     handler = () => json(200, {});
     await apiFetch("/api/shifts");

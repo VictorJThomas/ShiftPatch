@@ -103,6 +103,7 @@ export function refreshSession(): Promise<string> {
 
 export interface ApiRequest<T> {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  /** JSON-encoded, except a `FormData` which is sent as multipart as-is. */
   body?: unknown;
   signal?: AbortSignal;
   /** Validates (and types) the JSON body. */
@@ -117,14 +118,16 @@ interface Sent {
 async function send(path: string, opts: ApiRequest<unknown>, token: string | null): Promise<Sent> {
   const { user, activeAgencyId } = useSessionStore.getState();
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData: the browser sets multipart Content-Type with its boundary, so never set it here.
+  const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
+  if (opts.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (token && !isAuthPath(path)) headers.Authorization = `Bearer ${token}`;
   const agencyId = user?.role === "agency" && activeAgencyId && sendsAgencyHeader(path) ? activeAgencyId : null;
   if (agencyId) headers["X-Agency-Id"] = agencyId;
   const res = await safeFetch(path, {
     method: opts.method ?? (opts.body === undefined ? "GET" : "POST"),
     headers,
-    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+    body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body),
     signal: opts.signal,
   });
   return { res, agencyId };
