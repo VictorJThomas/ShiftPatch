@@ -21,6 +21,8 @@ export interface AuditFilter {
   entityType?: string;
   entityId?: string;
   action?: string;
+  /** Narrows inside the caller's scope (ANDed with it), so it can never widen it: a foreign agency yields an empty page. */
+  agencyId?: string;
   from?: Date;
   to?: Date;
   /** Keyset position: only rows with a smaller id (newest first). */
@@ -35,6 +37,7 @@ async function page(db: Db, scopeWhere: SQL, f: AuditFilter) {
     f.entityType ? eq(auditLog.entityType, f.entityType) : undefined,
     f.entityId ? eq(auditLog.entityId, f.entityId) : undefined,
     f.action ? eq(auditLog.action, f.action) : undefined,
+    f.agencyId ? eq(auditLog.agencyId, f.agencyId) : undefined,
     f.from ? gte(auditLog.occurredAt, f.from) : undefined,
     f.to ? lte(auditLog.occurredAt, f.to) : undefined,
     f.before !== undefined ? lt(auditLog.id, f.before) : undefined,
