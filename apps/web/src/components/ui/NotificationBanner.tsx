@@ -13,13 +13,15 @@ interface NotificationBannerProps {
   onDismiss?: () => void;
   /** Floating toast (shadow) vs inline page banner. */
   toast?: boolean;
+  /** Give the banner its live role (`status`/`alert`). The Toaster turns it off for success toasts: its persistent region announces them. */
+  live?: boolean;
 }
 
 /**
  * One component, two variants (design: Toasts). Success = `role="status"`, auto-dismisses after 5 s;
  * error = `role="alert"`, stays until dismissed. Icon + title + message, never colour alone.
  */
-export function NotificationBanner({ kind, title, message, onDismiss, toast = true }: NotificationBannerProps) {
+export function NotificationBanner({ kind, title, message, onDismiss, toast = true, live = true }: NotificationBannerProps) {
   const ok = kind === "success";
   const timed = ok && !!onDismiss;
 
@@ -38,7 +40,7 @@ export function NotificationBanner({ kind, title, message, onDismiss, toast = tr
 
   return (
     <div className={`banner${toast ? " toast" : ""}${timed ? " has-timer" : ""}`} data-testid="notification-banner">
-      <div className={`alert ${ok ? "al-ok" : "al-err"}`} role={ok ? "status" : "alert"}>
+      <div className={`alert ${ok ? "al-ok" : "al-err"}`} role={live ? (ok ? "status" : "alert") : undefined}>
         <Icon name={ok ? "check-circle" : "alert-circle"} size="lg" />
         <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
           <b>{title}</b>
