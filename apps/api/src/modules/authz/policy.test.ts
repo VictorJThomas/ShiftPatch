@@ -92,6 +92,18 @@ describe("shift:cancel", () => {
   });
 });
 
+describe("shift:create without any membership", () => {
+  it("agency user with no active membership: 403, not Select an agency", () =>
+    expect(can(actor({ role: "agency" }), "shift:create", { agencyId: null })).toEqual(no("not_a_member")));
+});
+
+describe("shift:list-matchable", () => {
+  it("nurse with a roster network", () => expect(can(nurse(), "shift:list-matchable", {})).toEqual(ok));
+  it("nurse without a roster network", () => expect(can(nurse("n", null), "shift:list-matchable", {})).toEqual(no("role_not_permitted")));
+  it.each([["agency owner", member("owner")], ["agency viewer", member("viewer")], ["admin", admin()]])("%s is denied", (_n, a) =>
+    expect(can(a, "shift:list-matchable", {})).toEqual(no("role_not_permitted")));
+});
+
 describe("shift:claim", () => {
   it("nurse of the shift's network", () => expect(can(nurse(), "shift:claim", { networkId: NET })).toEqual(ok));
   it("nurse of another network", () => expect(can(nurse("n", OTHER_NET), "shift:claim", { networkId: NET })).toEqual(no("out_of_scope")));

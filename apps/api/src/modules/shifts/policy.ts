@@ -5,14 +5,16 @@ export interface AgencyShiftResource { agencyId: string; networkId: string }
 export interface CreateShiftResource { agencyId: string | null } // null = caller has no active agency yet
 export interface CancelShiftResource extends AgencyShiftResource { claimedBy: string | null; reason: "no-show" | "advance" }
 export interface ClaimShiftResource { networkId: string }
+export type ListMatchableResource = Record<string, never>; // no resource: the nurse is the actor
 
-export type ShiftAction = "shift:read-agency" | "shift:create" | "shift:manage" | "shift:cancel" | "shift:claim";
+export type ShiftAction = "shift:read-agency" | "shift:create" | "shift:manage" | "shift:cancel" | "shift:claim" | "shift:list-matchable";
 export interface ShiftResources {
   "shift:read-agency": AgencyShiftResource;
   "shift:create": CreateShiftResource;
   "shift:manage": AgencyShiftResource;
   "shift:cancel": CancelShiftResource;
   "shift:claim": ClaimShiftResource;
+  "shift:list-matchable": ListMatchableResource;
 }
 
 const WRITERS = ["owner", "manager"] as const;
@@ -26,7 +28,8 @@ export const shiftPolicy: { [A in ShiftAction]: (actor: Actor, r: ShiftResources
     return membershipRoleIn(actor, r.agencyId) ? allow : deny("not_a_member");
   },
   // Admins have no agency to post for.
-  "shift:create": (actor, r) => agencyWrite(actor, r.agencyId, WRITERS),
+  // No active membership at all (e.g. revoked) is a plain 403, not "Select an agency": there is nothing to select.
+  "shift:create": (actor, r) => (actor.role === "agency" && actor.agencies.length === 0 ? deny("not_a_member") : agencyWrite(actor, r.agencyId, WRITERS)),
   "shift:manage": (actor, r) => (isAdminOf(actor, r.networkId) ? allow : agencyWrite(actor, r.agencyId, WRITERS)),
   "shift:cancel": (actor, r) => {
     if (actor.role === "nurse") {
@@ -40,4 +43,6 @@ export const shiftPolicy: { [A in ShiftAction]: (actor: Actor, r: ShiftResources
     if (actor.role !== "nurse") return deny("role_not_permitted");
     return actor.nurseNetworkId !== null && actor.nurseNetworkId === r.networkId ? allow : deny("out_of_scope");
   },
+  // GET /api/shifts?matchable=true: nurse-only discovery view (ARCHITECTURE §8.3). The plain list needs no policy: any authenticated user.
+  "shift:list-matchable": (actor) => (actor.role === "nurse" && actor.nurseNetworkId !== null ? allow : deny("role_not_permitted")),
 };

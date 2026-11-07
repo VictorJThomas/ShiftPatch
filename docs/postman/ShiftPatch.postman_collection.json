@@ -317,7 +317,7 @@
                 "shifts"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nMarketplace view: every shift across both agencies. Any logged-in role."
+            "description": "Marketplace view: every shift across both agencies. Any logged-in role."
           }
         },
         {
@@ -363,7 +363,7 @@
                 "shifts"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nAgency token. Scoped to the caller's agency; an `agencyId` in the body is ignored. 201.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"role\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"RN\",\n        \"LPN\",\n        \"CNA\"\n      ]\n    },\n    \"date\": {\n      \"type\": \"string\",\n      \"format\": \"date\",\n      \"pattern\": \"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))$\"\n    },\n    \"startTime\": {\n      \"type\": \"string\",\n      \"pattern\": \"^(?:[01]\\\\d|2[0-3]):[0-5]\\\\d$\"\n    },\n    \"endTime\": {\n      \"type\": \"string\",\n      \"pattern\": \"^(?:[01]\\\\d|2[0-3]):[0-5]\\\\d$\"\n    }\n  },\n  \"required\": [\n    \"role\",\n    \"date\",\n    \"startTime\",\n    \"endTime\"\n  ]\n}\n```"
+            "description": "Agency token. Scoped to the caller's agency; an `agencyId` in the body is ignored. 201.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"role\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"RN\",\n        \"LPN\",\n        \"CNA\"\n      ]\n    },\n    \"date\": {\n      \"type\": \"string\",\n      \"format\": \"date\",\n      \"pattern\": \"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))$\"\n    },\n    \"startTime\": {\n      \"type\": \"string\",\n      \"pattern\": \"^(?:[01]\\\\d|2[0-3]):[0-5]\\\\d$\"\n    },\n    \"endTime\": {\n      \"type\": \"string\",\n      \"pattern\": \"^(?:[01]\\\\d|2[0-3]):[0-5]\\\\d$\"\n    },\n    \"facilityId\": {\n      \"type\": \"string\",\n      \"pattern\": \"^[A-Za-z0-9_-]{1,64}$\"\n    }\n  },\n  \"required\": [\n    \"role\",\n    \"date\",\n    \"startTime\",\n    \"endTime\"\n  ]\n}\n```"
           }
         },
         {
@@ -502,7 +502,7 @@
                 }
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nAgency member or admin. Another agency's id -> 403 `Forbidden`."
+            "description": "Agency member or admin. Another agency's id -> 403 `Forbidden`."
           }
         }
       ]

@@ -43,9 +43,9 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ test:contract gate: seeded-DB harness + 6-route contract suite (skips until handlers exist)
 
 ## 4 Shifts
-- ☐ GET /api/shifts (full marketplace) + contract mapper
-- ☐ POST /api/shifts (agency-scoped, shift-N ids, no mass assignment)
-- ☐ GET /api/agencies/:agencyId/shifts (membership/admin only, 403 cross-agency)
+- ☑ GET /api/shifts (full marketplace) + contract mapper
+- ☑ POST /api/shifts (agency-scoped, shift-N ids, no mass assignment)
+- ☑ GET /api/agencies/:agencyId/shifts (membership/admin only, 403 cross-agency)
 - ☐ POST /api/shifts/:id/claim: isEligible + atomic UPDATE, exact 403 text
 - ☐ POST /api/shifts/:id/cancel (no-show/advance) + shift_cancellations
 - ☐ Withdraw route + GET /api/shifts?matchable=true

@@ -335,6 +335,7 @@ describe("type inference", () => {
       | "Unauthorized"
       | "Forbidden"
       | "Select an agency"
+      | "Facility not found in this network"
     >();
   });
   it("specialised responses are assignable to the base Shift", () => {
