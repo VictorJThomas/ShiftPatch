@@ -15,7 +15,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 | Item | State | Note |
 |---|---|---|
 | 3 roles with real permissions | ☐ | [[docs/ARCHITECTURE]] §7 |
-| Authentication | ☐ | §6 |
+| Authentication | ◐ | §6 — login, refresh rotation, reuse detection, logout done; `authenticate`/`loadActor` pending |
 | Credential upload + expiry | ☐ | §9, test IDs |
 | Matching blocks lapsed credentials | ☐ | §5.3 |
 | Cancellation + no-show | ☐ | §5.4 |

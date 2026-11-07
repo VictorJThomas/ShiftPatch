@@ -76,7 +76,7 @@
                 "login"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nLogs in as **nurse, valid credential** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
+            "description": "Logs in as **nurse, valid credential** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
           }
         },
         {
@@ -127,7 +127,7 @@
                 "login"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nLogs in as **nurse, EXPIRED credential (claim -> 403)** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
+            "description": "Logs in as **nurse, EXPIRED credential (claim -> 403)** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
           }
         },
         {
@@ -178,7 +178,7 @@
                 "login"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nLogs in as **agency, Sunrise Health Staffing** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
+            "description": "Logs in as **agency, Sunrise Health Staffing** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
           }
         },
         {
@@ -229,7 +229,7 @@
                 "login"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nLogs in as **agency, Metro Care Partners** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
+            "description": "Logs in as **agency, Metro Care Partners** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
           }
         },
         {
@@ -280,7 +280,7 @@
                 "login"
               ]
             },
-            "description": "> **Not implemented yet** (no handler registered in `apps/api`).\n\nLogs in as **admin** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
+            "description": "Logs in as **admin** and stores `token` for every other request.\n\n**Request schema**\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"email\": {\n      \"type\": \"string\",\n      \"maxLength\": 254,\n      \"format\": \"email\",\n      \"pattern\": \"^(?:[A-Za-z0-9_'+\\\\-]+\\\\.)*[A-Za-z0-9_'+\\\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$\"\n    },\n    \"password\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 256\n    }\n  },\n  \"required\": [\n    \"email\",\n    \"password\"\n  ]\n}\n```"
           }
         }
       ]
@@ -523,6 +523,42 @@
               "path": [
                 "api",
                 "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
               ]
             }
           }
