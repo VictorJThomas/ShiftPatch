@@ -126,6 +126,61 @@ describe("outbox dispatcher", () => {
     expect((await t.db.select().from(notifications)).every((r) => r.status === "sent" && r.attempts === 1)).toBe(true);
   });
 
+  it("claim leases the row: sending + locked_until, attempts counted before the send", async () => {
+    const id = await enqueue();
+    let seen: Awaited<ReturnType<typeof row>> | undefined;
+    const sender: MailSender = { name: "spy", send: async () => { seen = await row(id); } };
+    const at = new Date("2030-01-01T00:00:00Z");
+    await t.db.update(notifications).set({ nextAttemptAt: at }).where(eq(notifications.id, id));
+    await createDispatcher({ db: t.db, sender, now: () => at, leaseMs: 60_000 }).tick();
+    expect(seen).toMatchObject({ status: "sending", attempts: 1 });
+    expect(seen!.lockedUntil!.getTime()).toBe(at.getTime() + 60_000);
+    expect(await row(id)).toMatchObject({ status: "sent", lockedUntil: null });
+  });
+
+  it("crash after claim: row is reclaimed only after the lease, and the lost attempt counts", async () => {
+    const at = new Date("2030-01-01T00:00:00Z");
+    const id = await enqueue();
+    await t.db.update(notifications).set({ status: "sending", attempts: 2, lockedUntil: new Date(at.getTime() + 1000), nextAttemptAt: at }).where(eq(notifications.id, id));
+    const f = fakeSender();
+    const d = createDispatcher({ db: t.db, sender: f.sender, now: () => at });
+    expect(await d.tick()).toBe(0); // lease still held by the (possibly alive) claimer
+    expect(f.calls()).toBe(0);
+    const d2 = createDispatcher({ db: t.db, sender: f.sender, now: () => new Date(at.getTime() + 2000) });
+    expect(await d2.tick()).toBe(1);
+    expect(await row(id)).toMatchObject({ status: "sent", attempts: 3 });
+  });
+
+  it("expired lease with no attempts left goes failed without another send", async () => {
+    const at = new Date("2030-01-01T00:00:00Z");
+    const id = await enqueue();
+    await t.db.update(notifications).set({ status: "sending", attempts: MAX_ATTEMPTS, lockedUntil: new Date(at.getTime() - 1), nextAttemptAt: at }).where(eq(notifications.id, id));
+    const f = fakeSender();
+    await createDispatcher({ db: t.db, sender: f.sender, now: () => at }).tick();
+    expect(f.calls()).toBe(0);
+    expect(await row(id)).toMatchObject({ status: "failed", attempts: MAX_ATTEMPTS });
+  });
+
+  it("outcome write fails every time: mails are bounded by MAX_ATTEMPTS, never re-sent forever", async () => {
+    await t.sql.unsafe(`CREATE FUNCTION block_sent() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+      IF NEW.status IN ('sent') THEN RAISE EXCEPTION 'outcome write blocked'; END IF; RETURN NEW; END $$`);
+    await t.sql.unsafe(`CREATE TRIGGER block_sent BEFORE UPDATE ON notifications FOR EACH ROW EXECUTE FUNCTION block_sent()`);
+    try {
+      const id = await enqueue();
+      const f = fakeSender();
+      const errors: unknown[] = [];
+      let clock = new Date("2030-01-01T00:00:00Z");
+      await t.db.update(notifications).set({ nextAttemptAt: clock }).where(eq(notifications.id, id));
+      const d = createDispatcher({ db: t.db, sender: f.sender, now: () => clock, leaseMs: 1000, onError: (e) => errors.push(e) });
+      for (let i = 0; i < 12; i++) { await d.tick(); clock = new Date(clock.getTime() + 5000); }
+      expect(f.calls()).toBe(MAX_ATTEMPTS);
+      expect(errors).toHaveLength(MAX_ATTEMPTS);
+      expect(await row(id)).toMatchObject({ status: "failed", attempts: MAX_ATTEMPTS });
+    } finally {
+      await t.sql.unsafe(`DROP TRIGGER block_sent ON notifications; DROP FUNCTION block_sent()`);
+    }
+  });
+
   it("start() drains on the interval; stop() halts it", async () => {
     const f = fakeSender();
     const d = createDispatcher({ db: t.db, sender: f.sender, intervalMs: 30 });

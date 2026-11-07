@@ -23,4 +23,4 @@ export const credentialType = pgEnum("credential_type", ["license", "tb_screenin
 export const credentialStatus = pgEnum("credential_status", ["pending", "verified", "rejected"]);
 export const tbTestType = pgEnum("tb_test_type", ["igra", "tst", "chest_xray", "other"]);
 export const fileBucket = pgEnum("file_bucket", ["public_assets", "private_credentials"]);
-export const notificationStatus = pgEnum("notification_status", ["pending", "sent", "failed"]);
+export const notificationStatus = pgEnum("notification_status", ["pending", "sending", "sent", "failed"]);

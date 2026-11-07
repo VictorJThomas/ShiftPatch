@@ -54,12 +54,15 @@ export const notifications = pgTable(
     status: notificationStatus().notNull().default("pending"),
     attempts: smallint().notNull().default(0),
     nextAttemptAt: tstz().notNull().defaultNow(),
+    lockedUntil: tstz(), // lease while status = 'sending': a dispatcher claimed the row; after this instant it may be reclaimed
     lastError: text(),
     sentAt: tstz(),
     createdAt: createdAt(),
     updatedAt: createdAt(),
   },
-  (t) => [index("notifications_pending_idx").on(t.status, t.nextAttemptAt).where(sql`${t.status} = 'pending'`)],
+  (t) => [
+    index("notifications_pending_idx").on(t.status, t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
+  ],
 );
 
 /** Append-only: UPDATE/DELETE blocked by trigger (see custom migration). */
