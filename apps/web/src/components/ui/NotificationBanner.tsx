@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Icon } from "./Icon";
 
 export const SUCCESS_AUTO_DISMISS_MS = 5000;
@@ -23,11 +23,18 @@ export function NotificationBanner({ kind, title, message, onDismiss, toast = tr
   const ok = kind === "success";
   const timed = ok && !!onDismiss;
 
+  // Parents (Toaster) pass a fresh closure on every render; read it through a ref so the 5 s timer
+  // runs from mount (in step with the CSS progress bar) instead of restarting when the stack changes.
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  });
+
   useEffect(() => {
     if (!timed) return;
-    const timer = setTimeout(onDismiss, SUCCESS_AUTO_DISMISS_MS);
+    const timer = setTimeout(() => onDismissRef.current?.(), SUCCESS_AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
-  }, [timed, onDismiss]);
+  }, [timed]);
 
   return (
     <div className={`banner${toast ? " toast" : ""}${timed ? " has-timer" : ""}`} data-testid="notification-banner">
