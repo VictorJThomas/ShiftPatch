@@ -24,6 +24,20 @@ describe("Toaster", () => {
     expect(screen.queryByTestId("notification-banner")).toBeNull();
   });
 
+  it("keeps one persistent polite region that announces success once; errors stay alerts (QA-003)", () => {
+    render(<Toaster />);
+    const region = screen.getByRole("status");
+    expect(region.getAttribute("aria-live")).toBe("polite");
+    expect(region.textContent).toBe("");
+    act(() => void notify.success("Shift claimed", "RN · Fri, Oct 2"));
+    // Same node as before content arrived, and the only status on the page (the visible banner has no role).
+    expect(screen.getAllByRole("status")).toEqual([region]);
+    expect(region.textContent).toBe("Success: Shift claimed. RN · Fri, Oct 2");
+    act(() => void notify.error("Credential expired, cannot claim shift"));
+    expect(screen.getByRole("alert").textContent).toContain("Credential expired, cannot claim shift");
+    expect(region.textContent).toBe("Success: Shift claimed. RN · Fri, Oct 2");
+  });
+
   it("keeps a success toast's timer running when another toast is dismissed", () => {
     vi.useFakeTimers();
     render(<Toaster />);
