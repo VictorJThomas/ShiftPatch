@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
 
-export function EmptyState({ icon, title, children }: { icon: IconName; title: string; children?: ReactNode }) {
+/** Glyph tile + h2 title + short description + optional single action (design: Empty state). */
+export function EmptyState({ icon, title, children, action }: { icon: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="empty">
       <div className="glyph">
         <Icon name={icon} size="lg" />
       </div>
-      <h3>{title}</h3>
+      <h2>{title}</h2>
       {children && <p>{children}</p>}
+      {action}
     </div>
   );
 }
