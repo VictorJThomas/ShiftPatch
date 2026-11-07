@@ -1,6 +1,6 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { LoginResponse, MeResponse, type LoginRequest } from "@shiftpatch/contracts";
-import { apiFetch, refreshSession } from "@/lib/api-client";
+import { ApiError, apiFetch, isTransientStatus, refreshSession } from "@/lib/api-client";
 import { getQueryClient } from "@/lib/query-client";
 import { clearRoleCookie, setRoleCookie } from "@/lib/role-cookie";
 import { broadcastSignedOut } from "@/lib/session-channel";
@@ -58,11 +58,17 @@ let bootstrap: Promise<void> | null = null;
 
 /**
  * App-start restore: refresh cookie -> access token -> /api/me. Module-level promise, so React StrictMode's
- * double mount (and any other caller) still produces ONE request chain.
+ * double mount (and any other caller) still produces ONE request chain per page load.
  */
 export function bootstrapSession(): Promise<void> {
   bootstrap ??= restore();
   return bootstrap;
+}
+
+/** "Try again" from the `unavailable` state: one new restore chain (a no-op while one is running or after success). */
+export function retrySession(): Promise<void> {
+  if (useSessionStore.getState().status === "unavailable") bootstrap = restore();
+  return bootstrapSession();
 }
 
 /** Test helper. */
@@ -70,21 +76,40 @@ export function resetBootstrapForTests(): void {
   bootstrap = null;
 }
 
+/** Restore retries on 429 / 5xx / network: `attempts` tries in total, exponential from `baseDelayMs`, each wait capped. Mutable for tests. */
+export const restoreRetry = { attempts: 3, baseDelayMs: 1_000, maxDelayMs: 10_000 };
+
+/** max(Retry-After, exponential step) + up to 20% jitter, capped. */
+export function restoreDelay(attempt: number, retryAfterMs = 0): number {
+  const step = Math.max(retryAfterMs, restoreRetry.baseDelayMs * 2 ** (attempt - 1));
+  return Math.min(restoreRetry.maxDelayMs, step * (1 + Math.random() * 0.2));
+}
+
 async function restore(): Promise<void> {
   const store = useSessionStore.getState();
   if (store.status === "authenticated") return;
   store.setStatus("restoring");
   const epoch = getSessionEpoch();
-  try {
-    await refreshSession();
-    await commitSession();
-  } catch {
-    // Not signed in (or the API is down). A login in the meantime wins; otherwise this is an anonymous visit.
-    if (getSessionEpoch() === epoch && useSessionStore.getState().status !== "authenticated") {
-      const s = useSessionStore.getState();
-      s.setStatus("anonymous");
-      useSessionStore.setState({ accessToken: null, user: null, agencies: [] });
-      clearRoleCookie();
+  for (let attempt = 1; ; attempt++) {
+    try {
+      // A token from an earlier attempt (refresh ok, /api/me failed) is reused: don't burn another rotation.
+      if (!useSessionStore.getState().accessToken) await refreshSession();
+      await commitSession();
+      return;
+    } catch (error) {
+      if (getSessionEpoch() !== epoch || useSessionStore.getState().status === "authenticated") return; // a login won
+      if (!(error instanceof ApiError && isTransientStatus(error.status))) {
+        // 401 (no / dead refresh cookie) or a bad response: an anonymous visit.
+        useSessionStore.setState({ status: "anonymous", accessToken: null, user: null, agencies: [] });
+        clearRoleCookie();
+        return;
+      }
+      // Throttled / API down / offline: the session is probably fine. Bounded retries, then a recoverable state.
+      if (attempt >= restoreRetry.attempts) {
+        useSessionStore.getState().setStatus("unavailable");
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, restoreDelay(attempt, error.retryAfterMs)));
     }
   }
 }

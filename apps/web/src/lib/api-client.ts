@@ -2,6 +2,7 @@ import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import type { ZodType } from "zod";
 import { ErrorMessage, LoginResponse } from "@shiftpatch/contracts";
 import { setRoleCookie } from "@/lib/role-cookie";
+import { broadcastToken, onTokenShared } from "@/lib/session-channel";
 import { getSessionEpoch, useSessionStore } from "@/stores/session";
 
 /**
@@ -12,14 +13,19 @@ import { getSessionEpoch, useSessionStore } from "@/stores/session";
  * - 401 on a non-auth endpoint: ONE shared refresh (single-flight), then the request is retried at most once.
  *   Concurrent 401s await the same promise, so the client never replays a rotated refresh token itself.
  * - A retried request that 401s again ends the session. No loops.
+ * - Only a 401 (or exhausted 409s) from the refresh ends the session. 429 / 5xx / network reach the caller as ApiError.
+ * - Across tabs: refreshes run under a Web Lock and a fresh token is shared over BroadcastChannel (see session-channel).
  */
 
 export class ApiError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
+  /** From a `Retry-After` header in seconds (429 / 503), when present. */
+  readonly retryAfterMs: number | undefined;
+  constructor(status: number, message: string, retryAfterMs?: number) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
 }
 
@@ -54,7 +60,8 @@ async function toApiError(res: Response): Promise<ApiError> {
     // not JSON (proxy error page, empty body): fall through to the generic text
   }
   message ??= res.status >= 500 ? "The server is unavailable. Try again in a moment." : `Request failed (${res.status})`;
-  return new ApiError(res.status, message);
+  const retryAfter = Number(res.headers.get("retry-after"));
+  return new ApiError(res.status, message, retryAfter > 0 ? retryAfter * 1000 : undefined);
 }
 
 async function safeFetch(input: string, init: RequestInit): Promise<Response> {
@@ -65,34 +72,73 @@ async function safeFetch(input: string, init: RequestInit): Promise<Response> {
   }
 }
 
-// ---------------------------------------------------------------- refresh (single-flight)
+// ---------------------------------------------------------------- refresh (single-flight per tab, coordinated across tabs)
+
+/** Throttled (429), server down (5xx) or offline (0): the session may well be fine, so never treat it as signed out. */
+export const isTransientStatus = (status: number) => status === 0 || status === 429 || status >= 500;
+
+/** A token another tab obtained this recently is adopted instead of rotating the refresh token again. */
+export const SHARED_TOKEN_FRESH_MS = 5_000;
 
 let inflightRefresh: Promise<string> | null = null;
+let sharedToken: { token: string; user: LoginResponse["user"]; at: number; epoch: number } | null = null;
+let listening = false;
+
+function listenForSharedTokens(): void {
+  if (listening) return;
+  listening = true;
+  onTokenShared(({ token, user }) => {
+    const parsed = LoginResponse.safeParse({ token, user });
+    if (parsed.success) sharedToken = { ...parsed.data, at: Date.now(), epoch: getSessionEpoch() };
+  });
+}
+
+/** Cross-tab mutex (Web Locks) so two tabs never rotate at once. Without the API (old browsers, jsdom) it just runs. */
+function withRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator === "undefined" ? undefined : (navigator as Partial<Navigator>).locks;
+  return locks ? locks.request("sp-refresh", fn) : fn();
+}
+
+function applyRefreshed(token: string, user: LoginResponse["user"]): string {
+  sharedToken = null; // consumed, or superseded by our own rotation
+  const prev = useSessionStore.getState().user;
+  useSessionStore.getState().applyToken(token, { ...(prev?.id === user.id ? prev : {}), ...user });
+  setRoleCookie(user.role);
+  return token;
+}
 
 async function doRefresh(): Promise<string> {
   const epoch = getSessionEpoch();
-  for (let attempt = 1; ; attempt++) {
-    const res = await safeFetch("/api/auth/refresh", { method: "POST", headers: { Accept: "application/json" } });
-    // 409 = lost a concurrent rotation: the winner already set the new cookie, so retry after a short jittered delay.
-    if (res.status === 409 && attempt < refreshRetry.attempts) {
-      await sleep(refreshRetry.delayMs * attempt * (0.5 + Math.random()));
-      continue;
-    }
-    if (!res.ok) throw await toApiError(res);
-    // Logged out (or re-logged-in) while this was in flight: applying it would resurrect a dead session.
+  const stale = useSessionStore.getState().accessToken; // the token that 401'd (null on app start)
+  return withRefreshLock(async () => {
+    // Logged out (or re-logged-in) while waiting: applying anything would resurrect a dead session.
     if (getSessionEpoch() !== epoch) throw new ApiError(401, SESSION_MESSAGE);
-    const parsed = LoginResponse.safeParse(await res.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(502, "Unexpected response from the server.");
-    const { token, user } = parsed.data;
-    const prev = useSessionStore.getState().user;
-    useSessionStore.getState().applyToken(token, { ...(prev?.id === user.id ? prev : {}), ...user });
-    setRoleCookie(user.role);
-    return token;
-  }
+    // Another tab rotated a moment ago (often while we waited for the lock): reuse its token, no second rotation.
+    const shared = sharedToken;
+    const age = shared ? Date.now() - shared.at : Infinity;
+    if (shared && shared.epoch === epoch && shared.token !== stale && age >= 0 && age < SHARED_TOKEN_FRESH_MS) {
+      return applyRefreshed(shared.token, shared.user);
+    }
+    for (let attempt = 1; ; attempt++) {
+      const res = await safeFetch("/api/auth/refresh", { method: "POST", headers: { Accept: "application/json" } });
+      // 409 = lost a concurrent rotation: the winner already set the new cookie, so retry after a short jittered delay.
+      if (res.status === 409 && attempt < refreshRetry.attempts) {
+        await sleep(refreshRetry.delayMs * attempt * (0.5 + Math.random()));
+        continue;
+      }
+      if (!res.ok) throw await toApiError(res); // 429 carries retryAfterMs; callers decide (never "signed out")
+      if (getSessionEpoch() !== epoch) throw new ApiError(401, SESSION_MESSAGE);
+      const parsed = LoginResponse.safeParse(await res.json().catch(() => null));
+      if (!parsed.success) throw new ApiError(502, "Unexpected response from the server.");
+      broadcastToken(parsed.data.token, parsed.data.user);
+      return applyRefreshed(parsed.data.token, parsed.data.user);
+    }
+  });
 }
 
 /** Shared by the 401 path and the app-start restore: any number of callers, one `POST /api/auth/refresh`. */
 export function refreshSession(): Promise<string> {
+  listenForSharedTokens();
   inflightRefresh ??= doRefresh().finally(() => {
     inflightRefresh = null;
   });
@@ -145,7 +191,9 @@ async function request(path: string, opts: ApiRequest<unknown>, retried: boolean
   if (!token || useSessionStore.getState().accessToken === token) {
     try {
       await refreshSession();
-    } catch {
+    } catch (error) {
+      // Throttled / API down / offline: the session is intact, so the caller just sees the error (query retry/Retry UI).
+      if (error instanceof ApiError && isTransientStatus(error.status)) throw error;
       throw sessionLost();
     }
   }
