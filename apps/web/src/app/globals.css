@@ -185,3 +185,7 @@ html:has(.dlg[open]){overflow:hidden}
 }
 .flip{transform:rotate(180deg)}
 .page-h{font-size:28px;font-weight:750;letter-spacing:-.02em}
+/* QA D1: absolutely positioned .sr text inside a scrolling table escaped the scroll box (page-level overflow on phones) */
+.scrollx{position:relative}
+/* QA D6: ids like "shift-1" never break across lines */
+.adm-id{white-space:nowrap}

@@ -73,7 +73,6 @@ test("nurse-2: the 403 reaches notification-banner with the exact spec text, as 
 test("nurse: credential upload input (file) and expiry input (date) on the upload form", async ({ page }) => {
   await signIn(page, "nurse");
   await nav(page, "/nurse/credentials");
-  await page.getByRole("button", { name: "Upload", exact: true }).click();
   const file = page.getByTestId("credential-upload-input");
   const expiry = page.getByTestId("credential-expiry-date-input");
   await expect(file).toHaveCount(1);
@@ -83,7 +82,7 @@ test("nurse: credential upload input (file) and expiry input (date) on the uploa
 
   await file.setInputFiles({ name: "license.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%%EOF\n") });
   await expiry.fill("2028-01-01");
-  await page.getByRole("dialog").getByRole("button", { name: "Upload" }).click();
+  await page.locator("#upload").getByRole("button", { name: "Upload", exact: true }).click(); // inline form: inputs exist on page load
   await expect(page.getByTestId("notification-banner")).toContainText("Credential uploaded");
   await expect(page.locator("article").filter({ hasText: /pending/i })).toHaveCount(1);
 });

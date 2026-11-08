@@ -98,7 +98,7 @@ describe("agency shifts dashboard", () => {
     expect(screen.getByTestId("agency-shift-count").textContent).toBe("2 shifts");
     expect((screen.getByTestId("agency-post-shift-button") as HTMLButtonElement).disabled).toBe(false);
     // Cancel only on the filled row; withdraw only on the open one.
-    expect(screen.getAllByTestId("shift-cancel-button")).toHaveLength(1);
+    expect(screen.getAllByTestId("agency-cancel-shift-button")).toHaveLength(1);
     expect(screen.getByRole("button", { name: /Withdraw, RN/ })).toBeTruthy();
     expect(within(table).getByText("nurse-1")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Filled 1" })).toBeTruthy();
@@ -131,7 +131,7 @@ describe("agency shifts dashboard", () => {
     const post = screen.getByTestId("agency-post-shift-button") as HTMLButtonElement;
     expect(post.disabled).toBe(true);
     expect(document.getElementById(post.getAttribute("aria-describedby") ?? "")?.textContent).toMatch(/View-only access/);
-    expect(screen.queryByTestId("shift-cancel-button")).toBeNull();
+    expect(screen.queryByTestId("agency-cancel-shift-button")).toBeNull();
     expect(screen.queryByRole("button", { name: /Withdraw/ })).toBeNull();
   });
 });
@@ -207,7 +207,7 @@ describe("row actions", () => {
     signIn([A], "agency-a");
     renderWith(<AgencyShiftsPage />);
     await screen.findByRole("table");
-    fireEvent.click(screen.getByTestId("shift-cancel-button"));
+    fireEvent.click(screen.getByTestId("agency-cancel-shift-button"));
     const dialog = screen.getByRole("dialog", { name: "Cancel this filled shift?" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel shift" }));
     expect(within(dialog).getByRole("alert").textContent).toContain("Pick a reason");
