@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { dialogClosed, dialogOpened } from "@/stores/dialogs";
 import { Icon } from "./Icon";
+import { Toaster } from "./Toaster";
 
 export interface DialogProps {
   open: boolean;
@@ -30,7 +32,9 @@ export function Dialog({ open, onClose, title, description, children, footer, va
     if (!open || !dialog) return;
     const returnTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.open) dialog.showModal();
+    dialogOpened();
     return () => {
+      dialogClosed();
       if (dialog.open) dialog.close();
       returnTo?.focus();
     };
@@ -55,6 +59,8 @@ export function Dialog({ open, onClose, title, description, children, footer, va
       }}
     >
       <div className="dlg-box">
+        {/* The page is inert behind a modal: feedback for actions taken in here must render in here. */}
+        <Toaster inline />
         {variant !== "modal" && <div className="grab" aria-hidden="true" />}
         <div className="dlg-head">
           <div style={{ flex: 1, minWidth: 0 }}>

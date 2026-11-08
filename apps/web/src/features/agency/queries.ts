@@ -30,7 +30,7 @@ export function useAgencyShifts() {
   const agencyId = useSessionStore((s) => s.activeAgencyId);
   return useQuery({
     queryKey: agencyKey(agencyId, "shifts"),
-    queryFn: ({ signal }) => apiFetch(`/api/agencies/${agencyId}/shifts`, { schema: AgencyShiftsResponse, signal }),
+    queryFn: ({ signal }) => apiFetch(`/api/agencies/${encodeURIComponent(agencyId ?? "")}/shifts`, { schema: AgencyShiftsResponse, signal }),
     enabled: !!agencyId,
   });
 }

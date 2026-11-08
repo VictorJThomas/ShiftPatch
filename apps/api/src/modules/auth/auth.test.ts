@@ -329,16 +329,18 @@ describe("session rate limits (QA-006: 10 refreshes/min per family, 30 invalid/m
     expect((await refresh(fresh.refresh)).statusCode).toBe(200); // same family from another IP: unaffected
   }, 30_000); // ~330 real rotations against Postgres: over the 5 s default when the whole suite runs in parallel
 
-  it("invalid/missing cookies from one IP: 429 after 30, while a valid family from that IP still refreshes", async () => {
+  it("unknown cookies from one IP: 429 after 30, while a valid family from that IP still refreshes", async () => {
     const ip = newIp();
-    for (let i = 0; i < 15; i++) {
-      expect((await refresh(`garbage-${i}`, { ip })).statusCode).toBe(401);
-      expect((await refresh(undefined, { ip })).statusCode).toBe(401);
-    }
+    for (let i = 0; i < 30; i++) expect((await refresh(`garbage-${i}`, { ip })).statusCode).toBe(401);
     expect429(await refresh("garbage-31", { ip }));
-    expect429(await refresh(undefined, { ip }));
     const s = await session((await makeUser()).email);
     expect((await refresh(s.refresh, { ip })).statusCode).toBe(200);
+  });
+
+  it("a missing cookie is always a plain 401 (anonymous visit), never counted or throttled", async () => {
+    const ip = newIp();
+    for (let i = 0; i < 40; i++) expect((await refresh(undefined, { ip })).statusCode).toBe(401);
+    expect((await refresh("garbage-after", { ip })).statusCode).toBe(401); // the invalid budget is untouched
   });
 
   it("reuse detection still revokes the family under the new limiter", async () => {
