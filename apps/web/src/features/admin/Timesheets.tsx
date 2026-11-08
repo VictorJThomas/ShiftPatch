@@ -23,10 +23,9 @@ export function Timesheets() {
         <Icon name="info" />
         <span>Timesheets arrive with clock-in/out. Completed shifts will appear here with their scheduled hours.</span>
       </p>
-      {q.isError && !q.data ? (
-        <ErrorState title="Couldn't load shifts" message={q.error.message} onRetry={() => void q.refetch()} />
-      ) : (
-        <section className="card" aria-label="Timesheets">
+      {/* The table (and its test ID) always renders; a failed shift fetch is reported above it, not instead of it. */}
+      {q.isError && !q.data && <ErrorState title="Couldn't load shifts" message={q.error.message} onRetry={() => void q.refetch()} />}
+      <section className="card" aria-label="Timesheets">
           <div className="scrollx" aria-busy={q.isPending}>
             <table data-testid="timesheet-table" className="tbl adm-tbl">
               <caption className="sr">Timesheets for completed shifts</caption>
@@ -69,7 +68,6 @@ export function Timesheets() {
             </table>
           </div>
         </section>
-      )}
     </>
   );
 }

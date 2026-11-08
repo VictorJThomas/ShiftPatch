@@ -117,7 +117,8 @@ describe("Lapsed-license fallback", () => {
 
   it("picks matchable first, open only as a fallback", () => {
     expect(pickShiftSource([shift1], [shift1, shift3], false)).toEqual({ shifts: [shift1], notice: null });
-    expect(pickShiftSource([], [], false)).toEqual({ shifts: [], notice: null });
+    expect(pickShiftSource([], [], true)).toEqual({ shifts: [], notice: null });
+    expect(pickShiftSource([], [], false)).toEqual({ shifts: [], notice: "expired" }); // lapsed, nothing open: still warn
     expect(pickShiftSource([], [shift3], undefined).notice).toBe("nomatch"); // credentials request failed
   });
 

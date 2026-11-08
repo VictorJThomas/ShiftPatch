@@ -25,7 +25,9 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * the notification banner verbatim. Exported for tests.
  */
 export function pickShiftSource(matchable: Shift[], open: Shift[], licenseValid: boolean | undefined) {
-  if (matchable.length > 0 || open.length === 0) return { shifts: matchable, notice: null };
+  if (matchable.length > 0) return { shifts: matchable, notice: null };
+  // Nothing open at all: still warn a nurse whose license lapsed (they need to act before shifts appear).
+  if (open.length === 0) return { shifts: matchable, notice: licenseValid === false ? ("expired" as const) : null };
   return { shifts: open, notice: licenseValid === false ? ("expired" as const) : ("nomatch" as const) };
 }
 
