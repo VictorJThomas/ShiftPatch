@@ -1,0 +1,1014 @@
+[
+  {
+    "role": "login",
+    "page": "/login",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 0,
+      "w": 360
+    },
+    "nav": [],
+    "minFont": 12.5,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "file": "login-login-360.png"
+  },
+  {
+    "role": "login",
+    "page": "/login",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 0,
+      "w": 390
+    },
+    "nav": [],
+    "minFont": 12.5,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [],
+    "file": "login-login-390.png"
+  },
+  {
+    "role": "login",
+    "page": "/login",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 0,
+      "w": 768
+    },
+    "nav": [],
+    "minFont": 12.5,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [],
+    "file": "login-login-768.png"
+  },
+  {
+    "role": "login",
+    "page": "/login",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 710,
+      "w": 730
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [],
+    "file": "login-login-1440.png"
+  },
+  {
+    "role": "login",
+    "page": "/login",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 950,
+      "w": 970
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [],
+    "file": "login-login-1920.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/shifts",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@728"
+    ],
+    "minFont": 12,
+    "h1": "Available shifts",
+    "title": "Available shifts · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "file": "nurse-nurse-shifts-360.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/my-shifts",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@728"
+    ],
+    "minFont": 12,
+    "h1": "My shifts",
+    "title": "My shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-my-shifts-360.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/credentials",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@728"
+    ],
+    "minFont": 12,
+    "h1": "Credentials",
+    "title": "Credentials · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-credentials-360.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/profile",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@728"
+    ],
+    "minFont": 12,
+    "h1": "Profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-profile-360.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/shifts",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@772"
+    ],
+    "minFont": 12,
+    "h1": "Available shifts",
+    "title": "Available shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-shifts-390.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/my-shifts",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@772"
+    ],
+    "minFont": 12,
+    "h1": "My shifts",
+    "title": "My shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-my-shifts-390.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/credentials",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@772"
+    ],
+    "minFont": 12,
+    "h1": "Credentials",
+    "title": "Credentials · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-credentials-390.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/profile",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@772"
+    ],
+    "minFont": 12,
+    "h1": "Profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-profile-390.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/shifts",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@952"
+    ],
+    "minFont": 12,
+    "h1": "Available shifts",
+    "title": "Available shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-shifts-768.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/my-shifts",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@952"
+    ],
+    "minFont": 12,
+    "h1": "My shifts",
+    "title": "My shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-my-shifts-768.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/credentials",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@952"
+    ],
+    "minFont": 12,
+    "h1": "Credentials",
+    "title": "Credentials · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-credentials-768.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/profile",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@952"
+    ],
+    "minFont": 12,
+    "h1": "Profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-profile-768.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/shifts",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@828"
+    ],
+    "minFont": 12,
+    "h1": "Available shifts",
+    "title": "Available shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-shifts-1440.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/my-shifts",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@828"
+    ],
+    "minFont": 12,
+    "h1": "My shifts",
+    "title": "My shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-my-shifts-1440.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/credentials",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@828"
+    ],
+    "minFont": 12,
+    "h1": "Credentials",
+    "title": "Credentials · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-credentials-1440.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/profile",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@828"
+    ],
+    "minFont": 12,
+    "h1": "Profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-profile-1440.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/shifts",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@1008"
+    ],
+    "minFont": 12,
+    "h1": "Available shifts",
+    "title": "Available shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-shifts-1920.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/my-shifts",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@1008"
+    ],
+    "minFont": 12,
+    "h1": "My shifts",
+    "title": "My shifts · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-my-shifts-1920.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/credentials",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@1008"
+    ],
+    "minFont": 12,
+    "h1": "Credentials",
+    "title": "Credentials · ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-credentials-1920.png"
+  },
+  {
+    "role": "nurse",
+    "page": "/nurse/profile",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": null,
+    "nav": [
+      "Main@1008"
+    ],
+    "minFont": 12,
+    "h1": "Profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "nurse-nurse-profile-1920.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/shifts",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 360
+    },
+    "nav": [
+      "Agency@728"
+    ],
+    "minFont": 12,
+    "h1": "Shifts",
+    "title": "ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "file": "agency-agency-shifts-360.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/profile",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 360
+    },
+    "nav": [
+      "Agency@728"
+    ],
+    "minFont": 12,
+    "h1": "Agency profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-profile-360.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/shifts",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 390
+    },
+    "nav": [
+      "Agency@772"
+    ],
+    "minFont": 12,
+    "h1": "Shifts",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-shifts-390.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/profile",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 390
+    },
+    "nav": [
+      "Agency@772"
+    ],
+    "minFont": 12,
+    "h1": "Agency profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-profile-390.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/shifts",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 768
+    },
+    "nav": [
+      "Agency@10"
+    ],
+    "minFont": 12,
+    "h1": "Shifts",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-shifts-768.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/profile",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 768
+    },
+    "nav": [
+      "Agency@10"
+    ],
+    "minFont": 12,
+    "h1": "Agency profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-profile-768.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/shifts",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 120,
+      "w": 1200
+    },
+    "nav": [
+      "Agency@10"
+    ],
+    "minFont": 12,
+    "h1": "Shifts",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-shifts-1440.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/profile",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 120,
+      "w": 1200
+    },
+    "nav": [
+      "Agency@10"
+    ],
+    "minFont": 12,
+    "h1": "Agency profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-profile-1440.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/shifts",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 360,
+      "w": 1200
+    },
+    "nav": [
+      "Agency@10"
+    ],
+    "minFont": 12,
+    "h1": "Shifts",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-shifts-1920.png"
+  },
+  {
+    "role": "agency",
+    "page": "/agency/profile",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 360,
+      "w": 1200
+    },
+    "nav": [
+      "Agency@10"
+    ],
+    "minFont": 12,
+    "h1": "Agency profile",
+    "title": "ShiftPatch",
+    "consoleErrors": [],
+    "file": "agency-agency-profile-1920.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/dashboard",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 360
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Coverage",
+    "title": "Coverage · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "file": "admin-admin-dashboard-360.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/audit",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 360
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Audit log",
+    "title": "Audit log · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-audit-360.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/timesheets",
+    "viewport": "360x800",
+    "vw": 360,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 360
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Timesheets",
+    "title": "Timesheets · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-timesheets-360.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/dashboard",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 390
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Coverage",
+    "title": "Coverage · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-dashboard-390.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/audit",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 390
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Audit log",
+    "title": "Audit log · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-audit-390.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/timesheets",
+    "viewport": "390x844",
+    "vw": 390,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 390
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Timesheets",
+    "title": "Timesheets · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-timesheets-390.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/dashboard",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 768
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Coverage",
+    "title": "Coverage · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-dashboard-768.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/audit",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [],
+    "main": {
+      "x": 0,
+      "w": 768
+    },
+    "nav": [
+      "Admin@126"
+    ],
+    "minFont": 12.5,
+    "h1": "Audit log",
+    "title": "Audit log · ShiftPatch",
+    "consoleErrors": [],
+    "file": "admin-admin-audit-768.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/timesheets",
+    "viewport": "768x1024",
+    "vw": 768,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 0,
+      "w": 768
+    },
+    "nav": [],
+    "minFont": 12.5,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-timesheets-768.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/dashboard",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 710,
+      "w": 730
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-dashboard-1440.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/audit",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 710,
+      "w": 730
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-audit-1440.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/timesheets",
+    "viewport": "1440x900",
+    "vw": 1440,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 710,
+      "w": 730
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-timesheets-1440.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/dashboard",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 950,
+      "w": 970
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-dashboard-1920.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/audit",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 950,
+      "w": 970
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-audit-1920.png"
+  },
+  {
+    "role": "admin",
+    "page": "/admin/timesheets",
+    "viewport": "1920x1080",
+    "vw": 1920,
+    "overflow": 0,
+    "offenders": [],
+    "small": [
+      "Show password 65x36"
+    ],
+    "main": {
+      "x": 950,
+      "w": 970
+    },
+    "nav": [],
+    "minFont": 14,
+    "h1": "Sign in",
+    "title": "Sign in · ShiftPatch",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    ],
+    "file": "admin-admin-timesheets-1920.png"
+  }
+]

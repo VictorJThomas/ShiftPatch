@@ -162,3 +162,13 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: no status change (prod reseed task stays Pending until the pre-submission check).
 - Skills copied: none.
 - Open: orphan volume; Vercel rewrite secret header; argon2 cap; Resend; Stage 6b/7.
+
+## 2026-11-07 — QA: seeded-user workflows in Chrome + feature/API/UI audits
+- Done: workflow matrix + Chrome runs (one QA subagent per user, sequential): Agency A, Agency B, Nurse 1, Nurse 2, Admin 1. Read-only audits in parallel (spec completeness, API endpoints, static UI/a11y). Playwright viewport sweep 5 widths × 10 routes. Results in `docs/qa/`; roadmap + `docs/stage-6b-feature-ui-plan.md`.
+- Defects: QA-001 logout "503" = extension artifact (server and browser saw 204). QA-002 toast timer restart → fixed by a debug subagent in a worktree (TDD), cherry-picked + re-verified. QA-003/004/005 → roadmap. **QA-006 escalated** (refresh 30/IP limiter + restore treats 429 as anonymous).
+- Built: local-only `pnpm --filter api db:reset` (drop/create/migrate/seed; guard hardened after independent review: driver-parsed host check, no `?`/`#`).
+- Verified: /verify GREEN, web build, Playwright 34/34, pnpm audit clean; independent review approve-with-changes, all changes applied. Local DB restored to the spec seed; prod untouched.
+- Decided: audit-first (missing UI = MISSING, not built in the QA loop); db:reset drops the DB instead of truncating (see [[Decisions]]).
+- Board: 1 drift fixed (Production DB row missing in Notion); QA task Done; added "Decide QA-006…".
+- Skills copied: plan-md (claude-in-chrome is built-in, no files).
+- Open: QA-006 decision; Stage 6b/7 build; leftover dir `.claude/worktrees/agent-ad2d6204a290be1d6` (locked files, delete manually); untracked `apps/web/AGENTS.md` (created by `next dev`).
