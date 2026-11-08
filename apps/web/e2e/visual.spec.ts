@@ -41,7 +41,9 @@ test.describe("screenshots", () => {
 
     await page.setViewportSize({ width: 1280, height: 844 });
     await page.getByRole("link", { name: "Profile" }).click();
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Profile" })).toBeVisible();
+    // The profile row, not the rail icon (both are labelled "Sign out" at >= 1000 px).
+    await page.locator("#main").getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
     await signIn(page, "multi");
