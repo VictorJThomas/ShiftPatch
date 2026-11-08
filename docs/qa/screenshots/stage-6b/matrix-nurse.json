@@ -1,0 +1,104 @@
+[
+  {
+    "user": "nurse-1",
+    "step": "marketplace lists open shifts",
+    "status": "PASS",
+    "evidence": "2 shift-list-item: Sunrise Health Staffing, Metro Care Partners"
+  },
+  {
+    "user": "nurse-1",
+    "step": "details dialog opens, Esc closes, focus returns",
+    "status": "PASS",
+    "evidence": "aria-labelledby=_r_0_"
+  },
+  {
+    "user": "nurse-1",
+    "step": "shift-claim-button on shift-1 -> banner 'Shift claimed' (one click)",
+    "status": "PASS",
+    "evidence": "banner visible, card left the list"
+  },
+  {
+    "user": "admin-1",
+    "step": "dashboard badge shift-1 -> Filled within 15 s (no reload)",
+    "status": "PASS",
+    "evidence": "13.9 s"
+  },
+  {
+    "user": "nurse-1",
+    "step": "My shifts -> shift-cancel-button -> 'Shift cancelled'",
+    "status": "PASS",
+    "evidence": "one click, banner 'Shift cancelled'"
+  },
+  {
+    "user": "nurse-1",
+    "step": "shift-1 reopened in marketplace",
+    "status": "PASS",
+    "evidence": "Sunrise RN card back"
+  },
+  {
+    "user": "admin-1",
+    "step": "badge back to Open within 15 s",
+    "status": "PASS",
+    "evidence": "Open"
+  },
+  {
+    "user": "credentials",
+    "step": "credentials page + Upload dialog exposes both test IDs",
+    "status": "PASS",
+    "evidence": "inputs before opening dialog: 0; after: 1 + expiry visible"
+  },
+  {
+    "user": "credentials",
+    "step": "11 MB file -> client-side check",
+    "status": "PASS",
+    "evidence": "inline field error 'File is larger than 10 MB' (banners: 0) — intercepted before the API"
+  },
+  {
+    "user": "credentials",
+    "step": ".txt renamed .pdf -> 415 text",
+    "status": "PASS",
+    "evidence": "Unsupported file type. Upload a PDF, JPEG, PNG or HEIC file"
+  },
+  {
+    "user": "credentials",
+    "step": "valid PDF + expiry -> success banner + pending row",
+    "status": "FAIL",
+    "evidence": "error banner: Unsupported file type. Upload a PDF, JPEG, PNG or HEIC file"
+  },
+  {
+    "user": "nurse-2",
+    "step": "expired-license warning + open shifts listed",
+    "status": "PASS",
+    "evidence": "2 items"
+  },
+  {
+    "user": "nurse-2",
+    "step": "claim -> banner EXACTLY 'Credential expired, cannot claim shift'",
+    "status": "PASS",
+    "evidence": "role=alert text: \"Credential expired, cannot claim shift\""
+  },
+  {
+    "user": "nurse-2",
+    "step": "shift still open (UI + API)",
+    "status": "PASS",
+    "evidence": "open: shift-1,shift-3"
+  },
+  {
+    "user": "admin-1",
+    "step": "admin-dashboard-shift-table + one badge per row",
+    "status": "PASS",
+    "evidence": "4 rows, 4 badges: Open,Filled,Open,Cancelled"
+  },
+  {
+    "user": "admin-1",
+    "step": "audit-log-table rows + agency filter + load more",
+    "status": "PASS",
+    "evidence": "12 rows; Load more buttons: 0; agency options [\"All agencies\",\"Metro Care Partners\",\"Sunrise Health Staffing\"]; after filter: 2 rows"
+  },
+  {
+    "user": "admin-1",
+    "step": "timesheet-table present",
+    "status": "PASS",
+    "evidence": "Timesheets for completed shifts Nurse Shift Date Scheduled hours Clocked hours Status No timesheets yet Clock in and clo"
+  }
+]

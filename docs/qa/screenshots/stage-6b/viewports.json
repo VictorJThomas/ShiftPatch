@@ -1,0 +1,1410 @@
+{
+  "rows": [
+    {
+      "role": "login",
+      "page": "/login",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [],
+      "cols": null,
+      "mains": 1,
+      "skip": null,
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Sign in"
+      ],
+      "liveRegions": 1,
+      "file": "login-360.png",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "role": "login",
+      "page": "/login",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [],
+      "cols": null,
+      "mains": 1,
+      "skip": null,
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Sign in"
+      ],
+      "liveRegions": 1,
+      "file": "login-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "login",
+      "page": "/login",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [],
+      "cols": null,
+      "mains": 1,
+      "skip": null,
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Sign in"
+      ],
+      "liveRegions": 1,
+      "file": "login-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "login",
+      "page": "/login",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [],
+      "cols": null,
+      "mains": 1,
+      "skip": null,
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Sign in"
+      ],
+      "liveRegions": 1,
+      "file": "login-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "login",
+      "page": "/login",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [],
+      "cols": null,
+      "mains": 1,
+      "skip": null,
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Sign in"
+      ],
+      "liveRegions": 1,
+      "file": "login-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/shifts",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@728,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Available shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-shifts-360.png",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/my-shifts",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@728,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "My shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-my-shifts-360.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/credentials",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@728,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Credentials"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-credentials-360.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/profile",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@728,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Profile"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-profile-360.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/shifts",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@772,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Available shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-shifts-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/my-shifts",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@772,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "My shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-my-shifts-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/credentials",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@772,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Credentials"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-credentials-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/profile",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@772,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Profile"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-profile-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/shifts",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@952,0"
+      ],
+      "cols": 2,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Available shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-shifts-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/my-shifts",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@952,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "My shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-my-shifts-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/credentials",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@952,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Credentials"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-credentials-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/profile",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@952,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Profile"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-profile-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/shifts",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": 2,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Available shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-shifts-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/my-shifts",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "My shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-my-shifts-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/credentials",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Credentials"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-credentials-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/profile",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Profile"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-profile-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/shifts",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": 2,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Available shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-shifts-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/my-shifts",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "My shifts"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-my-shifts-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/credentials",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": 1,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Credentials"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-credentials-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/profile",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Main@0,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Profile"
+      ],
+      "liveRegions": 1,
+      "file": "nurse-profile-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/shifts",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@728,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Shifts"
+      ],
+      "liveRegions": 1,
+      "file": "agency-shifts-360.png",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "role": "agency",
+      "page": "/agency/profile",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@728,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Agency profile"
+      ],
+      "liveRegions": 1,
+      "file": "agency-profile-360.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/shifts",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@772,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Shifts"
+      ],
+      "liveRegions": 1,
+      "file": "agency-shifts-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/profile",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@772,0"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Agency profile"
+      ],
+      "liveRegions": 1,
+      "file": "agency-profile-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/shifts",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@10,209"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl ag-tbl",
+          "th": 7,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Shifts"
+      ],
+      "liveRegions": 1,
+      "file": "agency-shifts-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/profile",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@10,209"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Agency profile"
+      ],
+      "liveRegions": 1,
+      "file": "agency-profile-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/shifts",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@10,329"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl ag-tbl",
+          "th": 7,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Shifts"
+      ],
+      "liveRegions": 1,
+      "file": "agency-shifts-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/profile",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@10,329"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Agency profile"
+      ],
+      "liveRegions": 1,
+      "file": "agency-profile-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/shifts",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@10,569"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl ag-tbl",
+          "th": 7,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Shifts"
+      ],
+      "liveRegions": 1,
+      "file": "agency-shifts-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "agency",
+      "page": "/agency/profile",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Agency@10,569"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [],
+      "h1": [
+        "Agency profile"
+      ],
+      "liveRegions": 1,
+      "file": "agency-profile-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/dashboard",
+      "w": 360,
+      "vw": 360,
+      "overflow": 415,
+      "offenders": [
+        "a.navi",
+        "table.tbl",
+        "thead.",
+        "tr."
+      ],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl",
+          "th": 7,
+          "caption": true
+        },
+        {
+          "tid": "admin-dashboard-shift-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Coverage"
+      ],
+      "liveRegions": 1,
+      "file": "admin-dashboard-360.png",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "role": "admin",
+      "page": "/admin/audit",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "audit-log-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Audit log"
+      ],
+      "liveRegions": 1,
+      "file": "admin-audit-360.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/timesheets",
+      "w": 360,
+      "vw": 360,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "timesheet-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Timesheets"
+      ],
+      "liveRegions": 1,
+      "file": "admin-timesheets-360.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/dashboard",
+      "w": 390,
+      "vw": 390,
+      "overflow": 385,
+      "offenders": [
+        "a.navi",
+        "table.tbl",
+        "thead.",
+        "tr."
+      ],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl",
+          "th": 7,
+          "caption": true
+        },
+        {
+          "tid": "admin-dashboard-shift-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Coverage"
+      ],
+      "liveRegions": 1,
+      "file": "admin-dashboard-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/audit",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "audit-log-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Audit log"
+      ],
+      "liveRegions": 1,
+      "file": "admin-audit-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/timesheets",
+      "w": 390,
+      "vw": 390,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "timesheet-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Timesheets"
+      ],
+      "liveRegions": 1,
+      "file": "admin-timesheets-390.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/dashboard",
+      "w": 768,
+      "vw": 768,
+      "overflow": 7,
+      "offenders": [
+        "table.tbl.adm-tbl",
+        "thead.",
+        "tr.",
+        "th."
+      ],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl",
+          "th": 7,
+          "caption": true
+        },
+        {
+          "tid": "admin-dashboard-shift-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Coverage"
+      ],
+      "liveRegions": 1,
+      "file": "admin-dashboard-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/audit",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "audit-log-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Audit log"
+      ],
+      "liveRegions": 1,
+      "file": "admin-audit-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/timesheets",
+      "w": 768,
+      "vw": 768,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@58,12"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "timesheet-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Timesheets"
+      ],
+      "liveRegions": 1,
+      "file": "admin-timesheets-768.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/dashboard",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@120,16"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl",
+          "th": 7,
+          "caption": true
+        },
+        {
+          "tid": "admin-dashboard-shift-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Coverage"
+      ],
+      "liveRegions": 1,
+      "file": "admin-dashboard-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/audit",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@120,16"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "audit-log-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Audit log"
+      ],
+      "liveRegions": 1,
+      "file": "admin-audit-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/timesheets",
+      "w": 1440,
+      "vw": 1440,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@120,16"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "timesheet-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Timesheets"
+      ],
+      "liveRegions": 1,
+      "file": "admin-timesheets-1440.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/dashboard",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@120,16"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "tbl",
+          "th": 7,
+          "caption": true
+        },
+        {
+          "tid": "admin-dashboard-shift-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Coverage"
+      ],
+      "liveRegions": 1,
+      "file": "admin-dashboard-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/audit",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@120,16"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "audit-log-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Audit log"
+      ],
+      "liveRegions": 1,
+      "file": "admin-audit-1920.png",
+      "consoleErrors": []
+    },
+    {
+      "role": "admin",
+      "page": "/admin/timesheets",
+      "w": 1920,
+      "vw": 1920,
+      "overflow": 0,
+      "offenders": [],
+      "nav": [
+        "Admin@120,16"
+      ],
+      "cols": null,
+      "mains": 1,
+      "skip": "#main",
+      "unlabeled": [],
+      "tables": [
+        {
+          "tid": "timesheet-table",
+          "th": 6,
+          "caption": true
+        }
+      ],
+      "h1": [
+        "Timesheets"
+      ],
+      "liveRegions": 1,
+      "file": "admin-timesheets-1920.png",
+      "consoleErrors": []
+    }
+  ],
+  "a11y": [
+    {
+      "role": "login",
+      "page": "/login",
+      "check": "skip link",
+      "firstTab": {
+        "tag": "INPUT",
+        "text": "",
+        "href": null,
+        "visible": true
+      },
+      "focusAfterEnter": null
+    },
+    {
+      "role": "nurse",
+      "page": "/nurse/shifts#main",
+      "check": "skip link",
+      "firstTab": {
+        "tag": "A",
+        "text": "Skip to content",
+        "href": "#main",
+        "visible": true
+      },
+      "focusAfterEnter": "main"
+    },
+    {
+      "role": "nurse",
+      "check": "dialog details @360",
+      "box": {
+        "x": 0,
+        "y": 276,
+        "w": 360,
+        "h": 524
+      },
+      "labelledby": "_r_k_",
+      "labelText": "Sunrise Health Staffing",
+      "modal": "native",
+      "focusInside": true,
+      "buttons": [
+        ":343",
+        "Claim shift:784"
+      ],
+      "focusAfterEsc": "Details"
+    },
+    {
+      "role": "nurse",
+      "check": "dialog upload @360",
+      "box": {
+        "x": 0,
+        "y": 103,
+        "w": 360,
+        "h": 697
+      },
+      "labelledby": "_r_m_",
+      "labelText": "Upload credential",
+      "modal": "native",
+      "focusInside": true,
+      "buttons": [
+        ":170",
+        "Cancel:784",
+        "Upload:720"
+      ],
+      "focusAfterEsc": "Upload"
+    },
+    {
+      "role": "nurse",
+      "check": "tab order /nurse/shifts",
+      "seq": [
+        "a:My shifts",
+        "a:Credentials",
+        "a:Profile",
+        "button:Sign out",
+        "button:All dates 2",
+        "button:Fri, Oct 2 1",
+        "button:Sun, Oct 4 1",
+        "button:All roles 2",
+        "button:RN 2",
+        "button:LPN 0",
+        "button:CNA 0",
+        "button:Claim shift: Sunrise H",
+        "button:Details: Sunrise Healt",
+        "button:Claim shift: Metro Car",
+        "button:Details: Metro Care Pa",
+        "body:Skip to contentShiftPa[NO-RING]",
+        "a:Skip to content",
+        "a:Shifts",
+        "a:My shifts",
+        "a:Credentials",
+        "a:Profile",
+        "button:Sign out",
+        "button:All dates 2",
+        "button:Fri, Oct 2 1",
+        "button:Sun, Oct 4 1"
+      ]
+    },
+    {
+      "role": "agency",
+      "page": "/agency/shifts#main",
+      "check": "skip link",
+      "firstTab": {
+        "tag": "A",
+        "text": "Skip to content",
+        "href": "#main",
+        "visible": true
+      },
+      "focusAfterEnter": "main"
+    },
+    {
+      "role": "agency",
+      "check": "dialog post-shift @360",
+      "box": {
+        "x": 0,
+        "y": 16,
+        "w": 360,
+        "h": 784
+      },
+      "labelledby": "_r_1k_",
+      "labelText": "Post a shift",
+      "modal": "native",
+      "focusInside": true,
+      "buttons": [
+        ":83",
+        "Cancel:784",
+        "Post shift:720"
+      ],
+      "focusAfterEsc": "Post shift"
+    },
+    {
+      "role": "agency",
+      "check": "dialog cancel-reason @360",
+      "box": {
+        "x": 0,
+        "y": 245,
+        "w": 360,
+        "h": 556
+      },
+      "labelledby": "_r_1r_",
+      "labelText": "Cancel this filled shift?",
+      "modal": "native",
+      "focusInside": true,
+      "buttons": [
+        ":312",
+        "Keep shift:784",
+        "Cancel shift:720"
+      ],
+      "focusAfterEsc": "Cancel shift"
+    },
+    {
+      "role": "admin",
+      "page": "/admin/dashboard#main",
+      "check": "skip link",
+      "firstTab": {
+        "tag": "A",
+        "text": "Skip to content",
+        "href": "#main",
+        "visible": true
+      },
+      "focusAfterEnter": "main"
+    }
+  ]
+}

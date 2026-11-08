@@ -1,0 +1,8 @@
+[
+  {
+    "user": "agency-a",
+    "step": "cancel shift-2 (advance) -> 'Shift cancelled', reopens",
+    "status": "PASS",
+    "evidence": "LPNshift-2 Sat, Oct 3 · 07:00 → 19:00 12 h Open — Withdraw"
+  }
+]
