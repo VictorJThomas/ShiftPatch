@@ -1,0 +1,57 @@
+/* Admin screens (dashboard, audit log, timesheets). Tokens only: no new colours. Desktop-first, usable to 360px. */
+
+.adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.adm-stats .sub{font-size:13px;color:var(--c-ink-3)}
+.adm-sec-h{font-size:16px;font-weight:700;padding:16px 16px 0}
+.adm-sec-sub{font-size:13px;color:var(--c-ink-3);padding:2px 16px 12px}
+
+/* Live pill + manual refresh */
+.adm-live{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.adm-live .pill-live b{font-weight:650;color:var(--c-ink-2)}
+
+/* Filter bar on top of a table card */
+.adm-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:16px;border-bottom:1px solid var(--c-line)}
+.adm-toolbar .fld{margin-bottom:0;flex:1 1 180px;min-width:0}
+.adm-toolbar .fld.grow{flex:2 1 240px}
+.adm-toolbar .inp{min-height:44px;font-size:15px}
+.adm-toolbar .inp input{border:0;outline:0;background:none;font:inherit;color:inherit;width:100%;min-height:40px}
+.adm-chips{padding:12px 16px;border-bottom:1px solid var(--c-line)}
+
+/* Tables: scroll inside the card, never the page. First column sticks while scrolling sideways. */
+.adm-tbl{min-width:760px}
+.adm-tbl th:first-child,.adm-tbl td:first-child{position:sticky;left:0;z-index:1}
+.adm-tbl td:first-child{background:var(--c-surface)}
+.adm-tbl tbody tr:hover td:first-child{background:color-mix(in srgb,var(--c-brand-soft) 45%,var(--c-surface))}
+.adm-tbl th[aria-sort] button{display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;min-height:24px}
+.adm-tbl code,.adm-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--c-ink-3)}
+.adm-tbl .act code{display:block}
+.adm-tbl td.empty-cell{padding:0}
+.tbl th.adm-rowh{background:none;font-size:14px;font-weight:650;color:var(--c-ink);border-bottom:1px solid var(--c-line);padding:12px 16px}
+.tbl tr:last-child th.adm-rowh{border-bottom:0}
+.adm-role{margin-left:8px}
+.adm-inline-alert{margin:16px}
+.adm-id{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.adm-changes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-width:320px}
+.adm-changes li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.adm-full{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--c-sunken);border-radius:var(--r-sm);padding:12px;margin:0}
+
+/* Footer: count + pagination / load more */
+.adm-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:10px 16px;border-top:1px solid var(--c-line);font-size:13px;color:var(--c-ink-3)}
+.adm-pager{display:flex;align-items:center;gap:8px}
+
+/* Fill-rate meter: one sequential hue (brand) on the sunken track; the % text always sits beside it. */
+.adm-meter{display:inline-block;width:120px;height:8px;border-radius:var(--r-pill);background:var(--c-sunken);overflow:hidden;vertical-align:middle}
+.adm-meter i{display:block;height:100%;border-radius:var(--r-pill);background:var(--c-brand);min-width:2px}
+.adm-rate{display:inline-flex;align-items:center;gap:10px}
+
+.adm-stale{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.adm-stale > div{flex:1 1 240px}
+.adm-stale b{display:block}
+
+@media (max-width:719px){
+  .adm-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .adm-stats .stat{padding:var(--s-4)}
+  .adm-stats .stat .n{font-size:32px}
+  .adm-toolbar .fld,.adm-toolbar .fld.grow{flex:1 1 100%}
+  .adm-meter{width:72px}
+}
