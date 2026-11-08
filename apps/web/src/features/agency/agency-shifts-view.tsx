@@ -243,7 +243,10 @@ interface RowActions {
   onCancel: (s: Shift) => void;
 }
 
-/** Withdraw (open) / Cancel (filled) / nothing. The cancel button carries the spec's `shift-cancel-button`. */
+/**
+ * Withdraw (open) / Cancel (filled) / nothing. The spec's `shift-cancel-button` is the NURSE's one-click cancel of a
+ * claimed shift; the agency cancel needs a reason (no-show vs advance), so it opens a dialog and has its own ID.
+ */
 function RowAction({ shift, canWrite, onWithdraw, onCancel, block }: RowActions & { shift: Shift; block?: boolean }) {
   const label = shiftSummary(shift);
   const cls = `btn btn-danger btn-sm${block ? " ag-card-btn" : ""}`;
@@ -253,7 +256,7 @@ function RowAction({ shift, canWrite, onWithdraw, onCancel, block }: RowActions 
       Withdraw
     </button>
   ) : (
-    <button type="button" className={cls} onClick={() => onCancel(shift)} aria-label={`Cancel shift, ${label}`} data-testid="shift-cancel-button">
+    <button type="button" className={cls} onClick={() => onCancel(shift)} aria-label={`Cancel shift, ${label}`} data-testid="agency-cancel-shift-button">
       Cancel shift
     </button>
   );

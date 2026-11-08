@@ -10,7 +10,7 @@ import { Credentials } from "./Credentials";
 import { Marketplace, pickShiftSource } from "./Marketplace";
 import { MyShifts } from "./MyShifts";
 import { ShiftCard } from "./ShiftCard";
-import { fileProblem, UploadCredentialDialog } from "./UploadCredentialDialog";
+import { fileProblem, UploadCredentialForm } from "./UploadCredentialDialog";
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/api-client")>()), apiFetch: vi.fn() }));
 const api = vi.mocked(apiFetch);
@@ -152,7 +152,7 @@ describe("Credential upload", () => {
 
   it("has both spec inputs and requires an expiry date for a license", async () => {
     serve({});
-    wrap(<UploadCredentialDialog open onClose={() => {}} />);
+    wrap(<UploadCredentialForm />);
     const file = screen.getByTestId("credential-upload-input");
     expect(file.getAttribute("accept")).toContain("application/pdf");
     expect(file.hasAttribute("capture")).toBe(false);
@@ -171,7 +171,7 @@ describe("Credential upload", () => {
     expect(fileProblem(pdf("scan.HEIC", ""))).toBeNull();
 
     serve({});
-    wrap(<UploadCredentialDialog open onClose={() => {}} />);
+    wrap(<UploadCredentialForm />);
     fireEvent.change(screen.getByTestId("credential-upload-input"), { target: { files: [big] } });
     fireEvent.change(screen.getByTestId("credential-expiry-date-input"), { target: { value: "2028-01-01" } });
     fireEvent.click(screen.getByRole("button", { name: "Upload" }));
@@ -179,7 +179,7 @@ describe("Credential upload", () => {
     expect(api).not.toHaveBeenCalled();
   });
 
-  it("sends multipart FormData with the file and the license fields, then closes", async () => {
+  it("sends multipart FormData with the file and the license fields, then resets the form", async () => {
     let sent: FormData | undefined;
     serve({
       "POST /api/nurses/me/credentials": (opts: { body?: unknown } | undefined) => {
@@ -187,14 +187,15 @@ describe("Credential upload", () => {
         return { credential: {} };
       },
     });
-    const onClose = vi.fn();
+
     const invalidate = vi.spyOn(qc, "invalidateQueries");
-    wrap(<UploadCredentialDialog open onClose={onClose} />);
+    wrap(<UploadCredentialForm />);
     fireEvent.change(screen.getByLabelText(/License type/), { target: { value: "RN" } });
     fireEvent.change(screen.getByTestId("credential-upload-input"), { target: { files: [pdf()] } });
     fireEvent.change(screen.getByTestId("credential-expiry-date-input"), { target: { value: "2028-01-01" } });
     fireEvent.click(screen.getByRole("button", { name: "Upload" }));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    await waitFor(() => expect(toasts()[0]?.title).toBe("Credential uploaded"));
+    await waitFor(() => expect((screen.getByTestId("credential-expiry-date-input") as HTMLInputElement).value).toBe(""));
     expect(sent).toBeInstanceOf(FormData);
     expect(sent!.get("type")).toBe("license");
     expect(sent!.get("licenseType")).toBe("RN");
@@ -206,10 +207,10 @@ describe("Credential upload", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["shifts"] });
   });
 
-  it("shows TB screening date instead of expiry for a TB upload", async () => {
+  it("adds the TB screening date (expiry stays, optional) for a TB upload", async () => {
     serve({});
-    wrap(<UploadCredentialDialog open initialType="tb_screening" onClose={() => {}} />);
-    expect(screen.queryByTestId("credential-expiry-date-input")).toBeNull();
+    wrap(<UploadCredentialForm type="tb_screening" />);
+    expect(screen.getByTestId("credential-expiry-date-input").hasAttribute("required")).toBe(false);
     fireEvent.change(screen.getByTestId("credential-upload-input"), { target: { files: [pdf()] } });
     fireEvent.click(screen.getByRole("button", { name: "Upload" }));
     expect(await screen.findByText("Screening date is required for a TB screening")).toBeTruthy();
@@ -230,7 +231,12 @@ describe("Credentials list", () => {
     expect(await screen.findByText("Nursing license (RN)")).toBeTruthy();
     expect(screen.getByText("Expired", { selector: ".badge" })).toBeTruthy();
     expect(screen.getByText("Your license has expired.")).toBeTruthy();
+    // The spec inputs are on the page from load (no dialog to open first)…
+    expect(screen.getAllByTestId("credential-upload-input")).toHaveLength(1);
+    expect(screen.getAllByTestId("credential-expiry-date-input")).toHaveLength(1);
+    // …and "Upload renewal" presets the inline form and moves focus into it.
     fireEvent.click(screen.getByRole("button", { name: /Upload renewal/ }));
-    expect(screen.getByRole("dialog", { name: "Upload credential" })).toBeTruthy();
+    expect((screen.getByLabelText(/Credential type/) as HTMLSelectElement).value).toBe("license");
+    expect(document.activeElement).toBe(screen.getByLabelText(/Credential type/));
   });
 });

@@ -11,7 +11,7 @@ import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate } from "@/lib/format";
 import { useCredentials } from "./queries";
-import { UploadCredentialDialog } from "./UploadCredentialDialog";
+import { UploadCredentialForm } from "./UploadCredentialDialog";
 
 const uploadedFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -57,8 +57,14 @@ function LicenseSummary({ valid, hasExpired, onUpload }: { valid: boolean; hasEx
 export function Credentials() {
   const creds = useCredentials();
   const online = useOnline();
-  // `null` = closed. Re-mounted per open, so the form always starts clean.
-  const [uploadType, setUploadType] = useState<CredentialType | null>(null);
+  // Every "Upload" action presets the inline form's type and moves focus to it (no dialog: QA D3).
+  const [uploadType, setUploadTypeState] = useState<CredentialType>("license");
+  const setUploadType = (type: CredentialType) => {
+    setUploadTypeState(type);
+    const form = document.getElementById("upload");
+    form?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === false ? "smooth" : "auto", block: "start" });
+    form?.querySelector<HTMLElement>("select, input")?.focus({ preventScroll: true });
+  };
 
   const list = (creds.data?.credentials ?? []).toSorted((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 
@@ -67,7 +73,7 @@ export function Credentials() {
       <AppBar title="Credentials">
         <button type="button" className="btn btn-primary nurse-appbar-btn" disabled={!online} onClick={() => setUploadType("license")}>
           <Icon name="plus" size="sm" />
-          Upload
+          Add credential
         </button>
       </AppBar>
       <div className="body nurse-stack">
@@ -127,8 +133,8 @@ export function Credentials() {
             )}
           </>
         )}
+        <UploadCredentialForm type={uploadType} disabled={!online} />
       </div>
-      {uploadType && <UploadCredentialDialog open initialType={uploadType} onClose={() => setUploadType(null)} />}
     </>
   );
 }
