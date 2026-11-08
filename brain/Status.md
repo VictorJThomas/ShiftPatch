@@ -1,16 +1,16 @@
 # Status (overwrite each session — current truth only)
 
-**Last updated:** 2026-11-07
+**Last updated:** 2026-11-08
 
 ## Where we are
-- **Stage 6b + Stage 7 credentials BUILT** on branch `feature/6b-feature-ui` (cut from `qa/10-full-audit`; not pushed). Multi-agent build: shared interfaces first, then foundation / credentials API / QA-006, then nurse / agency / admin, then independent QA + fresh-context review (plan "Execution" table in `docs/stage-6b-feature-ui-plan.md`).
+- **Stage 6b + Stage 7 credentials BUILT** on branch `feature/6b-feature-ui` (cut from `qa/10-full-audit`; pushed, last commit `695022e`; no PR yet). Multi-agent build: shared interfaces first, then foundation / credentials API / QA-006, then nurse / agency / admin, then independent QA + fresh-context review (plan "Execution" table in `docs/stage-6b-feature-ui-plan.md`).
 - Every role is wired to the real API: nurse marketplace + lapsed-license fallback + one-click claim/cancel + credentials (inline upload form) + profile; agency shift board (stats, filters, table/cards, post panel, withdraw, cancel with reason, switcher) + profile; admin coverage dashboard (15 s polling) + audit log (filters incl. agencyId, Load more) + minimal timesheets.
 - All 15 spec test IDs present on the acting element; `notification-banner` only on the newest toast; toasts render inside open modal dialogs.
 - QA-003/004/005/006 fixed (DEFECT_LOG). Stage-6b QA defects D1–D3, D6 fixed; D4/D5 accepted (`docs/qa/STAGE6B_VERIFICATION.md` §9).
-- Verified: `/verify` GREEN 4/4 · web build ✓ · mocked Playwright 44 passed / 6 skipped · real-API `flows.spec.ts` 6/6 · 5-user matrix 25/25 (real API + MinIO) · Chrome spot check. Local DB reset to the exact seed. Prod untouched (still the pre-6b deploy).
+- Verified: last `/verify` (2026-11-08) **RED 3/4**: typecheck, lint, contract pass; `test` fails intermittently on ONE timeout (see gotcha "Rollback test timeout"). Same suite 469/469 serially and with a 30 s timeout. Web build ✓ · mocked Playwright 44 passed / 6 skipped · real-API `flows.spec.ts` 6/6 · 5-user matrix 25/25 (before the last two fix commits) · `pnpm audit --audit-level=high` passes (2 moderates in dev tooling). Local DB reset to the exact seed 2026-11-08. Prod untouched (still the pre-6b deploy).
 
 ## Next step
-1. Victor: review `feature/6b-feature-ui` (and its base `qa/10-full-audit`), push, open PR(s) to `master`; CI must be green.
+1. Fix the flaky rollback timeout before relying on CI (see gotcha), then Victor: open the PR(s) to `master` (`qa/10-full-audit` is the base); CI must be green.
 2. Victor (prod): create the private R2 bucket `private-credentials` + scoped key; set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET` on Railway `api` (leave `S3_ENDPOINT` empty). Until then uploads answer 503.
 3. Deploy (Railway API + Vercel web), then smoke the 5 seeded users on prod; check prod still holds the exact seed (shift-1 open) before submission.
 4. Board "Playwright E2E in CI": add a Postgres service job running `flows.spec.ts` (`E2E_REAL_API=1`, API on 3201 with `APP_ORIGIN=http://localhost:3100`).
@@ -49,6 +49,6 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **QA in Chrome (claude-in-chrome):** the extension's network monitor shows bodiless 204s (logout) as **503**; trust `performance.getEntriesByType('resource')[].responseStatus`. `resize_window` doesn't work on Victor's window (second monitor, `screenX -1709`); for viewports use `apps/web/scripts/qa-responsive.mjs` (Playwright, real app, one login per role). The Grammarly extension causes a dev hydration warning.
 - **Refresh limits (QA-006 fixed 2026-11-07):** 10 refreshes/min per session family, 300/min per IP, 30 invalid-cookie/min per IP. A scripted run that reloads one session >10×/min gets 429 → the app retries (≤3, ≤10 s waits) then shows "Try again" (status `unavailable`), never `/login`. Use separate logins per parallel worker; tabs of one browser share a token (Web Lock + BroadcastChannel).
 - **Real-API E2E:** `pnpm --filter api db:reset`; start the API with `PORT=3201 APP_ORIGIN=http://localhost:3100 pnpm --filter api start:local` (background); then `E2E_REAL_API=1 API_ORIGIN=http://localhost:3201 pnpm --filter web exec playwright test flows`. Mocked suite: `pnpm --filter web test:e2e`.
-- **Load-sensitive test:** `claim-cancel.test.ts` "cancel: outbox insert fails" can hit the 5 s timeout when another heavy job (Playwright, next build) runs at the same time. Rerun alone before suspecting code.
+- **Rollback test timeout (OPEN, CI risk):** in `claim-cancel.test.ts` the `trap` tests ("claim: audit insert fails", "cancel: outbox insert fails"; which one varies) can exceed 5 s when test files run in parallel: 8.7 s parallel vs 79 ms with `vitest run --no-file-parallelism`, on an otherwise idle machine, so it is NOT outside load. Root cause not found (Postgres checkpoints were fast, no deadlocks logged). They run DDL (`create trigger`) against a per-file throwaway DB on the shared server. Options: per-test timeout on the trap tests, or `fileParallelism: false` (suite 40 s instead of 15 s).
 - **Port 3001 squatter:** a leftover `node dist/server.js` (no `.env` → login 500) can hold 3001; check `Get-NetTCPConnection -LocalPort 3001` before starting the API. The API listens on 127.0.0.1, so PowerShell `Invoke-WebRequest http://localhost:...` may try ::1 and fail — use 127.0.0.1.
 - **Modal dialogs + toasts:** `showModal()` makes the page inert; `Dialog` renders `<Toaster inline />` and the page toaster yields (`stores/dialogs.ts`). Keep new modals on the shared `Dialog`.
