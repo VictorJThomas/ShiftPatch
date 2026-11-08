@@ -58,10 +58,10 @@ export function authRoutes(app: FastifyInstance, db: () => Db) {
   const loginFailed = (req: FastifyRequest) => Promise.all(loginLimits.map((l) => l.fail(req)));
   // Session limits (QA-006). The IP is a weak key for refresh: a hospital NAT or a grader's click-through shares one IP,
   // and every full page load refreshes. So a VALID refresh is limited per refresh-token family (one login = one family,
-  // shared by that browser's tabs), with only a generous per-IP ceiling against floods. Invalid/missing cookies are the
-  // abuse surface (no family to key on): a per-IP failure limiter, 30/min = the old cap, so an anonymous visitor
-  // reloading /login (no cookie -> 401) is never worse off than before, while guessing stays pointless (256-bit tokens)
-  // and a spammer can't burn DB lookups or lock out a valid family behind the same IP (it is checked only on failures).
+  // shared by that browser's tabs), with only a generous per-IP ceiling against floods. A MISSING cookie is a plain 401
+  // and is not counted. UNKNOWN cookies are the abuse surface (no family to key on): a per-IP failure limiter, 30/min.
+  // Guessing stays pointless (256-bit tokens); an unknown cookie still costs one indexed lookup before the gate (bounded
+  // by the 300/min IP ceiling), which is what keeps a spammer from locking out a valid family behind the same IP.
   const sessionIpCeiling = limiter("session-ip", 300, (req) => req.ip).hit; // refresh + logout, every request counts
   const refreshInvalid = limiter("refresh-invalid-ip", 30, (req) => req.ip);
   const familyOf = new WeakMap<FastifyRequest, string>();
@@ -95,8 +95,11 @@ export function authRoutes(app: FastifyInstance, db: () => Db) {
     if (!originAllowed(req)) return reply.code(403).send({ error: ErrorMessage.forbidden });
     assertJwtConfigured(); // a rotation committed before a signing failure would strand the client
     const raw = req.cookies[REFRESH_COOKIE];
-    const familyId = raw ? await familyIdOf(db(), raw) : undefined;
-    if (!raw || !familyId) return (await refreshInvalid.gate(req, reply)) ?? refreshRejected(req, reply);
+    // No cookie = an anonymous visit (every page load restores once): plain 401, no DB work, nothing guessed, and it never
+    // counts toward the invalid limiter, so a busy NAT/CI IP can't make new visitors look "throttled" instead of signed out.
+    if (!raw) return reply.clearCookie(REFRESH_COOKIE, cookieOptions()).code(401).send(unauthorized);
+    const familyId = await familyIdOf(db(), raw);
+    if (!familyId) return (await refreshInvalid.gate(req, reply)) ?? refreshRejected(req, reply);
     familyOf.set(req, familyId);
     const limited = await refreshFamily(req, reply);
     if (limited) return limited;

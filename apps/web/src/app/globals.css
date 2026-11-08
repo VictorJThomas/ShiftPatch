@@ -17,6 +17,9 @@ body{background:var(--c-bg);color:var(--c-ink);font-family:var(--f-sans);font-si
 /* toaster: top of screen on mobile, top-right on desktop */
 .toaster{position:fixed;z-index:50;top:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
 .toaster>*{pointer-events:auto}
+/* inside an open modal dialog (the page behind it is inert): in flow at the top of the dialog box */
+.toaster.toaster-inline{position:static;inset:auto;width:auto;z-index:auto;pointer-events:auto}
+.toaster-inline:has(.banner){padding:12px 16px 0}
 @media (min-width:768px){.toaster{top:24px;right:24px;left:auto;width:min(420px,calc(100vw - 48px))}}
 .banner{overflow:hidden;border-radius:var(--r-md)}
 .banner .alert .iconbtn{color:inherit;margin:-8px -8px -8px 0}

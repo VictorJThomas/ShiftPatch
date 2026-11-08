@@ -173,3 +173,11 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 ## 2026-11-07 — QA run
 - **QA approach: audit first.** Missing Stage 6b UI is recorded as MISSING (backend rule checked from the logged-in Chrome tab), not built inside the QA loop; only defects in existing code are fixed. Why: Victor's choice; keeps fixes minimal and the redesign a separate work package (`docs/stage-6b-feature-ui-plan.md`).
 - **`db:reset` (local only) drops and recreates the database** instead of TRUNCATE. Why: `audit_log` triggers are `ENABLE ALWAYS` and block TRUNCATE for every role; disabling them would undermine the append-only guarantee. Guard: localhost + `shiftpatch[_x]` name + driver-parsed host match + no deployed-env flags. Prod reseed stays `railway-db-setup.sh`.
+
+## 2026-11-07 — Stage 6b build
+- **Multi-agent build with interfaces first.** The orchestrator committed the shared interfaces (credential + audit `agencyId` contracts, `apiFetch` FormData) before parallel work; wave 1 = foundation / credentials API / QA-006, wave 2 = nurse / agency / admin, each in its own worktree with file ownership (`docs/stage-6b-feature-ui-plan.md` "Execution"). Why: no two agents edit the same shared file.
+- **Nurse Claim and Cancel act on one click** (no confirm sheet). Why: the spec puts `shift-claim-button` / `shift-cancel-button` "on the element that performs the action"; a confirm step meant an automated click never produced `notification-banner`. Claim is reversible from My shifts; cancel's effect is explained inline (`aria-describedby`); the toast confirms. Agency cancel keeps a reason dialog (no-show vs advance needs input).
+- **Dialogs = native `<dialog>` + `showModal()`** (focus trap, Esc, inert page for free; no component library).
+- **Credential storage client = `aws4fetch`** (zero deps, S3/R2 compatible, can sign the 5-min links later). `@fastify/multipart` pinned to 10.1.4 (10.1.8 was 1 day old). Missing storage env → 503 `{error}`, API still boots.
+- **`licenseValid` reuses `isEligible`**: an unexpired license counts when verified OR pending (ARCHITECTURE §5.3), so a fresh upload clears the lapsed warning.
+- **Admin tables stay tables at every width** (inside `.scrollx`, sticky first column) rather than cards on phones: one data source, test IDs always present.
