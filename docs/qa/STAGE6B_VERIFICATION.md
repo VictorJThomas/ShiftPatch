@@ -109,3 +109,16 @@ Nurse grid columns observed: 1 (360/390), 2 (768), 2 at 1440/1920 with only 2 op
 - Real 413 from the API through the UI (client check intercepts; see D4).
 - "Load more" with real data (seed has 12 audit rows < 50); covered by the mocked suite.
 - Production deploy (Vercel/Railway) — local stack only.
+
+## 9. Resolution (orchestrator, `f3cf191`)
+| Defect | Status | Fix |
+|---|---|---|
+| D1 High | **Fixed** | `.scrollx{position:relative}` in `globals.css` (sr-only text stays inside the scroll box). |
+| D2 Medium | **Fixed (option a)** | `shift-cancel-button` only on the nurse's one-click cancel; agency opener is `agency-cancel-shift-button` (its cancel needs a reason). |
+| D3 Medium | **Fixed** | Inline upload form on `/nurse/credentials`: both inputs exist on load, once each; expiry shown for every type (required for licenses). |
+| D4 Low | Accepted | Client-side 10 MB check is better UX; server 413 covered by `credentials.test.ts`. |
+| D5 Low | Accepted | Cookieless restore is a normal 401 (now uncounted by the limiter). Skipping the call on a missing role cookie could drop valid sessions; not worth the risk. |
+| D6 Low | **Fixed** | `.adm-id{white-space:nowrap}`. |
+| D7 Low | Fixed (F) | Mock API rebuilt from the seed. |
+
+Re-verified after fixes: `/verify` GREEN (typecheck, lint, test, contract), mocked Playwright 44 passed / 6 skipped (opt-in real-API), real-API `flows.spec.ts` 6/6, Chrome spot check (nurse-2 exact 403 banner; inline credential form).
