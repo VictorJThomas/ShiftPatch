@@ -1,6 +1,6 @@
 # Stage 6b Feature UI + Stage 7 Credentials Plan
 
-Source: QA run 2026-11-07 (`docs/qa/REMEDIATION_ROADMAP.md` §1–3, §5–6, §8). Not started. Build on branch `feature/6b-feature-ui` cut from `master` after `qa/10-full-audit` merges.
+Source: QA run 2026-11-07 (`docs/qa/REMEDIATION_ROADMAP.md` §1–3, §5–6, §8). **Built 2026-11-07** on `feature/6b-feature-ui` (cut from `qa/10-full-audit`, not pushed): steps 0–8 done except "real-API E2E in CI" (the `flows.spec.ts` suite is opt-in locally via `E2E_REAL_API=1`). Verification: `docs/qa/STAGE6B_VERIFICATION.md`.
 
 ## Execution (2026-11-07, branch `feature/6b-feature-ui` cut from `qa/10-full-audit`)
 QA-006 decided by Victor: differentiated limits (see step 0, revised). Orchestrator committed the shared interfaces first (`63d098c`): credential schemas + upload error texts + `AuditLogQuery.agencyId` in `packages/contracts`, `apiFetch` FormData body.
