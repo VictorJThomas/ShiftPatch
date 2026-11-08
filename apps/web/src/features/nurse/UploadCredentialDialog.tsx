@@ -3,7 +3,6 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { CREDENTIAL_MAX_BYTES, CREDENTIAL_MIME_TYPES, ErrorMessage, UploadCredentialFields, type CredentialType } from "@shiftpatch/contracts";
-import { Dialog } from "@/components/ui/Dialog";
 import { Field, Select } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useUploadCredential } from "./queries";
@@ -32,7 +31,7 @@ function textFields(v: UploadValues) {
   return {
     type: v.type,
     licenseType: v.type === "license" && v.licenseType ? v.licenseType : undefined,
-    expiresOn: v.type !== "tb_screening" && v.expiresOn ? v.expiresOn : undefined,
+    expiresOn: v.expiresOn || undefined,
     screenedOn: v.type === "tb_screening" && v.screenedOn ? v.screenedOn : undefined,
   };
 }
@@ -61,51 +60,43 @@ export function buildCredentialForm(values: UploadValues, file: File): FormData 
 
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-export function UploadCredentialDialog({ open, initialType = "license", onClose }: { open: boolean; initialType?: CredentialType; onClose: () => void }) {
+/**
+ * Inline upload form, always on the Credentials page (QA D3): `credential-upload-input` and
+ * `credential-expiry-date-input` exist from page load, once each, with no dialog to open first. The page's
+ * "Upload" buttons preset the type and move focus here. The expiry field is shown for every type (required for
+ * a license, optional otherwise); a TB screening adds its screening date.
+ */
+export function UploadCredentialForm({ type: presetType = "license", disabled = false }: { type?: CredentialType; disabled?: boolean }) {
   const upload = useUploadCredential();
   const {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm<UploadValues>({
     resolver,
-    defaultValues: { type: initialType, licenseType: "", expiresOn: "", screenedOn: "", file: null },
+    values: { type: presetType, licenseType: "", expiresOn: "", screenedOn: "", file: null },
+    resetOptions: { keepDirtyValues: false },
   });
   const type = watch("type");
   const file = watch("file")?.[0];
 
-  const close = () => {
-    if (!upload.isPending) onClose();
-  };
   const onSubmit = handleSubmit(async (values) => {
     try {
       await upload.mutateAsync(buildCredentialForm(values, values.file![0]!));
-      onClose();
+      reset({ type: values.type, licenseType: "", expiresOn: "", screenedOn: "", file: null });
     } catch {
-      // shown by the mutation's notify.error (413 / 415 / 503 text verbatim); keep the form open to retry
+      // shown by the mutation's notify.error (413 / 415 / 503 text verbatim); keep the values to retry
     }
   });
 
   return (
-    <Dialog
-      open={open}
-      onClose={close}
-      variant="sheet"
-      title="Upload credential"
-      description="An administrator reviews it. Max 10 MB, PDF, JPG, PNG or HEIC."
-      footer={
-        <>
-          <button type="button" className="btn btn-secondary" onClick={close} disabled={upload.isPending}>
-            Cancel
-          </button>
-          <button type="submit" form={FORM_ID} className="btn btn-primary" disabled={upload.isPending} aria-busy={upload.isPending || undefined}>
-            {upload.isPending ? <span className="spin" aria-hidden="true" /> : <Icon name="upload" />}
-            {upload.isPending ? "Uploading…" : "Upload"}
-          </button>
-        </>
-      }
-    >
+    <section className="card pad nurse-upload" aria-labelledby="upload-h" id="upload">
+      <h2 id="upload-h" className="nurse-list-h">
+        Upload a credential
+      </h2>
+      <p className="muted nurse-upload-sub">An administrator reviews it. Max 10 MB, PDF, JPG, PNG or HEIC.</p>
       <form id={FORM_ID} onSubmit={onSubmit} noValidate>
         <Field label="Credential type" required>
           {(p) => (
@@ -159,17 +150,19 @@ export function UploadCredentialDialog({ open, initialType = "license", onClose 
             {(p) => <input {...p} {...register("screenedOn")} type="date" />}
           </Field>
         )}
-        {type !== "tb_screening" && (
-          <Field
-            label={type === "license" ? "Expiry date" : <>Expiry date <small>(optional)</small></>}
-            error={errors.expiresOn?.message}
-            hint={type === "license" ? "Required for licenses." : undefined}
-            required={type === "license"}
-          >
-            {(p) => <input {...p} {...register("expiresOn")} type="date" data-testid="credential-expiry-date-input" />}
-          </Field>
-        )}
+        <Field
+          label={type === "license" ? "Expiry date" : <>Expiry date <small>(optional)</small></>}
+          error={errors.expiresOn?.message}
+          hint={type === "license" ? "Required for licenses." : undefined}
+          required={type === "license"}
+        >
+          {(p) => <input {...p} {...register("expiresOn")} type="date" data-testid="credential-expiry-date-input" />}
+        </Field>
+        <button type="submit" className="btn btn-primary btn-block" disabled={disabled || upload.isPending} aria-busy={upload.isPending || undefined}>
+          {upload.isPending ? <span className="spin" aria-hidden="true" /> : <Icon name="upload" />}
+          {upload.isPending ? "Uploading…" : "Upload"}
+        </button>
       </form>
-    </Dialog>
+    </section>
   );
 }

@@ -68,3 +68,6 @@
 .nurse-profile-who h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
 .nurse-profile-who .muted{font-size:14px;overflow-wrap:anywhere}
 .nurse-profile-who .badge{align-self:flex-start;margin-top:4px}
+/* inline credential upload form (QA D3: the spec inputs exist on page load) */
+.nurse-upload{max-width:560px;scroll-margin-top:72px}
+.nurse-upload-sub{font-size:14px;margin:2px 0 14px}
