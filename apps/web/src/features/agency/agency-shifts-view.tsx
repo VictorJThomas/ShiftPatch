@@ -119,7 +119,15 @@ export function AgencyShiftsView() {
             Facility-local time, 24-hour.
           </>
         }
-        actions={postButton}
+        actions={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => void q.refetch()} aria-busy={q.isFetching} disabled={q.isFetching}>
+              <Icon name="refresh" />
+              Refresh
+            </button>
+            {postButton}
+          </>
+        }
       />
       {!canWrite && membership && (
         <p id="ag-viewer-note" className="alert al-info ag-note">
