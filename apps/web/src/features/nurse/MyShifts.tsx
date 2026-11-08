@@ -5,13 +5,12 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Shift } from "@shiftpatch/contracts";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { useCancelShift, useMyShifts } from "./queries";
-import { ShiftCard, ShiftDetailsDialog, ShiftSummary } from "./ShiftCard";
+import { ShiftCard, ShiftDetailsDialog } from "./ShiftCard";
 
 const byStart = (a: Shift, b: Shift) => (a.date + a.startTime).localeCompare(b.date + b.startTime);
 
@@ -20,7 +19,8 @@ export function MyShifts() {
   const cancel = useCancelShift();
   const online = useOnline();
   const [details, setDetails] = useState<Shift | null>(null);
-  const [cancelling, setCancelling] = useState<Shift | null>(null);
+  // One click cancels (spec: the test ID is on the element that performs the action); the note above explains the effect.
+  const cancellingId = cancel.isPending ? cancel.variables?.id : undefined;
 
   const shifts = mine.data ?? [];
   const upcoming = shifts.filter((s) => s.status === "filled").toSorted(byStart);
@@ -43,6 +43,11 @@ export function MyShifts() {
               <h2 id="my-upcoming-h" className="nurse-list-h tnum">
                 Upcoming · {upcoming.length}
               </h2>
+              {upcoming.length > 0 && (
+                <p id="my-cancel-note" className="muted nurse-confirm-note">
+                  Cancelling is an advance cancellation: the agency is notified right away and the shift reopens for other nurses.
+                </p>
+              )}
               {upcoming.length > 0 ? (
                 <ul className="card-grid">
                   {upcoming.map((shift) => (
@@ -61,10 +66,13 @@ export function MyShifts() {
                               type="button"
                               className="btn btn-danger nurse-grow"
                               data-testid="shift-cancel-button"
-                              disabled={!online}
+                              disabled={!online || cancel.isPending}
+                              aria-busy={cancellingId === shift.id}
+                              aria-describedby="my-cancel-note"
                               aria-label={`Cancel shift: ${shift.agencyName}, ${shift.role}`}
-                              onClick={() => setCancelling(shift)}
+                              onClick={() => cancel.mutate(shift)}
                             >
+                              {cancellingId === shift.id && <span className="spin" aria-hidden="true" />}
                               Cancel shift
                             </button>
                             <button type="button" className="btn btn-secondary" aria-label={`Details: ${shift.agencyName}, ${shift.role}`} onClick={() => setDetails(shift)}>
@@ -109,29 +117,6 @@ export function MyShifts() {
       </div>
 
       <ShiftDetailsDialog shift={details} onClose={() => setDetails(null)} />
-      <ConfirmDialog
-        open={!!cancelling}
-        tone="danger"
-        title="Cancel this shift?"
-        confirmLabel="Yes, cancel shift"
-        cancelLabel="Keep shift"
-        confirmTestId="shift-cancel-confirm-button"
-        pending={cancel.isPending}
-        onClose={() => setCancelling(null)}
-        onConfirm={() => cancelling && cancel.mutate(cancelling, { onSettled: () => setCancelling(null) })}
-      >
-        {cancelling && (
-          <>
-            <ShiftSummary shift={cancelling} />
-            <div className="alert al-info nurse-confirm-note">
-              <Icon name="info" size="lg" />
-              <div>
-                <b>Advance cancellation</b> {cancelling.agencyName} will be notified right away, and the shift reopens for other nurses.
-              </div>
-            </div>
-          </>
-        )}
-      </ConfirmDialog>
     </>
   );
 }
