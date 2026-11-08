@@ -73,17 +73,14 @@ describe("ShiftCard", () => {
 });
 
 describe("Marketplace claim", () => {
-  it("confirms, posts the claim, shows success and invalidates shift + my-shift queries", async () => {
+  it("claims in one click, shows success and invalidates shift + my-shift queries", async () => {
     marketplace([shift1], [shift1], true, { "POST /api/shifts/shift-1/claim": { ...shift1, status: "filled", claimedBy: "nurse-1" } });
     const invalidate = vi.spyOn(qc, "invalidateQueries");
     wrap(<Marketplace />);
     fireEvent.click(await screen.findByTestId("shift-claim-button"));
-    expect(screen.getByRole("dialog", { name: "Claim this shift?" })).toBeTruthy();
-    fireEvent.click(screen.getByTestId("shift-claim-confirm-button"));
     await waitFor(() => expect(toasts()[0]?.title).toBe("Shift claimed"));
     expect(toasts()[0]?.kind).toBe("success");
     expect(api).toHaveBeenCalledWith("/api/shifts/shift-1/claim", expect.objectContaining({ method: "POST" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["shifts"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["nurse", "my-shifts"] });
   });
@@ -96,7 +93,6 @@ describe("Marketplace claim", () => {
     });
     wrap(<Marketplace />);
     fireEvent.click(await screen.findByTestId("shift-claim-button"));
-    fireEvent.click(screen.getByTestId("shift-claim-confirm-button"));
     await waitFor(() => expect(toasts()[0]).toMatchObject({ kind: "error", title: "Credential expired, cannot claim shift" }));
   });
 });
@@ -137,15 +133,14 @@ describe("Lapsed-license fallback", () => {
 });
 
 describe("My shifts cancel", () => {
-  it("posts an advance cancellation after confirming", async () => {
+  it("posts an advance cancellation in one click and explains the effect", async () => {
     serve({
       "GET /api/nurses/me/shifts": { shifts: [shift2] },
       "POST /api/shifts/shift-2/cancel": { ...shift2, status: "open", claimedBy: null },
     });
     wrap(<MyShifts />);
     fireEvent.click(await screen.findByTestId("shift-cancel-button"));
-    expect(screen.getByRole("dialog", { name: "Cancel this shift?" }).textContent).toContain("reopens for other nurses");
-    fireEvent.click(screen.getByTestId("shift-cancel-confirm-button"));
+    expect(screen.getByText(/reopens for other nurses/)).toBeTruthy();
     await waitFor(() => expect(toasts()[0]?.title).toBe("Shift cancelled"));
     expect(api).toHaveBeenCalledWith("/api/shifts/shift-2/cancel", expect.objectContaining({ method: "POST", body: { reason: "advance" } }));
   });
