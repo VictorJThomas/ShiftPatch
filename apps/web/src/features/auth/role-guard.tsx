@@ -14,6 +14,7 @@ export function SessionUnavailable() {
       <button type="button" className="btn btn-secondary" onClick={() => void retrySession()}>
         Try again
       </button>
+      <a href={LOGIN_PATH}>Sign in again</a>
     </div>
   );
 }

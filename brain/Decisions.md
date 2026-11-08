@@ -164,3 +164,20 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - **DB least privilege:** `docs/security/db-least-privilege.sql` creates the `shiftpatch_app` role. It has DML on all tables, sequences usage, and only INSERT/SELECT on `audit_log`. It has no DDL, no access to the `drizzle` schema, and is not a superuser. Default privileges cover future tables. The script runs as one transaction with `ON_ERROR_STOP` and is re-runnable; the password is passed as `-v app_password` (psql quotes it). It is applied at deploy only; local dev and CI keep the single superuser. Railway pre-deploy must override `DATABASE_URL` with the owner URL to run migrations (ARCHITECTURE §15 step 5).
 - **Known inconsistency (accepted, ARCHITECTURE §7 allows both):** when an out-of-scope agency actor or admin hits a shift, withdraw answers 404 `Shift not found` while cancel answers 403 `Forbidden`.
 - **Open product question:** past-dated shifts can currently be posted, listed as matchable and claimed (board task "Decide: reject past-dated shifts…").
+
+## Production database (2026-11-07)
+- Railway Postgres stays **private** (no TCP proxy). One-off ops (migrate as owner, seed, role SQL) run inside the containers via `railway ssh` (`apps/api/scripts/railway-db-setup.sh`). Why: the database is never internet-reachable.
+- Runtime `DATABASE_URL` = `shiftpatch_app` built from Railway references (`${{APP_DB_PASSWORD}}`, `${{Postgres.PGHOST}}`…). `MIGRATE_DATABASE_URL = ${{Postgres.DATABASE_URL}}` is read only by `db:migrate` / `db:seed` (pre-deploy and manual).
+- Prod email = `MAIL_TRANSPORT=log` until Resend is set up (Victor sets `RESEND_API_KEY` in Railway himself).
+
+## 2026-11-07 — QA run
+- **QA approach: audit first.** Missing Stage 6b UI is recorded as MISSING (backend rule checked from the logged-in Chrome tab), not built inside the QA loop; only defects in existing code are fixed. Why: Victor's choice; keeps fixes minimal and the redesign a separate work package (`docs/stage-6b-feature-ui-plan.md`).
+- **`db:reset` (local only) drops and recreates the database** instead of TRUNCATE. Why: `audit_log` triggers are `ENABLE ALWAYS` and block TRUNCATE for every role; disabling them would undermine the append-only guarantee. Guard: localhost + `shiftpatch[_x]` name + driver-parsed host match + no deployed-env flags. Prod reseed stays `railway-db-setup.sh`.
+
+## 2026-11-07 — Stage 6b build
+- **Multi-agent build with interfaces first.** The orchestrator committed the shared interfaces (credential + audit `agencyId` contracts, `apiFetch` FormData) before parallel work; wave 1 = foundation / credentials API / QA-006, wave 2 = nurse / agency / admin, each in its own worktree with file ownership (`docs/stage-6b-feature-ui-plan.md` "Execution"). Why: no two agents edit the same shared file.
+- **Nurse Claim and Cancel act on one click** (no confirm sheet). Why: the spec puts `shift-claim-button` / `shift-cancel-button` "on the element that performs the action"; a confirm step meant an automated click never produced `notification-banner`. Claim is reversible from My shifts; cancel's effect is explained inline (`aria-describedby`); the toast confirms. Agency cancel keeps a reason dialog (no-show vs advance needs input).
+- **Dialogs = native `<dialog>` + `showModal()`** (focus trap, Esc, inert page for free; no component library).
+- **Credential storage client = `aws4fetch`** (zero deps, S3/R2 compatible, can sign the 5-min links later). `@fastify/multipart` pinned to 10.1.4 (10.1.8 was 1 day old). Missing storage env → 503 `{error}`, API still boots.
+- **`licenseValid` reuses `isEligible`**: an unexpired license counts when verified OR pending (ARCHITECTURE §5.3), so a fresh upload clears the lapsed warning.
+- **Admin tables stay tables at every width** (inside `.scrollx`, sticky first column) rather than cards on phones: one data source, test IDs always present.
