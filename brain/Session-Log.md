@@ -153,3 +153,31 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: Security pass → Done. Added "Upload abuse tests … (needs Stage 7 upload route)" and "Decide: reject past-dated shifts…". `diff` = 0 drift (76/76), synced.
 - Skills copied: refreshed code-review-and-quality and security-and-hardening (the plugin versions had changed); added `review/review.md`.
 - Open: Stage 6b UIs, Stage 7 upload, Playwright vs the real API in CI, applying the DB role on Railway, the past-date decision.
+
+## 2026-11-07 — Production database live (Railway)
+- Done: added `MIGRATE_DATABASE_URL` (owner) support to migrate/seed and a pre-deploy `db:migrate` in `railway.json` (merged in PR #8). On prod, over SSH into the containers (private network): migrate + exact seed as owner, `shiftpatch_app` role created and proven (audit_log DELETE and CREATE denied, sees 3 shifts / 5 users), api vars set (`DATABASE_URL` = app role via `${{Postgres.PGHOST}}`, `MIGRATE_DATABASE_URL`, `APP_DB_PASSWORD` set via stdin, `MAIL_TRANSPORT=log`, `MAIL_FROM`, `OUTBOX_DISPATCHER=on`, `COOKIE_SECURE=true`), redeployed. Read-only prod smoke 21/21. Runtime logs clean.
+- Incident (mine): the first setup script found no `DATABASE_PUBLIC_URL` (Postgres has no public proxy) and fell through to `railway add --database postgres`, creating a duplicate `Postgres-s4Ve`. With Victor's OK I deleted the service; deleting its empty volume `postgres-volume-mBHD` was blocked by the classifier → Victor removes it. The script was rewritten: SSH/private-network only, never creates services.
+- Also fixed earlier: CI gitleaks false positives on the fake wrong-password fixture (`.gitleaksignore` fingerprints + `gitleaks:allow`), commit `91a97ea`.
+- Decided: see [[Decisions]] → Production database.
+- Board: no status change (prod reseed task stays Pending until the pre-submission check).
+- Skills copied: none.
+- Open: orphan volume; Vercel rewrite secret header; argon2 cap; Resend; Stage 6b/7.
+
+## 2026-11-07 — QA: seeded-user workflows in Chrome + feature/API/UI audits
+- Done: workflow matrix + Chrome runs (one QA subagent per user, sequential): Agency A, Agency B, Nurse 1, Nurse 2, Admin 1. Read-only audits in parallel (spec completeness, API endpoints, static UI/a11y). Playwright viewport sweep 5 widths × 10 routes. Results in `docs/qa/`; roadmap + `docs/stage-6b-feature-ui-plan.md`.
+- Defects: QA-001 logout "503" = extension artifact (server and browser saw 204). QA-002 toast timer restart → fixed by a debug subagent in a worktree (TDD), cherry-picked + re-verified. QA-003/004/005 → roadmap. **QA-006 escalated** (refresh 30/IP limiter + restore treats 429 as anonymous).
+- Built: local-only `pnpm --filter api db:reset` (drop/create/migrate/seed; guard hardened after independent review: driver-parsed host check, no `?`/`#`).
+- Verified: /verify GREEN, web build, Playwright 34/34, pnpm audit clean; independent review approve-with-changes, all changes applied. Local DB restored to the spec seed; prod untouched.
+- Decided: audit-first (missing UI = MISSING, not built in the QA loop); db:reset drops the DB instead of truncating (see [[Decisions]]).
+- Board: 1 drift fixed (Production DB row missing in Notion); QA task Done; added "Decide QA-006…".
+- Skills copied: plan-md (claude-in-chrome is built-in, no files).
+- Open: QA-006 decision; Stage 6b/7 build; leftover dir `.claude/worktrees/agent-ad2d6204a290be1d6` (locked files, delete manually); untracked `apps/web/AGENTS.md` (created by `next dev`).
+
+## 2026-11-07 — Stage 6b frontend + Stage 7 credentials (multi-agent)
+- Done: all role screens on the real API; `POST/GET /api/nurses/me/credentials`; QA-003/004/005/006; QA defects D1-D3, D6; real-API `flows.spec.ts`, `testids.spec.ts`; report `docs/qa/STAGE6B_VERIFICATION.md`.
+- Agents: A foundation, E credentials API, G QA-006, B nurse, C agency, D admin, F independent QA, plus a fresh-context reviewer (2 High found and fixed: toasts inert behind modals, duplicate `notification-banner`).
+- Decided: see [[Decisions]] "Stage 6b build" (one-click nurse claim/cancel, native dialog, aws4fetch). Later: `shift-cancel-button` nurse only, agency uses `agency-cancel-shift-button`; inline credential form.
+- Verified: `/verify` 4/4, web build, mocked Playwright 44 passed / 6 skipped, real-API flows 6/6, 5-user matrix 25/25.
+- Board: 11 rows pushed to Notion. `tasks_md.py diff` NOT re-run after the push. Duplicate Notion row "Production DB: Railway Postgres..." left for Victor. "Upload abuse tests" stays Active (signed links not built).
+- Skills copied: web-design-guidelines, browser-testing-with-devtools.
+- Open: review M4 duplication, push/PR, R2 env, deploy, Playwright real-API in CI.

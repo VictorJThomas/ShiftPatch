@@ -3,29 +3,23 @@
 **Last updated:** 2026-11-07
 
 ## Where we are
-- Branch `feature/7-integration-testing-&-security-hardening` (from master `6936861`, which has PR #7 web auth merged). Security pass committed in `e61e62c`; brain wrap is a separate commit. Nothing pushed this session.
-- Security pass done and verified ([[Decisions]] → Security pass, [[Session-Log]] 2026-11-07 Stage 8): helmet + pino redaction (API), CSP/HSTS/XFO (web), zod jitless, a 95-cell authz matrix, log-leak tests, the HTTP business flow `apps/api/scripts/e2e-flow.mjs` (29/29 against the built API running as the least-privilege role), `docs/security/db-least-privilege.sql`.
-- Last checks: `/verify` **GREEN 4/4** (api 421, contract 18, contracts 93, web unit 34). Playwright 34/34. `pnpm audit` 0 high. gitleaks 0. Frozen install OK. Postman `--check` OK. A fresh-context reviewer found 1 Critical and 1 Medium; both are fixed and re-verified.
-- **Not verified yet (no surface):** credential upload abuse (no upload route, Stage 7) and the UI E2E flow (Stage 6b screens missing; 11 of 15 test IDs absent). The API-level flow covers the business path.
-- Deploy: web on Vercel and API on Railway are live with health only. No production DB yet.
+- **Stage 6b + Stage 7 credentials BUILT** on branch `feature/6b-feature-ui` (cut from `qa/10-full-audit`; not pushed). Multi-agent build: shared interfaces first, then foundation / credentials API / QA-006, then nurse / agency / admin, then independent QA + fresh-context review (plan "Execution" table in `docs/stage-6b-feature-ui-plan.md`).
+- Every role is wired to the real API: nurse marketplace + lapsed-license fallback + one-click claim/cancel + credentials (inline upload form) + profile; agency shift board (stats, filters, table/cards, post panel, withdraw, cancel with reason, switcher) + profile; admin coverage dashboard (15 s polling) + audit log (filters incl. agencyId, Load more) + minimal timesheets.
+- All 15 spec test IDs present on the acting element; `notification-banner` only on the newest toast; toasts render inside open modal dialogs.
+- QA-003/004/005/006 fixed (DEFECT_LOG). Stage-6b QA defects D1–D3, D6 fixed; D4/D5 accepted (`docs/qa/STAGE6B_VERIFICATION.md` §9).
+- Verified: `/verify` GREEN 4/4 · web build ✓ · mocked Playwright 44 passed / 6 skipped · real-API `flows.spec.ts` 6/6 · 5-user matrix 25/25 (real API + MinIO) · Chrome spot check. Local DB reset to the exact seed. Prod untouched (still the pre-6b deploy).
 
 ## Next step
-1. Victor: review and push `feature/7-…`, open a PR to `master`. CI should pass (frozen lockfile verified locally).
-2. Stage 6b feature UIs (design in `docs/design/screens/`): Nurse (`shift-list-item`, `shift-claim-button`, my shifts `shift-cancel-button`, lapsed-license fallback when `?matchable=true` is empty for an expired license, see §12.4), Agency (`agency-post-shift-button`/`-submit-button`, cancel, withdraw), Admin (`admin-dashboard-shift-table`, `admin-shift-status-badge`, 15 s refetch; `audit-log-table` via `GET /api/audit-logs` + `nextCursor`; `timesheet-table`). **Every new module that builds zod schemas must `import "@/lib/zod-csp"` first.** Then convert `e2e-flow.mjs` into Playwright against the real API.
-3. Stage 7 credentials: upload route (10 MB → 413, sniffed type → 415, nurse-only, PII-free keys, private bucket, signed 5-min links), then the board task "Upload abuse tests".
-4. Decide: reject past-dated shifts on create/claim/matchable? (board task). If yes, move the fixture dates in `matrix.test.ts` forward (they must stay before nurse-1's license expiry, 2027-01-01).
-5. **Production deploy (runbook, Victor runs — the auto-mode classifier blocks Railway/Vercel prod changes for Claude):**
-   a. After the PR is merged: `bash apps/api/scripts/railway-db-setup.sh`. It adds Postgres, migrates + seeds as owner, creates `shiftpatch_app`, sets `DATABASE_URL` (app role, private host), `MIGRATE_DATABASE_URL=${{Postgres.DATABASE_URL}}`, `APP_DB_PASSWORD`, `MAIL_TRANSPORT=log`, `MAIL_FROM`, `OUTBOX_DISPATCHER=on`, `COOKIE_SECURE=true` (all with --skip-deploys), and proves the role.
-   b. On master: `npx @railway/cli up --service api --ci` (pre-deploy runs `db:migrate` as owner), then `npx vercel deploy --prod` from the repo root (project `shiftpatch-web`, root `apps/web`, `API_ORIGIN` already set).
-   c. Read-only smoke against https://shiftpatch-web-orcin.vercel.app/api (Claude can run it): exactly 3 seeded shifts, nurse-2 claim 403 exact text, cross-agency 403, headers. **Never run `e2e-flow.mjs` against prod**: it writes shift-4. If prod data drifts, reset to the exact seed before submission.
-   Already on Railway: `JWT_SECRET` (64 B), `APP_ORIGIN=https://shiftpatch-web-orcin.vercel.app`, `NODE_ENV=production`, `TRUST_PROXY=2`. Still open: secret header from the Vercel rewrite; argon2 cap; Resend (switch `MAIL_TRANSPORT=resend` + `RESEND_API_KEY` set by Victor in Railway + `EMAIL_REDIRECT_TO`).
-6. Mailpit smoke; ARCHITECTURE §8.4/§12 "As built" update from [[Decisions]].
+1. Victor: review `feature/6b-feature-ui` (and its base `qa/10-full-audit`), push, open PR(s) to `master`; CI must be green.
+2. Victor (prod): create the private R2 bucket `private-credentials` + scoped key; set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET` on Railway `api` (leave `S3_ENDPOINT` empty). Until then uploads answer 503.
+3. Deploy (Railway API + Vercel web), then smoke the 5 seeded users on prod; check prod still holds the exact seed (shift-1 open) before submission.
+4. Board "Playwright E2E in CI": add a Postgres service job running `flows.spec.ts` (`E2E_REAL_API=1`, API on 3201 with `APP_ORIGIN=http://localhost:3100`).
+5. P1 leftovers: admin credential review queue + signed 5-min links (board), `GET /api/admin/coverage` for nurse names, shared helpers dedupe (review M4: two ShiftDetailsDialogs, two showError/useCancelShift).
 
 ## Blockers / waiting
-- Founder decision on export (Option C vs D), see [[ESCALATION]]. Doesn't block the core build.
-- Victor: past-date product rule; visual QA of the design canvas.
-- Optional: `CONSTRAINTS.md` via `/constraints` (needs a 4-question interview with Victor; not done).
-
+- Victor: past-date product rule; visual QA of the design canvas; R2 bucket + keys.
+- Founder decision on export (Option C vs D), see [[ESCALATION]]. PostHog escalated (not built).
+- Optional: `CONSTRAINTS.md` via `/constraints` (needs a 4-question interview with Victor).
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
 - GitHub repo renamed to `VictorJThomas/ShiftPatch`; local `origin` still points at old `ShiftPatc` (redirect works; repoint blocked by permission classifier — Victor: `git remote set-url origin https://github.com/VictorJThomas/ShiftPatch.git`).
@@ -54,4 +48,7 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **Local reset:** `pnpm --filter api db:reset` drops + recreates + migrates + seeds the local DB (exact spec seed). Guarded: localhost only, DB name `shiftpatch[_x]`, no `?`/`#`, driver-parsed host must match, refuses Railway/Vercel/production env. It drops connections of a running API (pool reconnects). Never use it for prod.
 - **QA in Chrome (claude-in-chrome):** the extension's network monitor shows bodiless 204s (logout) as **503**; trust `performance.getEntriesByType('resource')[].responseStatus`. `resize_window` doesn't work on Victor's window (second monitor, `screenX -1709`); for viewports use `apps/web/scripts/qa-responsive.mjs` (Playwright, real app, one login per role). The Grammarly extension causes a dev hydration warning.
 - **Refresh limits (QA-006 fixed 2026-11-07):** 10 refreshes/min per session family, 300/min per IP, 30 invalid-cookie/min per IP. A scripted run that reloads one session >10×/min gets 429 → the app retries (≤3, ≤10 s waits) then shows "Try again" (status `unavailable`), never `/login`. Use separate logins per parallel worker; tabs of one browser share a token (Web Lock + BroadcastChannel).
-
+- **Real-API E2E:** `pnpm --filter api db:reset`; start the API with `PORT=3201 APP_ORIGIN=http://localhost:3100 pnpm --filter api start:local` (background); then `E2E_REAL_API=1 API_ORIGIN=http://localhost:3201 pnpm --filter web exec playwright test flows`. Mocked suite: `pnpm --filter web test:e2e`.
+- **Load-sensitive test:** `claim-cancel.test.ts` "cancel: outbox insert fails" can hit the 5 s timeout when another heavy job (Playwright, next build) runs at the same time. Rerun alone before suspecting code.
+- **Port 3001 squatter:** a leftover `node dist/server.js` (no `.env` → login 500) can hold 3001; check `Get-NetTCPConnection -LocalPort 3001` before starting the API. The API listens on 127.0.0.1, so PowerShell `Invoke-WebRequest http://localhost:...` may try ::1 and fail — use 127.0.0.1.
+- **Modal dialogs + toasts:** `showModal()` makes the page inert; `Dialog` renders `<Toaster inline />` and the page toaster yields (`stores/dialogs.ts`). Keep new modals on the shared `Dialog`.
