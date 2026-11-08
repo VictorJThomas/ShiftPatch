@@ -214,12 +214,14 @@ describe(`authorization matrix (${ACTORS_NOTE})`, () => {
         expect(r.status).toBe(200);
         return r.body.items as AuditLogEntry[];
       };
-      const a = await rows("agency-a", "&agencyId=agency-b&networkId=network-2");
+      const a = await rows("agency-a", "&networkId=network-2");
       expect(a.length).toBeGreaterThan(0);
       expect(a.every((e) => e.agencyId === "agency-a")).toBe(true);
-      const n2 = await rows("admin-2", "&networkId=network-default&agencyId=agency-a");
+      expect(await rows("agency-a", "&agencyId=agency-b")).toEqual([]); // agencyId (QA-005) narrows inside the scope, never widens
+      const n2 = await rows("admin-2", "&networkId=network-default");
       expect(n2.length).toBeGreaterThan(0);
       expect(n2.every((e) => e.networkId === "network-2")).toBe(true);
+      expect(await rows("admin-2", "&agencyId=agency-a")).toEqual([]); // a foreign network's agency: empty, not its rows
       const n1 = await rows("admin-1", "&networkId=network-2");
       expect(n1.some((e) => e.networkId === "network-2")).toBe(false);
       // Sanity: the rows exist in the table, so the filters above really excluded something.
@@ -245,8 +247,10 @@ describe(`authorization matrix (${ACTORS_NOTE})`, () => {
     });
   });
 
-  it("credential resources: no credential/file route is registered yet (upload surface not implemented, Stage 7)", () => {
-    for (const url of ["/api/credentials", "/api/nurses/me/credentials", "/api/files"]) {
+  it("credential resources: only the nurse's own routes exist (review/download surfaces not implemented yet)", () => {
+    expect(app.hasRoute({ method: "POST", url: "/api/nurses/me/credentials" })).toBe(true); // nurse-only, cells in credentials.test.ts
+    expect(app.hasRoute({ method: "GET", url: "/api/nurses/me/credentials" })).toBe(true);
+    for (const url of ["/api/credentials", "/api/files"]) {
       expect(app.hasRoute({ method: "POST", url })).toBe(false);
       expect(app.hasRoute({ method: "GET", url })).toBe(false);
     }

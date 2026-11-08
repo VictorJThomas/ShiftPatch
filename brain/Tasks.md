@@ -7,7 +7,7 @@ Notion columns: `Task` (title) · `Status` (Pending / Active / Done) · `Scope` 
 - Match rows by **exact title**. Never rename a task in one place only.
 - Starting a task: set Status `Active` in BOTH places. Finishing: `Done` in both. New task: add to both, with Stage tag.
 - Edit here first (it is the diff-able record), then push to Notion (`notion-update-page` / `notion-create-pages`). If they disagree, read Notion (query rows), reconcile, note it in [[Session-Log]].
-- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-07.
+- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-08.
 
 Legend: ☐ Pending · ◐ Active · ☑ Done
 
@@ -39,9 +39,9 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Refresh + logout: rotating httpOnly cookie, reuse detection
 - ☑ authenticate + loadActor plugins, X-Agency-Id, can() policies
 - ☑ Authentication
-- ☐ Three roles with real permissions: agency, nurse, admin
+- ☑ Three roles with real permissions: agency, nurse, admin
 - ☑ test:contract gate: seeded-DB harness + 6-route contract suite (skips until handlers exist)
-- ☐ Decide QA-006: refresh rate limit per session, not per IP (grader/NAT logout)
+- ☑ Decide QA-006: refresh rate limit per session, not per IP (grader/NAT logout)
 
 ## 4 Shifts
 - ☑ GET /api/shifts (full marketplace) + contract mapper
@@ -65,7 +65,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ◐ Audit module wired into every write (same transaction)
 - ☑ GET /api/audit-logs (admin network scope, agency own rows)
 - ☑ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
-- ☐ Audit log
+- ☑ Audit log
 - ☑ Email notifications
 - ☑ Audit read: indexes (network_id, id desc) and (agency_id, id desc) for keyset paging · Later
 - ☑ Audit: scope logout and refresh-reuse rows (network_id/agency_id) like login · Later
@@ -73,22 +73,22 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 ## 6 Web UI
 - ☑ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
 - ☑ Login page, Zustand session, api-client (refresh on 401), route guards
-- ☐ Nurse UI: shifts list, claim, my shifts, cancel, lapsed-license fallback
-- ☐ Agency UI: own shifts, post-shift form, cancel, agency selector
-- ☐ Admin dashboard: shift table + status badges, 15s refetch
-- ☐ Audit log page + minimal timesheets view
-- ☐ All 15 required data-testid attributes + notification-banner
-- ☐ Admin dashboard and reporting
+- ☑ Nurse UI: shifts list, claim, my shifts, cancel, lapsed-license fallback
+- ☑ Agency UI: own shifts, post-shift form, cancel, agency selector
+- ☑ Admin dashboard: shift table + status badges, 15s refetch
+- ☑ Audit log page + minimal timesheets view
+- ☑ All 15 required data-testid attributes + notification-banner
+- ☑ Admin dashboard and reporting
 - ☐ Timesheets
 
 ## 7 Credentials
-- ☐ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
+- ☑ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
 - ☐ Admin credential review queue (verify/reject)
 - ☐ Signed 5-min document links, audited views, 404 out of scope
-- ☐ Credential uploads with expiry dates
+- ☑ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
 - ☐ Warn or unassign when a license is rejected after a claim · Later
-- ☐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
+- ◐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
 
 ## 8 Release
 - ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)

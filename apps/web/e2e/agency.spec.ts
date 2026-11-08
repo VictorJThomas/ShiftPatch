@@ -13,7 +13,7 @@ test("single-agency users get X-Agency-Id and no switcher", async ({ page }) => 
   await signIn(page, "agency");
   await expect(page.getByTestId("active-agency-name")).toHaveText("Sunrise Health Staffing");
   await expect(page.getByRole("button", { name: /switch agency/i })).toHaveCount(0);
-  await expect(page.getByTestId("agency-shift-count")).toHaveText(/1 shift/);
+  await expect(page.getByTestId("agency-shift-count")).toHaveText(/2 shifts/);
   expect(shiftCalls("agency-a")[0]?.headers["x-agency-id"]).toBe("agency-a");
   // /api/me never carries the header
   expect(api.calls("/api/me")[0]?.headers["x-agency-id"]).toBeUndefined();
@@ -38,21 +38,21 @@ test("multi-agency: prompt first, switching changes the header, the band and ref
   await expect(page.getByRole("listbox", { name: /your agencies/i })).toBeVisible();
   await page.getByRole("option", { name: /Sunrise Health Staffing/ }).click();
   await expect(page.getByTestId("active-agency-name")).toHaveText("Sunrise Health Staffing");
-  await expect(page.getByTestId("agency-shift-count")).toHaveText(/1 shift/);
+  await expect(page.getByTestId("agency-shift-count")).toHaveText(/2 shifts/);
   expect(shiftCalls("agency-a")[0]?.headers["x-agency-id"]).toBe("agency-a");
 
   await trigger.click();
   await expect(page.getByRole("option", { name: /Sunrise Health Staffing/ })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("option", { name: /Metro Care Partners/ }).click();
   await expect(page.getByTestId("active-agency-name")).toHaveText("Metro Care Partners");
-  await expect(page.getByTestId("agency-shift-count")).toHaveText(/2 shifts/);
+  await expect(page.getByTestId("agency-shift-count")).toHaveText(/1 shift$/);
   expect(shiftCalls("agency-b")[0]?.headers["x-agency-id"]).toBe("agency-b");
   expect(shiftCalls("agency-b")).toHaveLength(1);
 
   // the selection survives a reload (the only persisted value) and the same header goes out again
   await page.reload();
   await expect(page.getByTestId("active-agency-name")).toHaveText("Metro Care Partners");
-  await expect(page.getByTestId("agency-shift-count")).toHaveText(/2 shifts/);
+  await expect(page.getByTestId("agency-shift-count")).toHaveText(/1 shift$/);
   expect(await page.evaluate(() => localStorage.getItem("sp.activeAgencyId"))).toBe("agency-b");
 });
 
@@ -88,4 +88,17 @@ test("mobile layout: tab bar instead of header, switcher button spans the band",
   await expect(page.locator(".ag-header")).toBeHidden();
   await expect(page.getByRole("navigation", { name: "Agency" })).toBeVisible();
   await expect(page.getByRole("button", { name: /switch agency/i })).toBeVisible();
+});
+
+test("cross-agency isolation: agency-b sees only its own seed shift; a foreign agency list is a 403 Forbidden", async ({ page }) => {
+  await signIn(page, "agencyB");
+  await expect(page.getByTestId("active-agency-name")).toHaveText("Metro Care Partners");
+  await expect(page.getByTestId("agency-shift-count")).toHaveText(/1 shift$/);
+  await expect(page.getByText("Sunrise Health Staffing")).toHaveCount(0);
+  // Same answer as the real API: own header + foreign path = generic Forbidden (not "Agency not available").
+  const res = await page.evaluate(async () => {
+    const r = await fetch("/api/agencies/agency-a/shifts", { headers: { "x-agency-id": "agency-b", authorization: "Bearer tok-1" } });
+    return [r.status, await r.json()];
+  });
+  expect(res).toEqual([403, { error: "Forbidden" }]);
 });

@@ -2,7 +2,7 @@ import { ErrorMessage, LoginRequest, LoginResponse } from "@shiftpatch/contracts
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Db } from "../../db/client.js";
 import type { RequestMeta } from "../audit/audit.js";
-import { login, logout, refresh, type SessionUser } from "./service.js";
+import { familyIdOf, login, logout, refresh, type SessionUser } from "./service.js";
 import { assertJwtConfigured, REFRESH_COOKIE, REFRESH_TOKEN_TTL_MS, sha256, signAccessToken } from "./tokens.js";
 
 const unauthorized = { error: ErrorMessage.unauthorized };
@@ -56,7 +56,21 @@ export function authRoutes(app: FastifyInstance, db: () => Db) {
   };
   const loginLimits = [limiter("login-ip", 10, (req) => req.ip), limiter("login-email", 10, emailKey)];
   const loginFailed = (req: FastifyRequest) => Promise.all(loginLimits.map((l) => l.fail(req)));
-  const sessionLimit = limiter("session-ip", 30, (req) => req.ip).hit;
+  // Session limits (QA-006). The IP is a weak key for refresh: a hospital NAT or a grader's click-through shares one IP,
+  // and every full page load refreshes. So a VALID refresh is limited per refresh-token family (one login = one family,
+  // shared by that browser's tabs), with only a generous per-IP ceiling against floods. A MISSING cookie is a plain 401
+  // and is not counted. UNKNOWN cookies are the abuse surface (no family to key on): a per-IP failure limiter, 30/min.
+  // Guessing stays pointless (256-bit tokens); an unknown cookie still costs one indexed lookup before the gate (bounded
+  // by the 300/min IP ceiling), which is what keeps a spammer from locking out a valid family behind the same IP.
+  const sessionIpCeiling = limiter("session-ip", 300, (req) => req.ip).hit; // refresh + logout, every request counts
+  const refreshInvalid = limiter("refresh-invalid-ip", 30, (req) => req.ip);
+  const familyOf = new WeakMap<FastifyRequest, string>();
+  const refreshFamily = limiter("refresh-family", 10, (req) => familyOf.get(req) ?? `ip:${req.ip}`).hit;
+  const refreshRejected = async (req: FastifyRequest, reply: FastifyReply) => {
+    await refreshInvalid.fail(req);
+    reply.clearCookie(REFRESH_COOKIE, cookieOptions());
+    return reply.code(401).send(unauthorized);
+  };
 
   const sendSession = async (reply: FastifyReply, user: SessionUser, refreshToken: string) => {
     reply.setCookie(REFRESH_COOKIE, refreshToken, { ...cookieOptions(), maxAge: REFRESH_TOKEN_TTL_MS / 1000 });
@@ -75,21 +89,29 @@ export function authRoutes(app: FastifyInstance, db: () => Db) {
     return sendSession(reply, result.user, result.refreshToken);
   });
 
-  app.post("/api/auth/refresh", { preHandler: sessionLimit }, async (req, reply) => {
+  // Order: IP ceiling -> origin -> family lookup -> (unknown: invalid gate | known: family limit) -> rotate.
+  // Every 429 keeps the cookie: being throttled is not being signed out.
+  app.post("/api/auth/refresh", { preHandler: sessionIpCeiling }, async (req, reply) => {
     if (!originAllowed(req)) return reply.code(403).send({ error: ErrorMessage.forbidden });
     assertJwtConfigured(); // a rotation committed before a signing failure would strand the client
     const raw = req.cookies[REFRESH_COOKIE];
-    const result = raw ? await refresh(db(), raw, meta(req)) : ({ kind: "invalid" } as const);
+    // No cookie = an anonymous visit (every page load restores once): plain 401, no DB work, nothing guessed, and it never
+    // counts toward the invalid limiter, so a busy NAT/CI IP can't make new visitors look "throttled" instead of signed out.
+    if (!raw) return reply.clearCookie(REFRESH_COOKIE, cookieOptions()).code(401).send(unauthorized);
+    const familyId = await familyIdOf(db(), raw);
+    if (!familyId) return (await refreshInvalid.gate(req, reply)) ?? refreshRejected(req, reply);
+    familyOf.set(req, familyId);
+    const limited = await refreshFamily(req, reply);
+    if (limited) return limited;
+    const result = await refresh(db(), raw, meta(req));
     // Lost a concurrent rotation: keep the cookie, the winning response already set the new one. Client retries.
     if (result.kind === "race") return reply.code(409).send({ error: "Session refresh already in progress, retry" });
-    if (result.kind === "invalid") {
-      reply.clearCookie(REFRESH_COOKIE, cookieOptions());
-      return reply.code(401).send(unauthorized);
-    }
+    if (result.kind === "invalid") return refreshRejected(req, reply); // expired, revoked, reused (family revoked)
     return sendSession(reply, result.user, result.refreshToken);
   });
 
-  app.post("/api/auth/logout", { preHandler: sessionLimit }, async (req, reply) => {
+  // Logout sits behind the IP ceiling only: it must work even when the family's refresh budget is spent.
+  app.post("/api/auth/logout", { preHandler: sessionIpCeiling }, async (req, reply) => {
     if (!originAllowed(req)) return reply.code(403).send({ error: ErrorMessage.forbidden });
     const raw = req.cookies[REFRESH_COOKIE];
     if (raw) await logout(db(), raw, meta(req));

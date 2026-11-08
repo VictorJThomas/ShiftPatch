@@ -172,3 +172,20 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 1 drift fixed (Production DB row missing in Notion); QA task Done; added "Decide QA-006…".
 - Skills copied: plan-md (claude-in-chrome is built-in, no files).
 - Open: QA-006 decision; Stage 6b/7 build; leftover dir `.claude/worktrees/agent-ad2d6204a290be1d6` (locked files, delete manually); untracked `apps/web/AGENTS.md` (created by `next dev`).
+
+## 2026-11-07 — Stage 6b frontend + Stage 7 credentials (multi-agent)
+- Done: all role screens on the real API; `POST/GET /api/nurses/me/credentials`; QA-003/004/005/006; QA defects D1-D3, D6; real-API `flows.spec.ts`, `testids.spec.ts`; report `docs/qa/STAGE6B_VERIFICATION.md`.
+- Agents: A foundation, E credentials API, G QA-006, B nurse, C agency, D admin, F independent QA, plus a fresh-context reviewer (2 High found and fixed: toasts inert behind modals, duplicate `notification-banner`).
+- Decided: see [[Decisions]] "Stage 6b build" (one-click nurse claim/cancel, native dialog, aws4fetch). Later: `shift-cancel-button` nurse only, agency uses `agency-cancel-shift-button`; inline credential form.
+- Verified: `/verify` 4/4, web build, mocked Playwright 44 passed / 6 skipped, real-API flows 6/6, 5-user matrix 25/25.
+- Board: 11 rows pushed to Notion. `tasks_md.py diff` NOT re-run after the push. Duplicate Notion row "Production DB: Railway Postgres..." left for Victor. "Upload abuse tests" stays Active (signed links not built).
+- Skills copied: web-design-guidelines, browser-testing-with-devtools.
+- Open: review M4 duplication, push/PR, R2 env, deploy, Playwright real-API in CI.
+
+## 2026-11-08 — Wrap correction + local DB reset
+- Done: board diffed by hand on open tasks (24 local = 24 Notion); "Three roles..." closed on both sides. Local DB reset to the exact seed.
+- Correction to the 2026-11-07 entry and earlier chat: the `claim-cancel` rollback timeout is NOT caused by Agent F's load. It reproduces on an idle machine with parallel test files; 469/469 serially. Root cause open, see [[Status]].
+- Victor committed and pushed the wrap docs + `start` script change (`--env-file-if-exists`) in `695022e`.
+- Board: 1 item fixed. Duplicate Notion row "Production DB: Railway Postgres..." still there for Victor.
+- Skills copied: none.
+- Open: flaky rollback timeout, PR, R2 env, deploy, Playwright real-API in CI.

@@ -1,0 +1,44 @@
+[
+  {
+    "user": "agency-a",
+    "step": "lands on /agency/shifts, h1 Shifts",
+    "status": "PASS",
+    "evidence": "http://localhost:3200/agency/shifts"
+  },
+  {
+    "user": "agency-a",
+    "step": "list: shift-1 open + shift-2 filled, 2 shifts",
+    "status": "PASS",
+    "evidence": "RNshift-1 Fri, Oct 2 · 19:00 → Sat 07:00 Overnight 12 h Open — Withdraw || LPNshift-2 Sat, Oct 3 · 07:00 → 19:00 12 h Filled nurse-1 Cancel shift"
+  },
+  {
+    "user": "agency-a",
+    "step": "post RN 2026-12-01 07:00-19:00 -> banner 'Shift posted'",
+    "status": "PASS",
+    "evidence": "banner 'Shift posted', count 3"
+  },
+  {
+    "user": "agency-a",
+    "step": "withdraw the new shift -> 'Shift withdrawn', status Cancelled",
+    "status": "PASS",
+    "evidence": "RNshift-4 Tue, Dec 1 · 07:00 → 19:00 12 h Cancelled — —"
+  },
+  {
+    "user": "agency-a",
+    "step": "agency 'Cancel shift' on shift-2 opens reason dialog (2 clicks + reason)",
+    "status": "PASS",
+    "evidence": "dialog w/ no-show/advance radios; Esc closes, focus returns to trigger"
+  },
+  {
+    "user": "agency-b",
+    "step": "sees only shift-3 (+ own posts)",
+    "status": "PASS",
+    "evidence": "RNshift-3 Sun, Oct 4 · 19:00 → Mon 07:00 Overnight 12 h Open — Withdraw"
+  },
+  {
+    "user": "agency-b",
+    "step": "API: agency-b token cannot read agency-a list (403)",
+    "status": "PASS",
+    "evidence": "own header -> 403 {\"error\":\"Forbidden\"}; foreign header -> 403 {\"error\":\"Agency not available\"}"
+  }
+]

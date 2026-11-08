@@ -1,0 +1,8 @@
+[
+  {
+    "user": "credentials",
+    "step": "valid PDF + expiry -> success banner + pending row (390px)",
+    "status": "PASS",
+    "evidence": "banner 'Credential uploaded', Pending card"
+  }
+]

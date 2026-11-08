@@ -136,7 +136,8 @@ test.describe("logout", () => {
     await signIn(page, "nurse");
     await page.getByRole("link", { name: "Profile" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Profile" })).toBeVisible();
-    await page.getByRole("button", { name: "Sign out" }).click();
+    // The profile row, not the rail icon (both are labelled "Sign out" at >= 1000 px).
+    await page.locator("#main").getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
     expect(api.calls("/api/auth/logout", "POST")).toHaveLength(1);
     expect(await roleCookie(page)).toBeUndefined();
@@ -162,7 +163,7 @@ test.describe("logout", () => {
 test.describe("access-token expiry", () => {
   test("401 -> one refresh -> the original request is retried and succeeds", async ({ page }) => {
     await signIn(page, "agency");
-    await expect(page.getByTestId("agency-shift-count")).toHaveText(/1 shift/);
+    await expect(page.getByTestId("agency-shift-count")).toHaveText(/2 shifts/);
     const refreshBase = api.calls("/api/auth/refresh").length;
     const shiftsBase = api.calls("/api/agencies/agency-a/shifts").length;
 
@@ -187,19 +188,25 @@ test.describe("access-token expiry", () => {
   });
 
   test("concurrent 401s share ONE refresh call", async ({ page }) => {
-    await signIn(page, "agency");
-    await expect(page.getByTestId("agency-shift-count")).toBeVisible();
+    // The nurse marketplace fires 3 queries at once (open shifts, matchable shifts, credentials). The token dies right
+    // after /api/me, so all three answer 401 while in flight together; one refresh must serve them all.
+    // Let the anonymous session-restore refresh on /login finish first, so the delays below only affect the 401 path.
+    const restore = page.waitForResponse("**/api/auth/refresh");
+    await page.goto("/login");
+    await restore;
     const refreshBase = api.calls("/api/auth/refresh").length;
-    api.expireTokens();
+    api.expireAfterMe = true;
     api.unauthorizedDelayMs = 250;
     api.refreshDelayMs = 500;
-    const button = page.getByRole("button", { name: "Refresh" });
-    // A second click restarts the query: two requests with the stale token are in flight at once.
-    await button.click();
-    await button.click();
-    // both stale requests are replayed with the single new token
-    await expect.poll(() => api.calls("/api/agencies/agency-a/shifts").filter((r) => r.headers.authorization === "Bearer tok-2").length).toBeGreaterThanOrEqual(2);
-    expect(api.calls("/api/agencies/agency-a/shifts").filter((r) => r.headers.authorization === "Bearer tok-1").length).toBeGreaterThanOrEqual(3);
+    await page.getByTestId("login-email-input").fill(USERS.nurse.email);
+    await page.getByTestId("login-password-input").fill(USERS.nurse.password);
+    await page.getByTestId("login-submit-button").click();
+    await expect(page.getByTestId("shift-list-item")).toHaveCount(2);
+    const data = (token: string) =>
+      api.requests.filter((r) => (r.path === "/api/shifts" || r.path === "/api/nurses/me/credentials") && r.headers.authorization === `Bearer ${token}`);
+    expect(data("tok-1").length).toBeGreaterThanOrEqual(3);
+    // every stale request is replayed with the single new token
+    expect(data("tok-2").length).toBeGreaterThanOrEqual(3);
     expect(api.calls("/api/auth/refresh").length - refreshBase).toBe(1);
   });
 

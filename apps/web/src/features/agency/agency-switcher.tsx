@@ -1,20 +1,24 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { agencyColor, initials } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
+import { useSwitchAgency } from "./queries";
 
-/** Only rendered with more than one membership. Selecting never assumes access: the API still checks every request. */
+/**
+ * Only rendered with more than one membership. Selecting never assumes access: the API still checks every request.
+ * Keyboard: the trigger opens the list with focus on the current agency; ↑/↓/Home/End move, Enter/Space select,
+ * Esc closes and returns focus to the trigger, Tab out closes.
+ */
 export function AgencySwitcher() {
-  const queryClient = useQueryClient();
   const agencies = useSessionStore((s) => s.agencies);
   const activeId = useSessionStore((s) => s.activeAgencyId);
-  const setActiveAgency = useSessionStore((s) => s.setActiveAgency);
+  const switchAgency = useSwitchAgency();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
 
   useEffect(() => {
@@ -22,17 +26,22 @@ export function AgencySwitcher() {
     const onPointer = (e: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpen(false);
         triggerRef.current?.focus();
       }
     };
+    const onFocus = (e: FocusEvent) => {
+      if (rootRef.current && e.target instanceof Node && !rootRef.current.contains(e.target)) setOpen(false);
+    };
     document.addEventListener("pointerdown", onPointer);
     document.addEventListener("keydown", onKey);
+    document.addEventListener("focusin", onFocus);
     return () => {
       document.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("focusin", onFocus);
     };
   }, [open]);
 
@@ -41,11 +50,17 @@ export function AgencySwitcher() {
   const choose = (id: string) => {
     setOpen(false);
     triggerRef.current?.focus();
-    if (id === activeId) return;
-    const previous = activeId;
-    setActiveAgency(id); // subsequent requests carry the new X-Agency-Id
-    if (previous) queryClient.removeQueries({ queryKey: ["agency", previous] });
-    void queryClient.invalidateQueries({ queryKey: ["agency"] });
+    switchAgency(id);
+  };
+
+  const onListKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const options = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+    const index = options.findIndex((o) => o === document.activeElement);
+    const last = options.length - 1;
+    const next = e.key === "ArrowDown" ? Math.min(index + 1, last) : e.key === "ArrowUp" ? Math.max(index - 1, 0) : e.key === "Home" ? 0 : e.key === "End" ? last : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    options[next]?.focus();
   };
 
   return (
@@ -56,8 +71,14 @@ export function AgencySwitcher() {
         className="btn btn-band"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={open ? listId : undefined}
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         <Icon name="swap" />
         Switch agency
@@ -68,7 +89,7 @@ export function AgencySwitcher() {
           <div className="cap" id={`${listId}-label`}>
             Your agencies · {agencies.length}
           </div>
-          <div role="listbox" id={listId} aria-labelledby={`${listId}-label`} className="col" style={{ gap: 4 }}>
+          <div ref={listRef} role="listbox" id={listId} aria-labelledby={`${listId}-label`} className="col" style={{ gap: 4 }} onKeyDown={onListKey}>
             {agencies.map((agency, index) => {
               const selected = agency.agencyId === activeId;
               return (
@@ -78,13 +99,18 @@ export function AgencySwitcher() {
                   role="option"
                   aria-selected={selected}
                   className="ag-opt"
-                  autoFocus={selected}
+                  // Focus lands on the current agency, or the first one when none is selected yet.
+                  autoFocus={selected || (!activeId && index === 0)}
+                  tabIndex={selected || (!activeId && index === 0) ? 0 : -1}
                   onClick={() => choose(agency.agencyId)}
                 >
                   <span className="ag-tile" style={{ background: agencyColor(index) }} aria-hidden="true">
                     {initials(agency.name)}
                   </span>
-                  <span style={{ flex: 1, fontWeight: 700 }}>{agency.name}</span>
+                  <span style={{ flex: 1, fontWeight: 700 }}>
+                    {agency.name}
+                    <span className="ag-opt-role">{agency.role}</span>
+                  </span>
                   {selected ? (
                     <span className="badge b-verified">
                       <Icon name="check" />

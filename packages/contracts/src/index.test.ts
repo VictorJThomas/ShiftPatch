@@ -343,6 +343,9 @@ describe("type inference", () => {
       | "Shift not found"
       | "Shift is no longer open"
       | "Shift is not filled"
+      | "Attach a file to upload"
+      | "File is larger than 10 MB"
+      | "Unsupported file type. Upload a PDF, JPEG, PNG or HEIC file"
     >();
   });
   it("specialised responses are assignable to the base Shift", () => {
