@@ -181,3 +181,11 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 11 rows pushed to Notion. `tasks_md.py diff` NOT re-run after the push. Duplicate Notion row "Production DB: Railway Postgres..." left for Victor. "Upload abuse tests" stays Active (signed links not built).
 - Skills copied: web-design-guidelines, browser-testing-with-devtools.
 - Open: review M4 duplication, push/PR, R2 env, deploy, Playwright real-API in CI.
+
+## 2026-11-08 — Wrap correction + local DB reset
+- Done: board diffed by hand on open tasks (24 local = 24 Notion); "Three roles..." closed on both sides. Local DB reset to the exact seed.
+- Correction to the 2026-11-07 entry and earlier chat: the `claim-cancel` rollback timeout is NOT caused by Agent F's load. It reproduces on an idle machine with parallel test files; 469/469 serially. Root cause open, see [[Status]].
+- Victor committed and pushed the wrap docs + `start` script change (`--env-file-if-exists`) in `695022e`.
+- Board: 1 item fixed. Duplicate Notion row "Production DB: Railway Postgres..." still there for Victor.
+- Skills copied: none.
+- Open: flaky rollback timeout, PR, R2 env, deploy, Playwright real-API in CI.
