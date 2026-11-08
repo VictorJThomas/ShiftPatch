@@ -1,6 +1,6 @@
 # Stage 6b — Independent verification (Agent F, QA)
 
-**Date:** 2026-11-07 · **Build under test:** `feature/6b-feature-ui` @ `8dc8866` · **Verifier:** independent QA agent (did not write the UI).
+**Date:** 2026-11-07 · **Build under test:** `feature/6b-feature-ui` @ `8dc8866` (Phase 1 observations); Phase 2 suites re-run after merging `dea0bea` (review fixes: newest-toast-only test ID, toasts inside open dialogs, cookieless refresh = plain 401) · **Verifier:** independent QA agent (did not write the UI).
 
 **Setup (real stack, no mocks):** `pnpm --filter api db:reset` (exact spec seed) → built API `PORT=3201 APP_ORIGIN=http://localhost:3200 pnpm --filter api start:local` → web `API_ORIGIN=http://localhost:3201 pnpm build && next start -p 3200` (production bundle, CSP on) → MinIO via `docker compose up -d minio minio-init minio-policy` (uploads real, not 503) → Playwright headless Chromium driving the UI. One login per role per run (refresh limiter). DB re-seeded after the destructive steps and at the end.
 
@@ -91,7 +91,19 @@ Nurse grid columns observed: 1 (360/390), 2 (768), 2 at 1440/1920 with only 2 op
 6. **D6 — Low — admin table shift ids wrap** ("shift-" / "1") at ≤768 px (`admin-dashboard-768.png`); `white-space:nowrap` on `.adm-id`. File: `apps/web/src/app/(admin)/admin.css`.
 7. **D7 — Low (test drift, fixed in this branch's e2e) — mocked API diverged from the real one.** `mock-api.ts` answered "Agency not available" for a path/agency mismatch where the API answers `Forbidden`, and 404 for `/api/shifts`, `/api/nurses/me/*`, `/api/audit-logs`. Fixed in Phase 2 (`apps/web/e2e/**` only).
 
-## 6. Not verified
+## 6. Re-check on `dea0bea`
+
+`dea0bea` does not touch `.scrollx`, the admin table or the credential/agency-cancel markup, so D1-D3 and D6 stand as observed on `8dc8866`. D5: a cookieless refresh is still a 401 (now unthrottled), so the console error remains. The real-API flows below pass on `dea0bea`.
+
+## 7. Automated suites (Phase 2, `apps/web/e2e/**`)
+
+- `mock-api.ts` now serves state built from the spec seed (3 shifts, nurse-1 valid / nurse-2 expired license, audit entries with cursor paging) for `GET /api/shifts` (+`?matchable=true`), `POST /api/shifts`, claim / cancel / withdraw, `GET /api/nurses/me/shifts`, `GET|POST /api/nurses/me/credentials`, `GET /api/audit-logs`, with the API's exact error texts. Drift fixed: own header + foreign agency path = 403 `Forbidden`; a foreign/stale `X-Agency-Id` = 403 `Agency not available` (as `loadActor`).
+- Drift fixes in existing specs (no assertion weakened, nothing skipped): "Sign out" scoped to `#main` (profile row vs rail icon); agency counts follow the seed (agency-a 2, agency-b 1); "concurrent 401s share ONE refresh" now produces real concurrency (the agency Refresh button is disabled while fetching, so the old double click was sequential) via the nurse marketplace's 3 parallel queries with a token that expires after `/api/me`.
+- New `testids.spec.ts` (9 tests): all 15 IDs by role and element type, success banner + polite live region on claim, exact 403 text as `role=alert`, credential inputs (file/date) + upload, post-shift button/submit, admin table with one badge per row, audit "Load more" (60 entries → 50 + 10) and agency filter, nurse grid 1/2/3 columns at 390/768/1440 without page overflow.
+- New `flows.spec.ts` (6 tests, real API, opt-in `E2E_REAL_API=1`, resets the DB before and after): agency-a posts → nurse-1 claims → admin badge Filled (≈14 s) → nurse-2 exact 403, shift stays open → nurse-1 cancels → shift reopens, admin badge Open.
+- Results: mocked `pnpm --filter web test:e2e` **44 passed, 6 skipped** (the opt-in flows); real `E2E_REAL_API=1 API_ORIGIN=http://localhost:3201 pnpm --filter web test:e2e flows` **6 passed**.
+
+## 8. Not verified
 
 - Screen readers (NVDA/VoiceOver) — announcements checked structurally only.
 - Real 413 from the API through the UI (client check intercepts; see D4).
