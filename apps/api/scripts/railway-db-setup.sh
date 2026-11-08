@@ -1,54 +1,45 @@
 #!/usr/bin/env bash
-# One-time production database setup on Railway (ARCHITECTURE §15 step 5). Run from the repo root, Railway CLI logged in
-# and linked to the ShiftPatch project, Docker running (psql comes from the postgres image):
+# Production database setup on Railway (ARCHITECTURE §15 step 5) over the PRIVATE network: the Postgres service has no
+# public proxy, so everything runs inside Railway via `railway ssh`. Run from the repo root on master, Railway CLI logged
+# in + linked, an SSH key registered (`railway ssh keys add`) and ssh.railway.com in ~/.ssh/known_hosts.
 #
-#   bash apps/api/scripts/railway-db-setup.sh
+#   bash apps/api/scripts/railway-db-setup.sh            # migrate + seed + role + api variables (re-runnable)
 #
-# 1. adds a Postgres service if the project has none
-# 2. migrates + seeds the exact spec data AS THE OWNER (public proxy URL, from this machine)
-# 3. creates the least-privilege role shiftpatch_app (docs/security/db-least-privilege.sql)
-# 4. points the api service at it: DATABASE_URL = shiftpatch_app (runtime), MIGRATE_DATABASE_URL = owner (pre-deploy migrate)
-# 5. proves the role: connects, cannot DELETE from audit_log
-# Re-runnable. Prints no secret. Variables are set with --skip-deploys: deploy the merged master afterwards.
+# 1. reads the owner URL from the Postgres container (never printed)
+# 2. migrates + seeds the exact spec data AS THE OWNER inside the api container
+# 3. creates/updates the least-privilege role shiftpatch_app inside the Postgres container
+# 4. sets the api variables (DATABASE_URL = shiftpatch_app, MIGRATE_DATABASE_URL = owner) -> triggers one redeploy
+# 5. proves the role: cannot DELETE from audit_log, cannot CREATE
+# It NEVER creates services: a missing Postgres service is an error (an earlier version added a duplicate database).
 set -euo pipefail
 R="npx -y @railway/cli"
-API_SERVICE="${API_SERVICE:-api}"
-PG_SERVICE="${PG_SERVICE:-Postgres}"
-var() { $R variables --service "$1" --kv 2>/dev/null | sed -n "s/^$2=//p"; }
+API="${API_SERVICE:-api}"
+PG="${PG_SERVICE:-Postgres}"
+quiet() { grep -vE 'Config as Code|Migrate:|Existing files|Using SSH key' || true; }
 
-if [ -z "$(var "$PG_SERVICE" DATABASE_PUBLIC_URL)" ]; then
-  echo "== adding Postgres service"
-  $R add --database postgres
-  for _ in $(seq 1 30); do [ -n "$(var "$PG_SERVICE" DATABASE_PUBLIC_URL)" ] && break; sleep 5; done
-fi
-OWNER="$(var "$PG_SERVICE" DATABASE_PUBLIC_URL)"
-[ -n "$OWNER" ] || { echo "no DATABASE_PUBLIC_URL on service $PG_SERVICE" >&2; exit 1; }
+OWNER="$($R ssh -s "$PG" -- printenv DATABASE_URL 2>/dev/null | tr -d '\r' | grep '^postgres' || true)"
+[ -n "$OWNER" ] || { echo "cannot read DATABASE_URL from service '$PG' (missing service or SSH not set up)" >&2; exit 1; }
 
-APPPW="$(var "$API_SERVICE" APP_DB_PASSWORD)"
+echo "== migrate + seed as owner (api container, private network)"
+$R ssh -s "$API" -- sh -c "cd /app && MIGRATE_DATABASE_URL='$OWNER' pnpm --filter api db:migrate && MIGRATE_DATABASE_URL='$OWNER' pnpm --filter api db:seed" 2>&1 | quiet
+
+APPPW="$($R variables --service "$API" --kv 2>/dev/null | sed -n 's/^APP_DB_PASSWORD=//p')"
 if [ -z "$APPPW" ]; then
   APPPW="$(node -e "process.stdout.write(require('crypto').randomBytes(24).toString('base64url'))")"
-  printf %s "$APPPW" | $R variables --service "$API_SERVICE" --skip-deploys --set-from-stdin APP_DB_PASSWORD >/dev/null # not in argv
-  echo "== generated APP_DB_PASSWORD (stored on $API_SERVICE)"
+  printf %s "$APPPW" | $R variables --service "$API" --skip-deploys --set-from-stdin APP_DB_PASSWORD >/dev/null # not in argv
 fi
 
-echo "== migrate + seed as owner"
-MIGRATE_DATABASE_URL="$OWNER" pnpm --filter api db:migrate
-MIGRATE_DATABASE_URL="$OWNER" pnpm --filter api db:seed
+echo "== least-privilege role (Postgres container)"
+B64="$(base64 -w0 docs/security/db-least-privilege.sql)"
+$R ssh -s "$PG" -- sh -c "echo $B64 | base64 -d > /tmp/lp.sql && psql \"\$DATABASE_URL\" -q -v app_password='$APPPW' -f /tmp/lp.sql; rc=\$?; rm -f /tmp/lp.sql; exit \$rc" 2>&1 | quiet
 
-echo "== least-privilege role"
-MSYS_NO_PATHCONV=1 docker run --rm -i postgres:16-alpine psql "$OWNER" -q -v app_password="$APPPW" < docs/security/db-least-privilege.sql
+echo "== prove the role"
+APPURL="postgresql://shiftpatch_app:$APPPW@localhost:5432/\$PGDATABASE"
+$R ssh -s "$PG" -- sh -c "psql \"$APPURL\" -tAc \"select current_user||' shifts='||(select count(*) from shifts)\"; psql \"$APPURL\" -tAc 'delete from audit_log' 2>&1 | head -1; psql \"$APPURL\" -tAc 'create table evil(i int)' 2>&1 | head -1" 2>&1 | quiet
 
-echo "== api service variables"
-$R variables --service "$API_SERVICE" --skip-deploys \
-  --set 'MIGRATE_DATABASE_URL=${{'"$PG_SERVICE"'.DATABASE_URL}}' \
-  --set 'DATABASE_URL=postgresql://shiftpatch_app:${{APP_DB_PASSWORD}}@${{'"$PG_SERVICE"'.PGHOST}}:${{'"$PG_SERVICE"'.PGPORT}}/${{'"$PG_SERVICE"'.PGDATABASE}}' \
-  --set 'MAIL_TRANSPORT=log' --set 'MAIL_FROM=ShiftPatch <no-reply@shiftpatch.app>' --set 'OUTBOX_DISPATCHER=on' --set 'COOKIE_SECURE=true' >/dev/null
-
-echo "== prove the role (public proxy)"
-APP_URL="$(node -e "const u=new URL(process.argv[1]);u.username='shiftpatch_app';u.password=process.argv[2];process.stdout.write(u.href)" "$OWNER" "$APPPW")"
-MSYS_NO_PATHCONV=1 docker run --rm postgres:16-alpine psql "$APP_URL" -tAc "select current_user || ' shifts=' || (select count(*) from shifts)"
-if MSYS_NO_PATHCONV=1 docker run --rm postgres:16-alpine psql "$APP_URL" -tAc "delete from audit_log" >/dev/null 2>&1; then
-  echo "FAIL: shiftpatch_app could delete from audit_log" >&2; exit 1
-fi
-echo "OK: audit_log DELETE denied for shiftpatch_app"
-echo "done. Next: deploy master (api), then vercel --prod."
+echo "== api variables (one redeploy)"
+$R variables --service "$API" \
+  --set 'MIGRATE_DATABASE_URL=${{'"$PG"'.DATABASE_URL}}' \
+  --set 'DATABASE_URL=postgresql://shiftpatch_app:${{APP_DB_PASSWORD}}@${{'"$PG"'.PGHOST}}:${{'"$PG"'.PGPORT}}/${{'"$PG"'.PGDATABASE}}' \
+  --set 'MAIL_TRANSPORT=log' --set 'MAIL_FROM=ShiftPatch <no-reply@shiftpatch.app>' --set 'OUTBOX_DISPATCHER=on' --set 'COOKIE_SECURE=true' 2>&1 | quiet
+echo "done: expect 'permission denied' twice above, then smoke-test the app."

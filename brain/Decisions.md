@@ -164,3 +164,8 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - **DB least privilege:** `docs/security/db-least-privilege.sql` creates the `shiftpatch_app` role. It has DML on all tables, sequences usage, and only INSERT/SELECT on `audit_log`. It has no DDL, no access to the `drizzle` schema, and is not a superuser. Default privileges cover future tables. The script runs as one transaction with `ON_ERROR_STOP` and is re-runnable; the password is passed as `-v app_password` (psql quotes it). It is applied at deploy only; local dev and CI keep the single superuser. Railway pre-deploy must override `DATABASE_URL` with the owner URL to run migrations (ARCHITECTURE §15 step 5).
 - **Known inconsistency (accepted, ARCHITECTURE §7 allows both):** when an out-of-scope agency actor or admin hits a shift, withdraw answers 404 `Shift not found` while cancel answers 403 `Forbidden`.
 - **Open product question:** past-dated shifts can currently be posted, listed as matchable and claimed (board task "Decide: reject past-dated shifts…").
+
+## Production database (2026-11-07)
+- Railway Postgres stays **private** (no TCP proxy). One-off ops (migrate as owner, seed, role SQL) run inside the containers via `railway ssh` (`apps/api/scripts/railway-db-setup.sh`). Why: the database is never internet-reachable.
+- Runtime `DATABASE_URL` = `shiftpatch_app` built from Railway references (`${{APP_DB_PASSWORD}}`, `${{Postgres.PGHOST}}`…). `MIGRATE_DATABASE_URL = ${{Postgres.DATABASE_URL}}` is read only by `db:migrate` / `db:seed` (pre-deploy and manual).
+- Prod email = `MAIL_TRANSPORT=log` until Resend is set up (Victor sets `RESEND_API_KEY` in Railway himself).
