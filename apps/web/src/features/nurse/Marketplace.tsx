@@ -6,14 +6,13 @@ import { useState } from "react";
 import type { Shift, ShiftRole } from "@shiftpatch/contracts";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
 import { ChipGroup } from "@/components/ui/ChipGroup";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { parseIsoDate } from "@/lib/format";
 import { useClaimShift, useCredentials, useMatchableShifts, useOpenShifts } from "./queries";
-import { ShiftCard, ShiftDetailsDialog, ShiftSummary } from "./ShiftCard";
+import { ShiftCard, ShiftDetailsDialog } from "./ShiftCard";
 
 type RoleFilter = "all" | ShiftRole;
 const ROLES: ShiftRole[] = ["RN", "LPN", "CNA"];
@@ -65,7 +64,6 @@ export function Marketplace() {
   const [date, setDate] = useState("all");
   const [role, setRole] = useState<RoleFilter>("all");
   const [details, setDetails] = useState<Shift | null>(null);
-  const [confirming, setConfirming] = useState<Shift | null>(null);
 
   const loading = matchable.isPending || open.isPending;
   const failed = matchable.isError || open.isError;
@@ -84,9 +82,12 @@ export function Marketplace() {
   };
   const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch()]);
 
+  // One click claims (spec: the test ID sits "on the element that performs the action"). Claiming is reversible
+  // from My shifts, and the toast confirms the outcome, so no confirm step. The backend decides eligibility.
+  const claimingId = claim.isPending ? claim.variables?.id : undefined;
   const startClaim = (shift: Shift) => {
     setDetails(null);
-    setConfirming(shift);
+    claim.mutate(shift);
   };
 
   return (
@@ -147,10 +148,12 @@ export function Marketplace() {
                               type="button"
                               className="btn btn-primary nurse-grow"
                               data-testid="shift-claim-button"
-                              disabled={!online}
+                              disabled={!online || claim.isPending}
+                              aria-busy={claimingId === shift.id}
                               aria-label={`Claim shift: ${shift.agencyName}, ${shift.role}`}
                               onClick={() => startClaim(shift)}
                             >
+                              {claimingId === shift.id && <span className="spin" aria-hidden="true" />}
                               Claim shift
                             </button>
                             <button type="button" className="btn btn-secondary" aria-label={`Details: ${shift.agencyName}, ${shift.role}`} onClick={() => setDetails(shift)}>
@@ -189,28 +192,12 @@ export function Marketplace() {
         onClose={() => setDetails(null)}
         footer={
           details && (
-            <button type="button" className="btn btn-primary" disabled={!online} onClick={() => startClaim(details)}>
+            <button type="button" className="btn btn-primary" disabled={!online || claim.isPending} onClick={() => startClaim(details)}>
               Claim shift
             </button>
           )
         }
       />
-      <ConfirmDialog
-        open={!!confirming}
-        title="Claim this shift?"
-        confirmLabel="Confirm claim"
-        confirmTestId="shift-claim-confirm-button"
-        pending={claim.isPending}
-        onClose={() => setConfirming(null)}
-        onConfirm={() => confirming && claim.mutate(confirming, { onSettled: () => setConfirming(null) })}
-      >
-        {confirming && (
-          <>
-            <ShiftSummary shift={confirming} />
-            <p className="nurse-confirm-note">The shift is yours right away. You can cancel in advance from My shifts.</p>
-          </>
-        )}
-      </ConfirmDialog>
     </>
   );
 }
