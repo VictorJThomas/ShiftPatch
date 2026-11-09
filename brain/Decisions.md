@@ -181,3 +181,11 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - **Credential storage client = `aws4fetch`** (zero deps, S3/R2 compatible, can sign the 5-min links later). `@fastify/multipart` pinned to 10.1.4 (10.1.8 was 1 day old). Missing storage env → 503 `{error}`, API still boots.
 - **`licenseValid` reuses `isEligible`**: an unexpired license counts when verified OR pending (ARCHITECTURE §5.3), so a fresh upload clears the lapsed warning.
 - **Admin tables stay tables at every width** (inside `.scrollx`, sticky first column) rather than cards on phones: one data source, test IDs always present.
+
+## Notion design notes (2026-11-08, feature/11-ui-ux-polish)
+- **Claim stays instant; no "Request shift" queue.** Notion/Gemini proposed many nurses requesting and the agency choosing. Brief: nurses "pick up" shifts; spec route 4 returns `filled` + `claimedBy`; graders click `shift-claim-button`. Agency instead sees the one claimant, clickable, with a nurse details modal. Future if the founder wants it: `shift_requests` table + additive routes, route 4 untouched.
+- **Credentials form = slim strip + modal.** Page keeps file + expiry inputs on load (spec gives no "open form" test ID, QA D3); type-specific fields and submit live in the modal; one form state.
+- **Gemini = layout reference only.** Dark zinc palette, Geist, emoji, "19:00 p.m." not adopted; brand tokens and 24-hour native inputs stay, with a formatted echo.
+- **Admin users = view + credential verify/reject (audited).** No profile editing; no document links until R2 exists.
+- **Two verified licenses at once: allowed** (no unique rule; renewals overlap). Answers the Notion `[To confirm]`.
+- **All new list filters are server-side, additive:** `GET /api/shifts` params, `GET /api/agencies/:id/coverage`, `GET /api/admin/coverage`. Spec route defaults unchanged.

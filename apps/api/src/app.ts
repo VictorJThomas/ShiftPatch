@@ -4,6 +4,7 @@ import rateLimit from "@fastify/rate-limit";
 import { DrizzleQueryError } from "drizzle-orm";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { createDb } from "./db/client.js";
+import { adminRoutes } from "./modules/admin/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
 import type { ObjectStorage } from "./lib/storage.js";
 import { authRoutes } from "./modules/auth/routes.js";
@@ -83,6 +84,7 @@ export function buildApp({ logger = false, storage }: { logger?: LoggerOption; s
   app.register(async (scope) => shiftRoutes(scope, db));
   app.register(async (scope) => meRoutes(scope, db));
   app.register(async (scope) => auditRoutes(scope, db));
+  app.register(async (scope) => adminRoutes(scope, db));
   app.register(async (scope) => credentialRoutes(scope, db, storage));
 
   app.get("/api/health", () => ({ status: "ok" }));

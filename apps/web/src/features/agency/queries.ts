@@ -3,20 +3,21 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
-  AgencyShiftsResponse,
+  AgencyCoverageResponse,
   CancelShiftResponse,
   CreateShiftResponse,
   WithdrawShiftResponse,
+  type AgencyCoverageQuery,
   type CancelShiftRequest,
   type CreateShiftRequest,
 } from "@shiftpatch/contracts";
-import { ApiError, apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api-client";
+import { formatShiftEcho } from "@/lib/format";
+import { showError } from "@/lib/format-error";
 import { agencyKey } from "@/lib/query-client";
+import { SHIFT_NURSE_KEY } from "@/lib/shift-nurse";
 import { useSessionStore, type AgencyMembership } from "@/stores/session";
 import { notify } from "@/stores/toasts";
-
-const FALLBACK_ERROR = "Something went wrong. Try again.";
-const showError = (err: unknown) => notify.error(err instanceof ApiError ? err.message : FALLBACK_ERROR);
 
 /** The active membership (name + role). `canWrite` is a UI hint only: the API checks every write. */
 export function useActiveMembership(): { membership: AgencyMembership | undefined; canWrite: boolean } {
@@ -26,18 +27,29 @@ export function useActiveMembership(): { membership: AgencyMembership | undefine
   return { membership, canWrite: !!membership && membership.role !== "viewer" };
 }
 
-export function useAgencyShifts() {
+/**
+ * Server-side filtered coverage rows (Shift + claimedByName). Params are part of the key, so each filter combination
+ * caches on its own; empty params = the unfiltered query that also feeds the chip counts. Keys sit under
+ * `["agency", id, "shifts", ...]`, so every write's invalidation covers them.
+ */
+export function useAgencyCoverage(params: AgencyCoverageQuery = {}) {
   const agencyId = useSessionStore((s) => s.activeAgencyId);
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+  const query = qs.toString() ? `?${qs}` : "";
   return useQuery({
-    queryKey: agencyKey(agencyId, "shifts"),
-    queryFn: ({ signal }) => apiFetch(`/api/agencies/${encodeURIComponent(agencyId ?? "")}/shifts`, { schema: AgencyShiftsResponse, signal }),
+    queryKey: agencyKey(agencyId, "shifts", "coverage", params),
+    queryFn: ({ signal }) => apiFetch(`/api/agencies/${encodeURIComponent(agencyId ?? "")}/coverage${query}`, { schema: AgencyCoverageResponse, signal }),
     enabled: !!agencyId,
+    // keep the last rows while a filter changes, but never another agency's rows after a switch
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[1] === agencyId ? prev : undefined),
   });
 }
 
 /** Writes change this agency's list and every cross-agency shift list (nurse marketplace, admin dashboard). */
 function invalidateShifts(queryClient: QueryClient, agencyId: string | null) {
   void queryClient.invalidateQueries({ queryKey: agencyKey(agencyId, "shifts") });
+  void queryClient.invalidateQueries({ queryKey: SHIFT_NURSE_KEY });
   void queryClient.invalidateQueries({ queryKey: ["shifts"] });
 }
 
@@ -46,7 +58,7 @@ export function useCreateShift() {
   const agencyId = useSessionStore((s) => s.activeAgencyId);
   return useMutation({
     mutationFn: (body: CreateShiftRequest) => apiFetch("/api/shifts", { method: "POST", body, schema: CreateShiftResponse }),
-    onSuccess: () => notify.success("Shift posted"),
+    onSuccess: (shift) => notify.success("Shift posted", `${shift.role} · ${formatShiftEcho(shift)}`),
     onError: showError,
     onSettled: () => invalidateShifts(queryClient, agencyId),
   });

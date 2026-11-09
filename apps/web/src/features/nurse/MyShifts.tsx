@@ -40,13 +40,17 @@ export function MyShifts() {
         ) : (
           <>
             <section aria-labelledby="my-upcoming-h">
-              <h2 id="my-upcoming-h" className="nurse-list-h tnum">
-                Upcoming · {upcoming.length}
+              <h2 id="my-upcoming-h" className="nurse-list-h">
+                Upcoming <span className="nurse-count tnum">{upcoming.length}</span>
               </h2>
+              {/* Policy notice: its own block above the cards grid, not a line inside it. */}
               {upcoming.length > 0 && (
-                <p id="my-cancel-note" className="muted nurse-confirm-note">
-                  Cancelling is an advance cancellation: the agency is notified right away and the shift reopens for other nurses.
-                </p>
+                <div id="my-cancel-note" className="alert al-info nurse-policy">
+                  <Icon name="info" size="lg" />
+                  <div>
+                    <b>Cancellation policy</b> Cancelling is an advance cancellation: the agency is notified right away and the shift reopens for other nurses.
+                  </div>
+                </div>
               )}
               {upcoming.length > 0 ? (
                 <ul className="card-grid">
@@ -57,7 +61,7 @@ export function MyShifts() {
                         badge={
                           <span className="badge b-filled">
                             <Icon name="check-circle" />
-                            Filled · you
+                            Claimed by you
                           </span>
                         }
                         actions={
@@ -100,8 +104,8 @@ export function MyShifts() {
             </section>
             {completed.length > 0 && (
               <section aria-labelledby="my-completed-h">
-                <h2 id="my-completed-h" className="nurse-list-h tnum">
-                  Completed · {completed.length}
+                <h2 id="my-completed-h" className="nurse-list-h">
+                  Completed <span className="nurse-count tnum">{completed.length}</span>
                 </h2>
                 <ul className="card-grid">
                   {completed.map((shift) => (

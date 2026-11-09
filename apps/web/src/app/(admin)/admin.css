@@ -1,4 +1,4 @@
-/* Admin screens (dashboard, audit log, timesheets). Tokens only: no new colours. Desktop-first, usable to 360px. */
+/* Admin screens (dashboard, users, audit log, timesheets). Tokens only: no new colours. Desktop-first, usable to 360px. */
 
 .adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
 .adm-stats .sub{font-size:13px;color:var(--c-ink-3)}
@@ -55,3 +55,7 @@
   .adm-toolbar .fld,.adm-toolbar .fld.grow{flex:1 1 100%}
   .adm-meter{width:72px}
 }
+
+/* Users screen: per-credential review actions inside the nurse dialog */
+.adm-cred{flex-wrap:wrap}
+.adm-cred-acts{display:flex;gap:8px;flex-basis:100%;justify-content:flex-end}

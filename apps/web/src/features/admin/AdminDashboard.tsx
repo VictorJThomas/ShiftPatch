@@ -1,21 +1,23 @@
 "use client";
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
-import type { Shift } from "@shiftpatch/contracts";
+import type { CoverageRow, Shift } from "@shiftpatch/contracts";
 import { useEffect, useMemo, useState } from "react";
-import { ChipGroup } from "@/components/ui/ChipGroup";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field, Select } from "@/components/ui/Field";
+import { FilterBar, FilterGroup } from "@/components/ui/FilterBar";
 import { Icon } from "@/components/ui/Icon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { StatTile } from "@/components/ui/StatTile";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateTime, formatShiftWhen, isOvernight, relativeFrom, shiftHours } from "@/lib/format";
 import {
-  type AgencyCoverage, agenciesOf, countByStatus, coverageByAgency, fillRate, filterShifts, matchesBase, NO_FILTERS, paginate,
-  POLL_MS, SHIFT_STATUSES, type ShiftFilters, type SortDir, sortByDate, type StatusCounts, type StatusFilter,
+  type AgencyCoverage, agenciesOf, countByStatus, coverageByAgency, fillRate, PAGE_SIZE, POLL_MS, SHIFT_STATUSES, type SortDir,   type StatusCounts, type StatusFilter,
 } from "./model";
-import { useAdminShifts } from "./queries";
+import { useAdminCoverage, useAdminShifts } from "./queries";
+import { ShiftDetailsDialog } from "./ShiftDetailsDialog";
 
 /** Re-renders every second so "updated N s ago" ticks between polls. */
 function useNow(ms = 1000): number {
@@ -29,7 +31,10 @@ function useNow(ms = 1000): number {
 
 const STATUS_LABEL: Record<StatusFilter, string> = { all: "All", open: "Open", filled: "Filled", cancelled: "Cancelled", completed: "Completed" };
 
-/** Hospital-network admin: live coverage across every agency (GET /api/shifts, polled every 15 s). */
+/**
+ * Hospital-network admin: live coverage across every agency, polled every 15 s. Stat tiles and coverage-by-agency need
+ * every shift (GET /api/shifts); the "All shifts" table is server-driven (GET /api/admin/coverage).
+ */
 export function AdminDashboard() {
   const q = useAdminShifts({ live: true });
   const shifts = q.data;
@@ -102,24 +107,17 @@ function StatTiles({ shifts }: { shifts: Shift[] }) {
   const rows = coverageByAgency(shifts);
   const rate = fillRate(c);
   return (
-    <section aria-label="Shift totals" className="adm-stats">
-      {(["open", "filled", "cancelled"] as const).map((s) => (
-        <div key={s} className="card stat">
-          <span className="l">
-            <StatusBadge status={s} />
-          </span>
-          <span className="n">{c[s]}</span>
-          <span className="sub">{perAgency(rows, s)}</span>
-        </div>
-      ))}
-      <div className="card stat">
-        <span className="l">
-          <Icon name="check-circle" />
-          Fill rate
-        </span>
-        <span className="n">{rate === null ? "—" : `${rate}%`}</span>
-        <span className="sub">{rate === null ? "No open or filled shifts" : `${c.filled} of ${c.open + c.filled} open or filled shifts are filled`}</span>
-      </div>
+    <section aria-label="Shift totals" className="stat-grid adm-stats">
+      <StatTile label="Open" icon="dot" value={c.open} hint={perAgency(rows, "open")} />
+      <StatTile label="Filled" icon="check-circle" value={c.filled} hint={perAgency(rows, "filled")} />
+      <StatTile label="Cancelled" icon="ban" value={c.cancelled} hint={perAgency(rows, "cancelled")} />
+      <StatTile
+        label="Fill rate"
+        icon="shield"
+        tone="brand"
+        value={rate === null ? "—" : `${rate}%`}
+        hint={rate === null ? "No open or filled shifts" : `${c.filled} of ${c.open + c.filled} open or filled shifts are filled`}
+      />
     </section>
   );
 }
@@ -169,24 +167,48 @@ function CoverageByAgency({ rows }: { rows: AgencyCoverage[] }) {
   );
 }
 
+const ZERO: StatusCounts = { open: 0, filled: 0, cancelled: 0, completed: 0 };
+
 function ShiftTable({ shifts }: { shifts: Shift[] }) {
-  const [filters, setFilters] = useState<ShiftFilters>(NO_FILTERS);
-  const [dir, setDir] = useState<SortDir>("asc");
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [agencyId, setAgencyId] = useState("all");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [dir, setDir] = useState<SortDir>("asc");
+  const [detail, setDetail] = useState<CoverageRow | null>(null);
+  // Agency options come from every shift (the unfiltered query), never from the filtered page.
   const agencies = useMemo(() => agenciesOf(shifts), [shifts]);
-  const update = (patch: Partial<ShiftFilters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
+  const cov = useAdminCoverage({ status, agencyId, q: search, page, sort: dir });
+  const data = cov.data;
+  const reset = (patch: { status?: StatusFilter; agencyId?: string; search?: string }) => {
+    if (patch.status !== undefined) setStatus(patch.status);
+    if (patch.agencyId !== undefined) setAgencyId(patch.agencyId);
+    if (patch.search !== undefined) setSearch(patch.search);
     setPage(1);
   };
+  const toggleSort = () => {
+    setDir((d) => (d === "asc" ? "desc" : "asc"));
+    setPage(1);
+  };
+  const clear = () => reset({ status: "all", agencyId: "all", search: "" });
 
-  const base = shifts.filter((s) => matchesBase(s, filters));
-  const counts = countByStatus(base);
+  const counts = data?.statusCounts ?? ZERO;
   const statusOptions = [
-    { value: "all" as StatusFilter, label: "All", count: base.length },
-    ...SHIFT_STATUSES.filter((s) => s !== "completed" || counts.completed > 0).map((s) => ({ value: s as StatusFilter, label: STATUS_LABEL[s], count: counts[s] })),
+    { value: "all" as StatusFilter, label: "All", count: data ? counts.open + counts.filled + counts.cancelled + counts.completed : undefined },
+    ...SHIFT_STATUSES.filter((s) => s !== "completed" || counts.completed > 0 || status === "completed").map((s) => ({
+      value: s as StatusFilter, label: STATUS_LABEL[s], count: data ? counts[s] : undefined,
+    })),
   ];
-  const view = paginate(sortByDate(filterShifts(shifts, filters), dir), page);
-  const filtered = filters.agencyId !== "all" || filters.status !== "all" || filters.search.trim() !== "";
+  const total = data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / (data?.pageSize ?? PAGE_SIZE)));
+  // The 15 s poll can shrink the result set under the current page: step back instead of showing an empty page.
+  useEffect(() => {
+    if (data && !cov.isPlaceholderData && page > pages) setPage(pages);
+  }, [data, cov.isPlaceholderData, page, pages]);
+  const from = !data || total === 0 ? 0 : (data.page - 1) * data.pageSize + 1;
+  const to = !data || total === 0 ? 0 : from + data.shifts.length - 1;
+  const rows = data?.shifts ?? []; // the server sorts globally (sort=asc|desc)
+  const filtered = agencyId !== "all" || status !== "all" || search.trim() !== "";
   const sortLabel = dir === "asc" ? "earliest first" : "latest first";
 
   return (
@@ -198,7 +220,7 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
       <div className="adm-toolbar">
         <Field label="Agency">
           {(p) => (
-            <Select {...p} value={filters.agencyId} onChange={(e) => update({ agencyId: e.target.value })}>
+            <Select {...p} value={agencyId} onChange={(e) => reset({ agencyId: e.target.value })}>
               <option value="all">All agencies</option>
               {agencies.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -209,27 +231,23 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
           )}
         </Field>
         <div className="fld grow">
-          <label className="lbl" htmlFor="adm-search">
-            Search
-          </label>
-          <div className="inp">
-            <Icon name="search" className="muted" />
-            <input id="adm-search" type="search" placeholder="Shift id, agency or nurse id" value={filters.search} onChange={(e) => update({ search: e.target.value })} />
-          </div>
+          <SearchInput label="Search shifts" placeholder="Agency or nurse name" value={search} onChange={(v) => reset({ search: v })} />
         </div>
         {filtered && (
-          <button type="button" className="btn btn-ghost" onClick={() => update(NO_FILTERS)}>
+          <button type="button" className="btn btn-ghost" onClick={clear}>
             Clear filters
           </button>
         )}
       </div>
       <div className="adm-chips">
-        <ChipGroup label="Status" options={statusOptions} value={filters.status} onChange={(status) => update({ status })} />
+        <FilterBar label="Shift filters">
+          <FilterGroup label="Status" options={statusOptions} value={status} onChange={(v) => reset({ status: v })} />
+        </FilterBar>
       </div>
-      <div className="scrollx">
+      <div className="scrollx" aria-busy={cov.isFetching}>
         <table data-testid="admin-dashboard-shift-table" className="tbl adm-tbl">
           <caption className="sr">
-            Shifts in your network, sorted by date, {sortLabel}. Page {view.page} of {view.pages}.
+            Shifts in your network, sorted by date, {sortLabel}. Page {data?.page ?? 1} of {pages}.
           </caption>
           <thead>
             <tr>
@@ -237,7 +255,7 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
               <th scope="col">Agency</th>
               <th scope="col">Role</th>
               <th scope="col" aria-sort={dir === "asc" ? "ascending" : "descending"}>
-                <button type="button" onClick={() => setDir((d) => (d === "asc" ? "desc" : "asc"))}>
+                <button type="button" onClick={toggleSort}>
                   Date / time
                   <Icon name={dir === "asc" ? "down" : "right"} size="sm" />
                   <span className="sr">, sorted {sortLabel}. Activate to reverse.</span>
@@ -245,33 +263,48 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
               </th>
               <th scope="col">Status</th>
               <th scope="col">Claimed by</th>
+              <th scope="col">
+                <span className="sr">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {view.items.length === 0 ? (
+            {cov.isPending ? (
               <tr>
-                <td colSpan={6} className="empty-cell">
-                  {shifts.length === 0 ? (
-                    <EmptyState icon="grid" title="No shifts in your network yet">
-                      Shifts appear here as soon as an agency posts one.
-                    </EmptyState>
-                  ) : (
+                <td colSpan={7} className="empty-cell">
+                  <ListSkeleton variant="table" rows={5} />
+                </td>
+              </tr>
+            ) : !data ? (
+              <tr>
+                <td colSpan={7} className="empty-cell">
+                  <ErrorState title="Couldn't load shifts" message={cov.error?.message ?? "Something went wrong. Try again."} onRetry={() => void cov.refetch()} />
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="empty-cell">
+                  {filtered ? (
                     <EmptyState
                       icon="search"
                       title="No shifts match"
                       action={
-                        <button type="button" className="btn btn-secondary" onClick={() => update(NO_FILTERS)}>
+                        <button type="button" className="btn btn-secondary" onClick={clear}>
                           Clear filters
                         </button>
                       }
                     >
-                      Try another agency, status or search.
+                      Try another agency, status or name.
+                    </EmptyState>
+                  ) : (
+                    <EmptyState icon="grid" title="No shifts in your network yet">
+                      Shifts appear here as soon as an agency posts one.
                     </EmptyState>
                   )}
                 </td>
               </tr>
             ) : (
-              view.items.map((s) => (
+              rows.map((s) => (
                 <tr key={s.id}>
                   <td className="adm-id">{s.id}</td>
                   <td>
@@ -288,33 +321,57 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
                   <td>
                     <StatusBadge status={s.status} testId="admin-shift-status-badge" />
                   </td>
-                  <td>{s.claimedBy ? <span className="adm-id">{s.claimedBy}</span> : <span className="muted">— <span className="sr">Unclaimed</span></span>}</td>
+                  <td>
+                    {s.claimedByName ?? (
+                      <span className="muted">
+                        — <span className="sr">Unclaimed</span>
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <button type="button" className="btn btn-ghost btn-sm" aria-label={`View details for shift ${s.id}`} onClick={() => setDetail(s)}>
+                      <Icon name="eye" />
+                      View details
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-      <div className="adm-foot">
-        <span className="tnum" aria-live="polite">
-          {view.total === 0 ? "0 shifts" : `${view.from}–${view.to} of ${view.total} shifts`}
-        </span>
-        {view.pages > 1 && (
-          <nav className="adm-pager" aria-label="Shift table pages">
-            <button type="button" className="btn btn-secondary btn-sm" disabled={view.page <= 1} onClick={() => setPage(view.page - 1)} aria-label="Previous page">
-              <Icon name="left" />
-              Prev
-            </button>
-            <span className="tnum">
-              Page {view.page} of {view.pages}
-            </span>
-            <button type="button" className="btn btn-secondary btn-sm" disabled={view.page >= view.pages} onClick={() => setPage(view.page + 1)} aria-label="Next page">
-              Next
-              <Icon name="right" />
-            </button>
-          </nav>
-        )}
-      </div>
+      {cov.isError && data && (
+        <div className="alert al-err adm-inline-alert" role="alert">
+          <Icon name="alert-circle" />
+          <div>Couldn&apos;t refresh the table. Showing the last loaded page.</div>
+          <button type="button" className="btn btn-danger btn-sm" onClick={() => void cov.refetch()}>
+            Retry
+          </button>
+        </div>
+      )}
+      {data && (
+        <div className="adm-foot">
+          <span className="tnum" aria-live="polite">
+            {total === 0 ? "0 shifts" : `${from}–${to} of ${total} shifts`}
+          </span>
+          {pages > 1 && (
+            <nav className="adm-pager" aria-label="Shift table pages">
+              <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous page">
+                <Icon name="left" />
+                Prev
+              </button>
+              <span className="tnum">
+                Page {data.page} of {pages}
+              </span>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Next page">
+                Next
+                <Icon name="right" />
+              </button>
+            </nav>
+          )}
+        </div>
+      )}
+      <ShiftDetailsDialog shift={detail} onClose={() => setDetail(null)} />
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   CancelShiftResponse,
   ClaimShiftResponse,
@@ -10,43 +10,74 @@ import {
   NurseShiftsResponse,
   UploadCredentialResponse,
   type Shift,
+  type ShiftRole,
 } from "@shiftpatch/contracts";
-import { ApiError, apiFetch } from "@/lib/api-client";
-import { formatShiftWhen } from "@/lib/format";
+import { apiFetch } from "@/lib/api-client";
+import { formatDate, formatShiftWhen } from "@/lib/format";
+import { showError } from "@/lib/format-error";
 import { notify } from "@/stores/toasts";
+import { credentialLabel } from "@/lib/credential-label";
+
+/** Server-side filters of GET /api/shifts (all optional, ANDed). `matchable` = only shifts the nurse's credentials qualify for. */
+export interface ShiftParams {
+  matchable?: boolean;
+  role?: ShiftRole;
+  date?: string;
+  /** Server-side status filter (the marketplace only ever asks for "open"). */
+  status?: "open";
+}
 
 /**
- * Nurse server state. Marketplace lists live under `["shifts", ...]` (one prefix invalidates both views);
- * the nurse's own data under `["nurse", ...]`.
+ * Nurse server state. Marketplace lists live under `["shifts", ...]` (one prefix invalidates every view);
+ * the nurse's own data under `["nurse", ...]`. Filtered lists carry their params in the key.
  */
 export const nurseKeys = {
   shifts: ["shifts"] as const,
   openShifts: ["shifts", "all"] as const,
   matchable: ["shifts", "matchable"] as const,
+  shiftList: (params: ShiftParams) => ["shifts", "list", params] as const,
   myShifts: ["nurse", "my-shifts"] as const,
   credentials: ["nurse", "credentials"] as const,
 };
 
-/** Server text verbatim (e.g. "Credential expired, cannot claim shift"), never a guess. */
-export const showError = (err: unknown) => notify.error(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
+export function shiftsPath({ matchable, role, date, status }: ShiftParams): string {
+  const qs = new URLSearchParams();
+  if (matchable) qs.set("matchable", "true");
+  if (role) qs.set("role", role);
+  if (date) qs.set("date", date);
+  if (status) qs.set("status", status);
+  const s = qs.toString();
+  return s ? `/api/shifts?${s}` : "/api/shifts";
+}
 
 const onlyOpen = (shifts: Shift[]) => shifts.filter((s) => s.status === "open");
 
-/** Every open shift in the nurse's network (GET /api/shifts filtered client-side). */
+/** Every open shift in the nurse's network, unfiltered: the source of the chip counts. */
 export function useOpenShifts() {
   return useQuery({
     queryKey: nurseKeys.openShifts,
-    queryFn: ({ signal }) => apiFetch("/api/shifts", { schema: ListShiftsResponse, signal }),
+    queryFn: ({ signal }) => apiFetch(shiftsPath({}), { schema: ListShiftsResponse, signal }),
     select: (d) => onlyOpen(d.shifts),
   });
 }
 
-/** Open shifts this nurse's credentials qualify for. */
+/** Open shifts this nurse's credentials qualify for, unfiltered. */
 export function useMatchableShifts() {
   return useQuery({
     queryKey: nurseKeys.matchable,
-    queryFn: ({ signal }) => apiFetch("/api/shifts?matchable=true", { schema: ListShiftsResponse, signal }),
+    queryFn: ({ signal }) => apiFetch(shiftsPath({ matchable: true }), { schema: ListShiftsResponse, signal }),
     select: (d) => onlyOpen(d.shifts),
+  });
+}
+
+/** The visible list: the server filters by role/date. Keeps the previous list on screen while a new filter loads. */
+export function useFilteredShifts(params: ShiftParams, enabled: boolean) {
+  return useQuery({
+    queryKey: nurseKeys.shiftList(params),
+    queryFn: ({ signal }) => apiFetch(shiftsPath({ ...params, status: "open" }), { schema: ListShiftsResponse, signal }),
+    select: (d) => d.shifts,
+    enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -95,8 +126,13 @@ export function useUploadCredential() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (form: FormData) => apiFetch("/api/nurses/me/credentials", { method: "POST", body: form, schema: UploadCredentialResponse }),
-    onSuccess: () => {
-      notify.success("Credential uploaded", "It is waiting for review.");
+    onSuccess: (_data, form) => {
+      // Echo what was submitted so the nurse can check it (type + expiry), not a generic "uploaded".
+      const type = String(form.get("type")) as "license" | "tb_screening" | "other";
+      const licenseType = form.get("licenseType") as ShiftRole | null;
+      const expiresOn = form.get("expiresOn");
+      const label = credentialLabel({ type, licenseType });
+      notify.success("Credential submitted", `${label} · ${typeof expiresOn === "string" && expiresOn ? `expires ${formatDate(expiresOn)}` : "no expiry date"} · waiting for review`);
       // licenseValid (and so the matchable list) may change with a renewed license.
       return Promise.all([qc.invalidateQueries({ queryKey: nurseKeys.credentials }), qc.invalidateQueries({ queryKey: nurseKeys.shifts })]);
     },

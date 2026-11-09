@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AccountMenu } from "@/components/ui/AccountMenu";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
-import { useLogout } from "@/features/auth/use-logout";
-import { initials } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
 
 const TABS: { href: string; label: string; icon: IconName }[] = [
@@ -15,6 +14,8 @@ const TABS: { href: string; label: string; icon: IconName }[] = [
   { href: "/nurse/credentials", label: "Credentials", icon: "idcard" },
   { href: "/nurse/profile", label: "Profile", icon: "user" },
 ];
+/** Mobile tab bar: Profile lives in the avatar menu (top right) instead. */
+const MOBILE_TABS = TABS.filter((t) => t.href !== "/nurse/profile");
 
 /**
  * Nurse shell (design: Nurse-Scale-Up): bottom tab bar below 1000px, 232px left rail at ≥1000px.
@@ -24,7 +25,6 @@ const TABS: { href: string; label: string; icon: IconName }[] = [
 export function NurseShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const user = useSessionStore((s) => s.user);
-  const { signOut, pending } = useLogout();
   const isOn = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   return (
     <div className="nurse-shell">
@@ -40,23 +40,14 @@ export function NurseShell({ children }: { children: ReactNode }) {
           </Link>
         ))}
         <div className="rail-user">
-          <span className="avatar" aria-hidden="true">
-            {initials(user?.name ?? "")}
-          </span>
-          <div className="who">
-            <b>{user?.name}</b>
-            <span>Nurse</span>
-          </div>
-          <button type="button" className="iconbtn" aria-label="Sign out" onClick={() => void signOut()} disabled={pending}>
-            <Icon name="logout" />
-          </button>
+          <AccountMenu profileHref="/nurse/profile" placement="above" detail={{ name: user?.name ?? "", caption: "Nurse" }} />
         </div>
       </nav>
       <main id="main" tabIndex={-1} className="nurse-main">
         {children}
       </main>
       <nav className="tabbar nurse-tabs" aria-label="Main">
-        {TABS.map((tab) => (
+        {MOBILE_TABS.map((tab) => (
           <Link key={tab.href} href={tab.href} className={`tab${isOn(tab.href) ? " on" : ""}`} aria-current={isOn(tab.href) ? "page" : undefined}>
             <Icon name={tab.icon} size="lg" />
             {tab.label}
@@ -67,13 +58,12 @@ export function NurseShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Signed-in nurse's initials, labelled with their name (for the AppBar's right slot). */
+/** Top-right avatar of the AppBar: the account menu (Profile, Sign out). Hidden >=1000px, where the rail has one. */
 export function UserAvatar() {
-  const name = useSessionStore((s) => s.user?.name ?? "");
   return (
-    <span className="avatar" aria-label={name} role="img">
-      {initials(name)}
-    </span>
+    <div className="appbar-acct">
+      <AccountMenu profileHref="/nurse/profile" />
+    </div>
   );
 }
 

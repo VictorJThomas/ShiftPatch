@@ -15,7 +15,8 @@ Small, typed, no dependencies. Use `tokens.css` classes; no new inline colours. 
 | `EmptyState` | `{ icon: IconName; title; children?; action?: ReactNode }` (h2) |
 | `useOnline()` / `OfflineBanner` | `boolean` / `{ message? }` (renders only while offline) |
 | `NotificationBanner`, `Toaster` | unchanged API; use `notify.success/error` from `@/stores/toasts` |
-| Shell exports | `AppBar({ title, children? })`, `UserAvatar()` from `@/components/shells/NurseShell` |
+| Shell exports | `AppBar({ title, children? })`, `UserAvatar()` (renders `AccountMenu`) from `@/components/shells/NurseShell` |
+| New (feature/11) | `AccountMenu`, `FilterBar`/`FilterGroup`, `SearchInput`, `DetailList`, `StatTile`, `NurseDetailDialog`, `@/lib/format-error` `showError`: see `docs/ui/COMPONENT_CONTRACTS.md` |
 
 ```tsx
 <StatusBadge status={shift.status} testId="admin-shift-status-badge" />

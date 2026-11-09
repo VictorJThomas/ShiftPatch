@@ -511,6 +511,99 @@
       "name": "4. Other routes",
       "item": [
         {
+          "name": "GET /api/admin/agencies/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/agencies/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agencies",
+                ":id"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/coverage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coverage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coverage"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/nurses/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/nurses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "nurses",
+                ":id"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/agencies/:agencyId/coverage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agencies/:agencyId/coverage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agencies",
+                ":agencyId",
+                "coverage"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/audit-logs",
           "request": {
             "method": "GET",
@@ -595,6 +688,44 @@
                 "nurses",
                 "me",
                 "shifts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/shifts/:id/nurse",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/shifts/:id/nurse",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shifts",
+                ":id",
+                "nurse"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/credentials/:id/review",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials/:id/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "credentials",
+                ":id",
+                "review"
               ]
             }
           }

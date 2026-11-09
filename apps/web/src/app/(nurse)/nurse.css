@@ -25,7 +25,7 @@
 .nurse-card-top h3{min-width:0;overflow-wrap:anywhere;text-wrap:balance}
 .nurse-card-meta{gap:6px}
 .nurse-card-tags{gap:var(--s-2);flex-wrap:wrap}
-.nurse-card-actions{gap:10px;margin-top:auto}
+.nurse-card-actions{gap:10px;margin-top:auto;padding-top:var(--s-3);border-top:1px solid var(--c-line)}
 .nurse-card-actions .btn{min-height:48px}
 .nurse-shell .btn:not([disabled]):active{transform:scale(.96)}
 @media (prefers-reduced-motion:no-preference){.nurse-shell .btn{transition:transform .1s ease,background-color .15s ease}}
@@ -68,6 +68,34 @@
 .nurse-profile-who h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
 .nurse-profile-who .muted{font-size:14px;overflow-wrap:anywhere}
 .nurse-profile-who .badge{align-self:flex-start;margin-top:4px}
-/* inline credential upload form (QA D3: the spec inputs exist on page load) */
-.nurse-upload{max-width:560px;scroll-margin-top:72px}
-.nurse-upload-sub{font-size:14px;margin:2px 0 14px}
+/* "Add a credential" strip (the spec inputs exist on page load) + its modal */
+.nurse-strip{display:flex;flex-direction:column;gap:var(--s-3);scroll-margin-top:72px}
+.nurse-upload-sub{font-size:14px;margin:2px 0 0}
+.nurse-strip-row{display:flex;flex-direction:column;gap:var(--s-3)}
+.nurse-strip-go{align-self:stretch;min-height:var(--tap)}
+@media (min-width:720px){
+  .nurse-strip-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;align-items:start;gap:var(--s-4)}
+  /* controls share one 48px height; Continue sits level with the inputs (label line + its margin), not below a hint */
+  .nurse-strip-row .fld{margin-bottom:0}
+  .nurse-file,.nurse-strip-go{min-height:48px}
+  .nurse-strip-go{align-self:start;margin-top:calc(14px * 1.45 + 6px)}
+}
+.nurse-summary-v{overflow-wrap:anywhere;text-align:right}
+.nurse-missing{font-size:14px;margin-top:var(--s-3)}
+.dlg-body .nurse-summary{margin-bottom:var(--s-3)}
+
+/* credential cards: the title button stretches over the whole card */
+.nurse-cred{position:relative}
+.nurse-cred-open{all:unset;cursor:pointer;font:inherit;font-weight:700;overflow-wrap:anywhere;text-wrap:balance}
+.nurse-cred-open::after{content:"";position:absolute;inset:0;border-radius:var(--r-lg)}
+.nurse-cred-open:focus-visible::after{outline:3px solid var(--c-focus);outline-offset:2px}
+.nurse-cred-more{display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:650;color:var(--c-brand)}
+.nurse-cred .nurse-notice-link{position:relative;z-index:1}
+@media (hover:hover){.nurse-cred:hover{border-color:var(--c-line-strong)}}
+
+/* my shifts: count beside the heading + the policy notice as its own block */
+.nurse-count{margin-left:6px;color:var(--c-ink-2)}
+.nurse-policy{margin-bottom:var(--s-4)}
+
+/* Title + Add credential + avatar must fit a 360px app bar */
+@media (max-width:400px){.nurse-appbar-btn{font-size:14px;padding:0 10px;gap:4px}.nurse-shell .appbar{gap:8px}}

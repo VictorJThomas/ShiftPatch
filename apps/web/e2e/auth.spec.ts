@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { banner, HOME, roleCookie, signIn } from "./helpers";
+import { banner, HOME, roleCookie, signIn, signOutViaMenu } from "./helpers";
 import { MockApi, USERS, type UserKey } from "./mock-api";
 
 let api: MockApi;
@@ -148,15 +148,33 @@ test.describe("logout", () => {
   test("still signs out locally when the logout request fails", async ({ page }) => {
     await signIn(page, "admin");
     api.logoutStatus = 500;
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOutViaMenu(page);
     await expect(page).toHaveURL(/\/login$/);
     expect(await roleCookie(page)).toBeUndefined();
   });
 
-  test("agency header sign-out", async ({ page }) => {
+  test("agency account menu: Profile link, then Sign out", async ({ page }) => {
     await signIn(page, "agency");
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await expect(page.getByRole("menuitem", { name: "Profile" })).toHaveAttribute("href", "/agency/profile");
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("admin menu at 390px opens downward: Sign out is inside the viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signIn(page, "admin");
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeInViewport({ ratio: 1 });
+  });
+
+  test("agency phone: the account menu leads back to Shifts from the profile page", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signIn(page, "agency");
+    await page.goto("/agency/profile");
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: "Shifts" }).click();
+    await expect(page).toHaveURL(/\/agency\/shifts$/);
   });
 });
 
@@ -165,14 +183,14 @@ test.describe("access-token expiry", () => {
     await signIn(page, "agency");
     await expect(page.getByTestId("agency-shift-count")).toHaveText(/2 shifts/);
     const refreshBase = api.calls("/api/auth/refresh").length;
-    const shiftsBase = api.calls("/api/agencies/agency-a/shifts").length;
+    const shiftsBase = api.calls("/api/agencies/agency-a/coverage").length;
 
     api.expireTokens();
     await page.getByRole("button", { name: "Refresh" }).click();
     await expect(page.getByTestId("agency-shift-count")).toBeVisible();
     await expect.poll(() => api.calls("/api/auth/refresh").length - refreshBase).toBe(1);
     // original (401) + retry (200)
-    await expect.poll(() => api.calls("/api/agencies/agency-a/shifts").length - shiftsBase).toBe(2);
+    await expect.poll(() => api.calls("/api/agencies/agency-a/coverage").length - shiftsBase).toBe(2);
     await expect(page).toHaveURL(/\/agency\/shifts$/);
   });
 
@@ -182,7 +200,7 @@ test.describe("access-token expiry", () => {
     api.expireTokens();
     api.raceNext = 1;
     await page.getByRole("button", { name: "Refresh" }).click();
-    await expect.poll(() => api.calls("/api/agencies/agency-a/shifts").filter((r) => r.headers.authorization === "Bearer tok-2").length).toBe(1);
+    await expect.poll(() => api.calls("/api/agencies/agency-a/coverage").filter((r) => r.headers.authorization === "Bearer tok-2").length).toBe(1);
     expect(api.calls("/api/auth/refresh").length - refreshBase).toBe(2); // 409, then the retry succeeded
     await expect(page).toHaveURL(/\/agency\/shifts$/);
   });
@@ -225,7 +243,7 @@ test.describe("access-token expiry", () => {
   test("no retry loop: a request that 401s even with a fresh token ends the session", async ({ page }) => {
     await signIn(page, "agency");
     await expect(page.getByTestId("agency-shift-count")).toBeVisible();
-    const shiftsBase = api.calls("/api/agencies/agency-a/shifts").length;
+    const shiftsBase = api.calls("/api/agencies/agency-a/coverage").length;
     api.rejectAllTokens = true; // refresh succeeds, but every API call keeps answering 401
     api.refreshesIssued = 0;
     api.refreshBudget = 1; // after the one legitimate refresh the fake session is gone (the /login visit must not re-auth)
@@ -233,7 +251,7 @@ test.describe("access-token expiry", () => {
     await expect(page).toHaveURL(/\/login$/);
     await page.waitForTimeout(500); // a loop would keep calling
     expect(api.refreshesIssued).toBe(1); // one refresh for the failed request, nothing after
-    expect(api.calls("/api/agencies/agency-a/shifts").length - shiftsBase).toBe(2); // original + exactly one retry
+    expect(api.calls("/api/agencies/agency-a/coverage").length - shiftsBase).toBe(2); // original + exactly one retry
     expect(await roleCookie(page)).toBeUndefined();
   });
 });

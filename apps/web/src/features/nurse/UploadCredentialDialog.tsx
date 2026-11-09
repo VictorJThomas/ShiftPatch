@@ -1,10 +1,13 @@
 "use client";
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { CREDENTIAL_MAX_BYTES, CREDENTIAL_MIME_TYPES, ErrorMessage, UploadCredentialFields, type CredentialType } from "@shiftpatch/contracts";
+import { Dialog } from "@/components/ui/Dialog";
 import { Field, Select } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
+import { formatDate } from "@/lib/format";
 import { useUploadCredential } from "./queries";
 
 export interface UploadValues {
@@ -17,6 +20,7 @@ export interface UploadValues {
 
 const FORM_ID = "credential-upload";
 const ACCEPT = "application/pdf,image/jpeg,image/png,image/heic,.heic";
+const EMPTY: Omit<UploadValues, "type"> = { licenseType: "", expiresOn: "", screenedOn: "", file: null };
 
 /** Early, friendly version of the API's 413/415 (the server still sniffs the bytes). HEIC often has an empty MIME type. */
 export function fileProblem(file: File | undefined): string | null {
@@ -60,44 +64,153 @@ export function buildCredentialForm(values: UploadValues, file: File): FormData 
 
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
+/** Page buttons ("Upload renewal"...) ask the strip to preset a type; a new object each time re-triggers it. */
+export interface UploadPreset {
+  type: CredentialType;
+}
+
 /**
- * Inline upload form, always on the Credentials page (QA D3): `credential-upload-input` and
- * `credential-expiry-date-input` exist from page load, once each, with no dialog to open first. The page's
- * "Upload" buttons preset the type and move focus here. The expiry field is shown for every type (required for
- * a license, optional otherwise); a TB screening adds its screening date.
+ * "Add a credential": a slim strip that is always on the page (file + expiry, so `credential-upload-input` and
+ * `credential-expiry-date-input` exist from load, once each) and a modal for the type-specific fields and submit.
+ * Strip and modal share ONE react-hook-form state: the modal only mounts the fields that apply to the chosen
+ * type, shows a read-only summary of the strip's values, and its submit stays disabled until the form is valid.
  */
-export function UploadCredentialForm({ type: presetType = "license", disabled = false }: { type?: CredentialType; disabled?: boolean }) {
+export function UploadCredentialForm({ preset, disabled = false }: { preset?: UploadPreset; disabled?: boolean }) {
   const upload = useUploadCredential();
+  const [open, setOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const {
     register,
     handleSubmit,
     watch,
     reset,
-    formState: { errors },
-  } = useForm<UploadValues>({
-    resolver,
-    values: { type: presetType, licenseType: "", expiresOn: "", screenedOn: "", file: null },
-    resetOptions: { keepDirtyValues: false },
-  });
+    setValue,
+    formState: { errors, isValid },
+  } = useForm<UploadValues>({ resolver, mode: "onChange", defaultValues: { type: "license", ...EMPTY } });
   const type = watch("type");
+  const expiresOn = watch("expiresOn");
+  const screenedOn = watch("screenedOn");
   const file = watch("file")?.[0];
+
+  // A page button preset the type: apply it and move focus to the strip's file input (the first thing to fill).
+  useEffect(() => {
+    if (!preset) return;
+    setValue("type", preset.type, { shouldValidate: true });
+    const form = formRef.current;
+    form?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === false ? "smooth" : "auto", block: "start" });
+    form?.querySelector<HTMLElement>('[data-testid="credential-upload-input"]')?.focus({ preventScroll: true });
+  }, [preset, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       await upload.mutateAsync(buildCredentialForm(values, values.file![0]!));
-      reset({ type: values.type, licenseType: "", expiresOn: "", screenedOn: "", file: null });
+      reset({ type: "license", ...EMPTY });
+      setOpen(false);
     } catch {
       // shown by the mutation's notify.error (413 / 415 / 503 text verbatim); keep the values to retry
     }
   });
+  // No way out (Back, X, Esc) while the upload is in flight: the request would finish unseen.
+  const close = () => {
+    if (!upload.isPending) setOpen(false);
+  };
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    if (open) return onSubmit(e);
+    e.preventDefault(); // Enter in the strip continues to the modal instead of submitting half a form
+    setOpen(true);
+  };
+
+  const missing = [
+    fileProblem(file) ? "a valid file" : null,
+    type === "license" && !expiresOn ? "an expiry date" : null,
+    type === "tb_screening" && !screenedOn ? "the screening date" : null,
+  ].filter(Boolean);
 
   return (
-    <section className="card pad nurse-upload" aria-labelledby="upload-h" id="upload">
-      <h2 id="upload-h" className="nurse-list-h">
-        Upload a credential
-      </h2>
-      <p className="muted nurse-upload-sub">An administrator reviews it. Max 10 MB, PDF, JPG, PNG or HEIC.</p>
-      <form id={FORM_ID} onSubmit={onSubmit} noValidate>
+    <form ref={formRef} id={FORM_ID} className="card pad nurse-strip" aria-labelledby="upload-h" onSubmit={submit} noValidate>
+      <div>
+        <h2 id="upload-h" className="nurse-list-h">
+          Add a credential
+        </h2>
+        <p className="muted nurse-upload-sub">An administrator reviews it. Max 10 MB, PDF, JPG, PNG or HEIC.</p>
+      </div>
+      <div className="nurse-strip-row">
+        <Field label="File" error={errors.file?.message} required>
+          {(p) => (
+            <>
+              <label className="btn btn-secondary btn-block nurse-file">
+                <Icon name="file" />
+                {file ? "Choose another file" : "Choose file or take photo"}
+                {/* Visually hidden, still focusable: the label shows the focus ring (nurse.css). No forced `capture`, so desktop works. */}
+                <input
+                  id={p.id}
+                  aria-describedby={p["aria-describedby"]}
+                  aria-invalid={p["aria-invalid"]}
+                  required={p.required}
+                  {...register("file")}
+                  type="file"
+                  className="sr"
+                  accept={ACCEPT}
+                  data-testid="credential-upload-input"
+                />
+              </label>
+              {file && (
+                <div className="nurse-file-chip">
+                  <Icon name="file" />
+                  <div>
+                    <b>{file.name}</b>
+                    <span className="muted tnum">{mb(file.size)}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </Field>
+        <Field
+          label={type === "license" ? "Expiry date" : <>Expiry date <small>(optional)</small></>}
+          error={errors.expiresOn?.message}
+          hint={type === "license" ? "Required for licenses." : undefined}
+          required={type === "license"}
+        >
+          {(p) => <input {...p} {...register("expiresOn")} type="date" data-testid="credential-expiry-date-input" />}
+        </Field>
+        <button type="button" className="btn btn-primary nurse-strip-go" disabled={disabled} onClick={() => setOpen(true)}>
+          Continue
+          <Icon name="arrow" size="sm" />
+        </button>
+      </div>
+
+      <Dialog
+        open={open}
+        onClose={close}
+        variant="modal"
+        title="Add credential"
+        description="Check the details, then submit for review."
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={close} disabled={upload.isPending}>
+              Back
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={disabled || !isValid || upload.isPending} aria-busy={upload.isPending || undefined}>
+              {upload.isPending ? <span className="spin" aria-hidden="true" /> : <Icon name="upload" />}
+              {upload.isPending ? "Uploading…" : "Add credential"}
+            </button>
+          </>
+        }
+      >
+        <div className="nurse-summary" aria-label="Your file and expiry">
+          <div className="row between">
+            <span className="muted">File</span>
+            <b className="nurse-summary-v">{file ? `${file.name} · ${mb(file.size)}` : "None chosen"}</b>
+          </div>
+          <div className="row between">
+            <span className="muted">Expiry date</span>
+            <b className="tnum">{expiresOn ? formatDate(expiresOn) : "Not set"}</b>
+          </div>
+          <button type="button" className="nurse-notice-link" onClick={close}>
+            Change file or expiry
+          </button>
+        </div>
         <Field label="Credential type" required>
           {(p) => (
             <Select {...p} {...register("type")}>
@@ -119,50 +232,17 @@ export function UploadCredentialForm({ type: presetType = "license", disabled = 
             )}
           </Field>
         )}
-        <Field label="File" error={errors.file?.message} hint={file ? undefined : "PDF, JPG, PNG or HEIC, up to 10 MB."} required>
-          {(p) => (
-            <>
-              <label className="btn btn-secondary btn-block nurse-file">
-                <Icon name="file" />
-                {file ? "Choose another file" : "Choose file or take photo"}
-                {/* Visually hidden, still focusable: the label shows the focus ring (nurse.css). No forced `capture`, so desktop works. */}
-                <input
-                  id={p.id}
-                  aria-describedby={p["aria-describedby"]}
-                  aria-invalid={p["aria-invalid"]}
-                  required={p.required}
-                  {...register("file")} type="file" className="sr" accept={ACCEPT} data-testid="credential-upload-input" />
-              </label>
-              {file && (
-                <div className="nurse-file-chip">
-                  <Icon name="file" />
-                  <div>
-                    <b>{file.name}</b>
-                    <span className="muted tnum">{mb(file.size)}</span>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </Field>
         {type === "tb_screening" && (
           <Field label="Screening date" error={errors.screenedOn?.message} required>
             {(p) => <input {...p} {...register("screenedOn")} type="date" />}
           </Field>
         )}
-        <Field
-          label={type === "license" ? "Expiry date" : <>Expiry date <small>(optional)</small></>}
-          error={errors.expiresOn?.message}
-          hint={type === "license" ? "Required for licenses." : undefined}
-          required={type === "license"}
-        >
-          {(p) => <input {...p} {...register("expiresOn")} type="date" data-testid="credential-expiry-date-input" />}
-        </Field>
-        <button type="submit" className="btn btn-primary btn-block" disabled={disabled || upload.isPending} aria-busy={upload.isPending || undefined}>
-          {upload.isPending ? <span className="spin" aria-hidden="true" /> : <Icon name="upload" />}
-          {upload.isPending ? "Uploading…" : "Upload"}
-        </button>
-      </form>
-    </section>
+        {missing.length > 0 && (
+          <p className="muted nurse-missing" role="status">
+            Still needed: {missing.join(", ")}.
+          </p>
+        )}
+      </Dialog>
+    </form>
   );
 }

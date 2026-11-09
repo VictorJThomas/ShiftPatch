@@ -48,29 +48,20 @@ export function coverageByAgency(shifts: readonly Shift[]): AgencyCoverage[] {
   });
 }
 
-export interface ShiftFilters {
-  agencyId: string; // "all" or an id
-  status: StatusFilter;
-  search: string;
-}
-export const NO_FILTERS: ShiftFilters = { agencyId: "all", status: "all", search: "" };
-
-/** Agency + search, without the status (the status chips show counts for everything else that matches). */
-export function matchesBase(s: Shift, f: ShiftFilters): boolean {
-  if (f.agencyId !== "all" && s.agencyId !== f.agencyId) return false;
-  const q = f.search.trim().toLowerCase();
-  if (!q) return true;
-  return [s.id, s.agencyName, s.agencyId, s.claimedBy ?? ""].some((v) => v.toLowerCase().includes(q));
-}
-
-export function filterShifts(shifts: readonly Shift[], f: ShiftFilters): Shift[] {
-  return shifts.filter((s) => matchesBase(s, f) && (f.status === "all" || s.status === f.status));
+/** Query string for GET /api/admin/coverage. "all" / empty filters are left out; the server does the filtering. */
+export function coverageParams(f: { status: StatusFilter; agencyId: string; q: string; page: number; sort?: SortDir }, pageSize = PAGE_SIZE): URLSearchParams {
+  const p = new URLSearchParams({ page: String(f.page), pageSize: String(pageSize) });
+  if (f.status !== "all") p.set("status", f.status);
+  if (f.agencyId !== "all") p.set("agencyId", f.agencyId);
+  if (f.q.trim()) p.set("q", f.q.trim());
+  if (f.sort) p.set("sort", f.sort);
+  return p;
 }
 
 export type SortDir = "asc" | "desc";
 
 /** By date then start time; ties by id so the order is stable across polls. */
-export function sortByDate(shifts: readonly Shift[], dir: SortDir): Shift[] {
+export function sortByDate<T extends Shift>(shifts: readonly T[], dir: SortDir): T[] {
   const sign = dir === "asc" ? 1 : -1;
   return [...shifts].sort((a, b) => sign * (`${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`) || a.id.localeCompare(b.id)));
 }
@@ -102,6 +93,7 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   "shift.cancelled": "Cancelled shift",
   "shift.withdrawn": "Withdrew shift",
   "credential.uploaded": "Uploaded credential",
+  "credential.reviewed": "Reviewed credential",
   "auth.login": "Signed in",
   "auth.login_failed": "Failed sign-in",
   "auth.logout": "Signed out",

@@ -11,7 +11,7 @@ export function ChipGroup<T extends string>({ label, options, value, onChange }:
   return (
     <div role="group" aria-label={label} className="chips">
       {options.map((o) => (
-        <button key={o.value} type="button" className={`chip${o.value === value ? " on" : ""}`} aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
+        <button key={o.value} type="button" className={`chip${o.value === value ? " on" : ""}`} aria-pressed={o.value === value} data-zero={o.count === 0 ? "" : undefined} onClick={() => onChange(o.value)}>
           {o.label}
           {/* The space keeps the accessible name "Open 3", not "Open3"; flex gap ignores it visually. */}
           {o.count !== undefined && " "}

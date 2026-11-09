@@ -14,13 +14,13 @@ body{background:var(--c-bg);color:var(--c-ink);font-family:var(--f-sans);font-si
 @media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
 .page-loading{min-height:100dvh;display:flex;align-items:center;justify-content:center;color:var(--c-ink-3);gap:12px}
 
-/* toaster: top of screen on mobile, top-right on desktop */
+/* toaster: top of screen on mobile (the bottom tab bar stays uncovered), bottom-right on desktop */
 .toaster{position:fixed;z-index:50;top:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
 .toaster>*{pointer-events:auto}
 /* inside an open modal dialog (the page behind it is inert): in flow at the top of the dialog box */
 .toaster.toaster-inline{position:static;inset:auto;width:auto;z-index:auto;pointer-events:auto}
 .toaster-inline:has(.banner){padding:12px 16px 0}
-@media (min-width:768px){.toaster{top:24px;right:24px;left:auto;width:min(420px,calc(100vw - 48px))}}
+@media (min-width:1000px){.toaster{top:auto;bottom:24px;right:24px;left:auto;width:min(420px,calc(100vw - 48px))}}
 .banner{overflow:hidden;border-radius:var(--r-md)}
 .banner .alert .iconbtn{color:inherit;margin:-8px -8px -8px 0}
 .banner.has-timer .alert{border-radius:var(--r-md) var(--r-md) 0 0;border-bottom:0;align-items:center}
@@ -110,7 +110,7 @@ html:has(.dlg[open]){overflow:hidden}
 .nurse-shell .appbar{position:sticky;top:0;z-index:5;background:var(--c-bg)}
 .nurse-shell .body{overflow:visible}
 .nurse-shell :focus-visible{scroll-margin-top:72px;scroll-margin-bottom:88px}
-.nurse-tabs{position:fixed;bottom:0;left:0;right:0;z-index:10;height:auto;min-height:72px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+.nurse-tabs{grid-template-columns:repeat(3,1fr);position:fixed;bottom:0;left:0;right:0;z-index:10;height:auto;min-height:72px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
 .nurse-rail{display:none}
 @media (min-width:700px){.nurse-shell .appbar,.nurse-shell .body{padding-left:var(--s-8);padding-right:var(--s-8)}.nurse-shell .appbar{height:76px}}
 @media (min-width:1000px){
@@ -151,18 +151,16 @@ html:has(.dlg[open]){overflow:hidden}
 .ag-opt[aria-selected="true"]{background:var(--c-brand-soft);box-shadow:inset 0 0 0 1.5px var(--c-brand)}
 .ag-tile{width:44px;height:44px;border-radius:12px;color:#fff;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none}
 .ag-main{max-width:1200px;margin:0 auto;padding:32px;width:100%;display:flex;flex-direction:column;gap:20px;flex:1}
-.ag-tabbar{display:none}
 @media (max-width:719px){
   .ag-header{display:none}
   .ag-wrap{padding:0 16px}
   .ag-band .ag-wrap{padding-top:14px;padding-bottom:16px;gap:12px}
   .ag-mono{width:44px;height:44px;font-size:17px;border-radius:12px}
   .ag-name{font-size:19px}
-  .ag-switch{flex:1 0 100%}
+  .ag-switch{flex:1 0 100%;order:3}
   .ag-switch>.btn{width:100%}
   .ag-menu{left:0;right:0;width:auto}
-  .ag-main{padding:16px 16px 96px;gap:12px}
-  .ag-tabbar{display:grid;position:fixed;bottom:0;left:0;right:0;grid-template-columns:repeat(2,1fr);z-index:10}
+  .ag-main{padding:16px 16px calc(24px + env(safe-area-inset-bottom));gap:12px}
 }
 
 /* admin shell */
@@ -189,3 +187,93 @@ html:has(.dlg[open]){overflow:hidden}
 .scrollx{position:relative}
 /* QA D6: ids like "shift-1" never break across lines */
 .adm-id{white-space:nowrap}
+
+/* ===================== Notion polish round (feature/11) ===================== */
+/* Pointer cursor on everything clickable; disabled controls say so. */
+button,a[href],summary,select,label[for],[role=button],[role=menuitem],[role=tab],input[type=checkbox],input[type=radio],input[type=file],input[type=date],input[type=time]{cursor:pointer}
+button:disabled,[aria-disabled=true],select:disabled,input:disabled{cursor:not-allowed}
+
+/* select text: the .inp wrapper already pads the control, so only the dropdown options get their own inline padding */
+.inp select option{padding:8px 14px}
+
+/* Centered content: AppBar + body share the main's width; narrow pages centre their column, header included */
+.nurse-narrow{margin-inline:auto;width:100%}
+.nurse-main:has(.nurse-narrow) .appbar{max-width:640px;margin-inline:auto;width:100%}
+
+/* Avatar: solid brand disc with a soft ring (tokens only) */
+.avatar{width:40px;height:40px;background:var(--c-brand);color:var(--c-on-brand);box-shadow:0 0 0 3px var(--c-brand-soft);font-size:14px}
+.avatar-lg{width:64px;height:64px;font-size:22px}
+
+/* AccountMenu */
+.acct{position:relative;display:inline-flex}
+.acct-btn{display:inline-flex;align-items:center;gap:10px;min-width:var(--tap);min-height:var(--tap);padding:2px;border:0;border-radius:var(--r-pill);background:none;color:var(--c-ink);text-align:left}
+.acct-btn:hover .avatar{box-shadow:0 0 0 3px var(--c-brand-soft),0 0 0 4px var(--c-brand)}
+.acct-btn[aria-expanded=true] .avatar{box-shadow:0 0 0 3px var(--c-brand-soft),0 0 0 5px var(--c-brand)}
+.acct-btn .avatar{justify-content:center;margin:auto}
+.acct-wide{display:flex;flex:1;min-width:0}
+.acct-wide .acct-btn{width:100%;padding:6px 8px;border-radius:var(--r-md)}
+.acct-wide .acct-btn:hover{background:var(--c-sunken)}
+.acct-wide .who{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.25}
+.acct-wide .who b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-wide .who span{font-size:12.5px;color:var(--c-ink-3)}
+.acct-menu{position:absolute;right:0;z-index:30;min-width:192px;max-width:calc(100vw - 32px);padding:6px;display:flex;flex-direction:column;gap:2px;background:var(--c-surface);border:1px solid var(--c-line);border-radius:var(--r-lg);box-shadow:var(--e-3)}
+.acct-below{top:calc(100% + 8px)}
+.acct-above{bottom:calc(100% + 8px)}
+.acct-wide .acct-menu{left:0;right:auto}
+.acct-item{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;border-radius:var(--r-md);background:none;color:var(--c-ink);font:inherit;font-size:15px;font-weight:600;text-align:left;text-decoration:none;width:100%}
+.acct-item:hover,.acct-item:focus-visible{background:var(--c-sunken)}
+.acct-item:focus-visible{outline-offset:-2px}
+.acct-danger{color:var(--st-rejected-fg)}
+.acct-danger:hover,.acct-danger:focus-visible{background:var(--st-rejected-bg)}
+@media (min-width:1000px){.appbar-acct{display:none}}
+.ag-band-acct{display:none}
+.ag-email{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-band .acct-btn{color:#fff}
+.ag-band .avatar{background:#fff;color:var(--c-ink);box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+@media (max-width:719px){
+  .ag-band-acct{display:block;order:2;margin-left:auto}
+  }
+@media (max-width:959px){
+  /* admin top bar: avatar only, no name block */
+  .adm-side .rail-user .acct-wide{flex:none;width:auto}
+  .adm-side .rail-user .acct-wide .who,.adm-side .rail-user .acct-wide .ic{display:none}
+  .adm-side .rail-user .avatar{display:inline-flex}
+  .adm-side .acct-menu{left:auto;right:0;bottom:auto;top:calc(100% + 8px)}
+}
+.nurse-main .appbar .acct{margin-right:-2px}
+
+/* FilterBar / FilterGroup */
+.fbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.fbar-groups{display:flex;flex-wrap:wrap;gap:12px 0;min-width:0;max-width:100%}
+.fgroup{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%}
+.fgroup-l{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c-ink-3);padding-left:2px}
+.fgroup+.fgroup{margin-left:0}
+.fbar-trail{flex:1 1 240px;max-width:360px;min-width:0}
+@media (max-width:899px){.fgroup{flex:1 0 100%}}
+@media (min-width:900px){.fgroup+.fgroup{margin-left:20px;padding-left:20px;border-left:1px solid var(--c-line)}}
+.chip[data-zero]:not(.on){opacity:.55}
+.chip[data-zero]:hover,.chip[data-zero]:focus-visible{opacity:1}
+
+/* SearchInput */
+.search{min-width:0;width:100%}
+
+/* DetailList */
+.dl{display:grid;grid-template-columns:minmax(0,1fr);gap:12px 24px;margin:0}
+.dl-row{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;align-items:start}
+.dl-row .ic{grid-row:span 2;margin-top:2px}
+.dl-row:not(:has(.ic)){grid-template-columns:minmax(0,1fr)}
+.dl dt{font-size:12.5px;font-weight:650;color:var(--c-ink-3)}
+.dl dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+@media (min-width:480px){.dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* StatTile */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--s-4)}
+.stat-brand{background:var(--c-brand-soft);border-color:var(--c-brand)}
+.stat-hint{font-size:13px}
+
+/* NurseDetailDialog */
+.nd-h{font-size:14px;font-weight:700;color:var(--c-ink-2);margin:20px 0 8px}
+.nd-creds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--c-line);border-radius:var(--r-md)}
+.nd-creds li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--c-line)}
+.nd-creds li:last-child{border-bottom:0}
+.nd-creds li>div{display:flex;flex-direction:column;min-width:0}

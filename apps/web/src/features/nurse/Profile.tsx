@@ -2,7 +2,7 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import Link from "next/link";
-import { AppBar } from "@/components/shells/NurseShell";
+import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
 import { Icon } from "@/components/ui/Icon";
 import { useLogout } from "@/features/auth/use-logout";
 import { initials } from "@/lib/format";
@@ -18,7 +18,9 @@ export function Profile() {
 
   return (
     <>
-      <AppBar title="Profile" />
+      <AppBar title="Profile">
+        <UserAvatar />
+      </AppBar>
       <div className="body nurse-stack nurse-narrow">
         <section className="card nurse-profile" aria-label="Account">
           <span className="avatar avatar-lg" aria-hidden="true">

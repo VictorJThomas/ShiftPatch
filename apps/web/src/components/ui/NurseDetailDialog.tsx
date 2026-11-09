@@ -1,0 +1,65 @@
+"use client";
+
+import type { NurseDetail } from "@shiftpatch/contracts";
+import type { ReactNode } from "react";
+import { credentialLabel } from "@/lib/credential-label";
+import { formatDate } from "@/lib/format";
+import { DetailList } from "./DetailList";
+import { Dialog } from "./Dialog";
+import { ErrorState, ListSkeleton } from "./States";
+import { StatusBadge } from "./StatusBadge";
+
+export type NurseDetailData = NurseDetail;
+
+export interface NurseDetailDialogProps {
+  open: boolean;
+  onClose: () => void;
+  nurse?: NurseDetailData;
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+  footer?: ReactNode;
+  title?: string;
+  /** Per-credential actions (admin Verify / Reject). Omit for a read-only list. */
+  credentialActions?: (credential: NurseDetailData["credentials"][number]) => ReactNode;
+}
+
+/** Presentational nurse info + credentials list. The caller fetches the data and owns `open`. */
+export function NurseDetailDialog({ open, onClose, nurse, loading, error, onRetry, footer, title = "Nurse details", credentialActions }: NurseDetailDialogProps) {
+  return (
+    <Dialog open={open} onClose={onClose} title={title} footer={footer}>
+      {loading ? (
+        <ListSkeleton variant="table" rows={3} />
+      ) : error ? (
+        <ErrorState message={error} onRetry={onRetry ?? onClose} />
+      ) : nurse ? (
+        <>
+          <DetailList
+            items={[
+              { label: "Name", value: nurse.name, icon: "user" },
+              { label: "Email", value: nurse.email, icon: "mail" },
+              { label: "License type", value: nurse.licenseType, icon: "idcard" },
+            ]}
+          />
+          <h3 className="nd-h">Credentials</h3>
+          {nurse.credentials.length === 0 ? (
+            <p className="muted">No credentials on file.</p>
+          ) : (
+            <ul className="nd-creds">
+              {nurse.credentials.map((c) => (
+                <li key={c.id} className={credentialActions ? "adm-cred" : undefined}>
+                  <div>
+                    <b>{credentialLabel(c)}</b>
+                    <span className="muted">{c.expiresOn ? `${c.expired ? "Expired" : "Expires"} ${formatDate(c.expiresOn)}` : c.screenedOn ? `Screened ${formatDate(c.screenedOn)}` : "No expiry"}</span>
+                  </div>
+                  <StatusBadge status={c.status} />
+                  {credentialActions && <div className="adm-cred-acts">{credentialActions(c)}</div>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : null}
+    </Dialog>
+  );
+}

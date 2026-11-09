@@ -73,18 +73,23 @@ test("nurse-2: the 403 reaches notification-banner with the exact spec text, as 
 test("nurse: credential upload input (file) and expiry input (date) on the upload form", async ({ page }) => {
   await signIn(page, "nurse");
   await nav(page, "/nurse/credentials");
+  await expect(page.getByRole("heading", { name: "Add a credential" })).toBeVisible();
   const file = page.getByTestId("credential-upload-input");
   const expiry = page.getByTestId("credential-expiry-date-input");
-  await expect(file).toHaveCount(1);
+  await expect(file).toHaveCount(1); // on the page from load, once each
   await expect(expiry).toHaveCount(1);
   expect(await attr(file, "type")).toBe("file");
   expect(await attr(expiry, "type")).toBe("date");
 
   await file.setInputFiles({ name: "license.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%%EOF\n") });
   await expiry.fill("2028-01-01");
-  await page.locator("#upload").getByRole("button", { name: "Upload", exact: true }).click(); // inline form: inputs exist on page load
-  await expect(page.getByTestId("notification-banner")).toContainText("Credential uploaded");
+  await page.getByRole("button", { name: "Continue" }).click(); // opens the modal: type-specific fields + submit
+  const dlg = page.getByRole("dialog");
+  await expect(dlg.getByLabel("Credential type")).toBeVisible(); // the type select exists only inside the dialog
+  await dlg.getByRole("button", { name: "Add credential" }).click();
+  await expect(page.getByTestId("notification-banner")).toContainText("Credential submitted");
   await expect(page.locator("article").filter({ hasText: /pending/i })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: /On file · 2/ })).toBeVisible();
 });
 
 test("agency: post button opens the form, submit button posts", async ({ page }) => {

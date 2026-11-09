@@ -53,8 +53,19 @@ test.afterAll(async () => {
 });
 
 let postedId = "";
-const adminBadge = () =>
-  pages.admin!.getByTestId("admin-dashboard-shift-table").locator("tbody tr").filter({ has: pages.admin!.getByText(postedId, { exact: true }) }).getByTestId("admin-shift-status-badge");
+/**
+ * The admin table is server-paged (25 rows) and the dashboard polls: find a shift with the search box (matches the id),
+ * never by its position. The row's badge is awaited before anything counts rows (skeleton first).
+ */
+const adminRow = async (id: string) => {
+  const page = pages.admin!;
+  const search = page.getByRole("searchbox", { name: "Search shifts" });
+  if ((await search.inputValue()) !== id) await search.fill(id); // an unchanged filter means a later change can only arrive by the poll
+  const row = page.getByTestId("admin-dashboard-shift-table").locator("tbody tr").filter({ has: page.getByText(id, { exact: true }) });
+  await expect(row.getByTestId("admin-shift-status-badge")).toHaveCount(1);
+  return row;
+};
+const adminBadge = async (id: string) => (await adminRow(id)).getByTestId("admin-shift-status-badge");
 
 test("seed state: agency-a sees shift-1 open and shift-2 filled", async () => {
   const page = pages.agency!;
@@ -76,6 +87,7 @@ test("agency-a posts an RN shift (2026-12-01 07:00-19:00)", async () => {
   postedId = ((await res.json()) as { id: string }).id;
   await expect(banner(page)).toContainText("Shift posted");
   await expect(page.getByTestId("agency-shift-count")).toHaveText("3 shifts");
+  await adminRow(postedId); // point the admin table at it now, so the status flips below arrive by the 15 s poll
 });
 
 test("nurse-1 claims it in one click -> 'Shift claimed'", async () => {
@@ -89,7 +101,20 @@ test("nurse-1 claims it in one click -> 'Shift claimed'", async () => {
 });
 
 test("admin badge for the posted shift turns 'Filled' within one 15 s poll", async () => {
-  await expect(adminBadge()).toHaveText("Filled", { timeout: 17_000 });
+  await expect(await adminBadge(postedId)).toHaveText("Filled", { timeout: 17_000 });
+  await expect(await adminRow(postedId)).toContainText("Maria Lopez"); // claimant name, never an id
+});
+
+test("agency-a sees the claimant by name and opens the nurse details from the board", async () => {
+  const page = pages.agency!;
+  await page.getByRole("button", { name: "Refresh" }).click();
+  await expect(page.getByTestId("agency-shift-count")).toHaveText("3 shifts");
+  await page.getByRole("button", { name: "Maria Lopez, view nurse details" }).last().click();
+  const dlg = page.getByRole("dialog");
+  await expect(dlg).toContainText("Maria Lopez");
+  await expect(dlg).toContainText("maria.lopez@example.com");
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
 });
 
 test("nurse-2 (expired license) gets the exact 403 text and the shift stays open", async () => {
@@ -99,18 +124,20 @@ test("nurse-2 (expired license) gets the exact 403 text and the shift stays open
   await card.getByTestId("shift-claim-button").click();
   await expect(banner(page).getByRole("alert")).toHaveText("Credential expired, cannot claim shift");
   await expect(card).toHaveCount(1);
-  const shift1 = pages.admin!.getByTestId("admin-dashboard-shift-table").locator("tbody tr").filter({ has: pages.admin!.getByText("shift-1", { exact: true }) });
-  await expect(shift1.getByTestId("admin-shift-status-badge")).toHaveText("Open");
+  await expect(await adminBadge("shift-1")).toHaveText("Open");
 });
 
 test("nurse-1 cancels from My shifts in one click -> 'Shift cancelled', shift reopens", async () => {
   const page = pages.nurse1!;
   await nav(page, "/nurse/my-shifts");
+  await expect(page.getByRole("heading", { name: /^Upcoming\s*2$/ })).toBeVisible(); // seed shift-2 + the one claimed above
   const mine = page.locator("article").filter({ hasText: "Dec 1" });
+  await expect(mine.getByText("Claimed by you")).toBeVisible();
+  await adminRow(postedId); // table filtered to it before the cancel: the reopen must come from the poll
   await mine.getByTestId("shift-cancel-button").click();
   await expect(banner(page)).toContainText("Shift cancelled");
   await expect(mine).toHaveCount(0);
   await nav(page, "/nurse/shifts");
   await expect(page.getByTestId("shift-list-item").filter({ hasText: "Dec 1" })).toHaveCount(1);
-  await expect(adminBadge()).toHaveText("Open", { timeout: 17_000 });
+  await expect(await adminBadge(postedId)).toHaveText("Open", { timeout: 17_000 });
 });

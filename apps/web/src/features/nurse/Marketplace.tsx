@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Shift, ShiftRole } from "@shiftpatch/contracts";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
-import { ChipGroup } from "@/components/ui/ChipGroup";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FilterBar, FilterGroup } from "@/components/ui/FilterBar";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { parseIsoDate } from "@/lib/format";
-import { useClaimShift, useCredentials, useMatchableShifts, useOpenShifts } from "./queries";
+import { useClaimShift, useCredentials, useFilteredShifts, useMatchableShifts, useOpenShifts, type ShiftParams } from "./queries";
 import { ShiftCard, ShiftDetailsDialog } from "./ShiftCard";
 
 type RoleFilter = "all" | ShiftRole;
@@ -57,6 +57,7 @@ function LicenseNotice({ kind }: { kind: "expired" | "nomatch" }) {
 }
 
 export function Marketplace() {
+  // Two unfiltered queries: they pick the source (matchable first, open as the lapsed fallback) and feed the chip counts.
   const matchable = useMatchableShifts();
   const open = useOpenShifts();
   const credentials = useCredentials(); // a failure just means the neutral copy
@@ -69,20 +70,28 @@ export function Marketplace() {
 
   const loading = matchable.isPending || open.isPending;
   const failed = matchable.isError || open.isError;
-  const { shifts, notice } = loading || failed ? { shifts: [], notice: null } : pickShiftSource(matchable.data, open.data, credentials.data?.licenseValid);
+  const { shifts: all, notice } = loading || failed ? { shifts: [], notice: null } : pickShiftSource(matchable.data, open.data, credentials.data?.licenseValid);
 
-  // Filters: a selection that no longer exists (e.g. its last shift was claimed) falls back to "all".
-  const dates = [...new Set(shifts.map((s) => s.date))].sort();
+  // A selection that no longer exists (e.g. its last shift was claimed) falls back to "all".
+  const dates = [...new Set(all.map((s) => s.date))].sort();
   const activeDate = dates.includes(date) ? date : "all";
-  const byDate = activeDate === "all" ? shifts : shifts.filter((s) => s.date === activeDate);
-  const byRole = role === "all" ? shifts : shifts.filter((s) => s.role === role);
-  const visible = byDate.filter((s) => role === "all" || s.role === role).toSorted((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
   const filtered = activeDate !== "all" || role !== "all";
+  // Chip counts: each group counts what the other group's selection leaves, from the unfiltered data.
+  const byDate = activeDate === "all" ? all : all.filter((s) => s.date === activeDate);
+  const byRole = role === "all" ? all : all.filter((s) => s.role === role);
+
+  // The visible list is server-filtered (role/date params, same source as the unfiltered list).
+  const useMatch = !loading && !failed && matchable.data.length > 0;
+  const params: ShiftParams = { matchable: useMatch || undefined, role: role === "all" ? undefined : role, date: activeDate === "all" ? undefined : activeDate };
+  const list = useFilteredShifts(params, filtered && !loading && !failed);
+  const listFailed = filtered && list.isError;
+  const listPending = filtered && list.isPending;
+  const visible = (filtered ? (list.data ?? []) : all).toSorted((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
   const clearFilters = () => {
     setDate("all");
     setRole("all");
   };
-  const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch()]);
+  const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch(), filtered ? list.refetch() : undefined]);
 
   // One click claims (spec: the test ID sits "on the element that performs the action"). Claiming is reversible
   // from My shifts, and the toast confirms the outcome, so no confirm step. The backend decides eligibility.
@@ -106,9 +115,17 @@ export function Marketplace() {
         ) : (
           <>
             {notice && <LicenseNotice kind={notice} />}
-            {shifts.length > 0 && (
-              <div className="nurse-filters">
-                <ChipGroup
+            {all.length > 0 && (
+              <FilterBar
+                trailing={
+                  filtered && (
+                    <button type="button" className="btn btn-ghost nurse-clear" onClick={clearFilters}>
+                      Clear filters
+                    </button>
+                  )
+                }
+              >
+                <FilterGroup
                   label="Date"
                   value={activeDate}
                   onChange={setDate}
@@ -117,7 +134,7 @@ export function Marketplace() {
                     ...dates.map((d) => ({ value: d, label: chipDate.format(parseIsoDate(d)), count: byRole.filter((s) => s.date === d).length })),
                   ]}
                 />
-                <ChipGroup<RoleFilter>
+                <FilterGroup<RoleFilter>
                   label="Role"
                   value={role}
                   onChange={setRole}
@@ -126,15 +143,14 @@ export function Marketplace() {
                     ...ROLES.map((r) => ({ value: r, label: r, count: byDate.filter((s) => s.role === r).length })),
                   ]}
                 />
-                {filtered && (
-                  <button type="button" className="btn btn-ghost nurse-clear" onClick={clearFilters}>
-                    Clear filters
-                  </button>
-                )}
-              </div>
+              </FilterBar>
             )}
-            {visible.length > 0 ? (
-              <section aria-labelledby="nurse-list-h">
+            {listFailed ? (
+              <ErrorState title="Couldn't load shifts" message={list.error?.message ?? "Try again."} onRetry={retry} />
+            ) : listPending ? (
+              <ListSkeleton rows={3} />
+            ) : visible.length > 0 ? (
+              <section aria-labelledby="nurse-list-h" aria-busy={list.isPlaceholderData || undefined}>
                 <h2 id="nurse-list-h" className="nurse-list-h tnum">
                   {notice ? plural(visible.length, "open shift", "open shifts") : `${plural(visible.length, "shift", "shifts")} you can take`}
                 </h2>

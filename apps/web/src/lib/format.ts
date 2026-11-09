@@ -76,3 +76,9 @@ export function relativeFrom(value: string | Date, now: Date = new Date()): stri
   if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
   return `${Math.floor(s / 86400)} d ago`;
 }
+
+/** Live echo under the post-shift date/time inputs: "Sat, Oct 3, 2026 · 07:00 → 19:00 · 12 h · Overnight". */
+export function formatShiftEcho(shift: ShiftTimes & { date: string }): string {
+  const hours = shiftHours(shift);
+  return `${formatDate(shift.date)} · ${shift.startTime} → ${shift.endTime} · ${Number.isInteger(hours) ? hours : hours.toFixed(1)} h${isOvernight(shift) ? " · Overnight" : ""}`;
+}

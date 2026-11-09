@@ -1,13 +1,15 @@
 import "@/lib/zod-csp";
-import type { AuditLogEntry, Shift } from "@shiftpatch/contracts";
+import type { AuditLogEntry, CoverageRow, Shift } from "@shiftpatch/contracts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "@/lib/api-client";
+import { useToastStore } from "@/stores/toasts";
 import { AdminDashboard } from "./AdminDashboard";
+import { AdminUsers } from "./AdminUsers";
 import { AuditLog } from "./AuditLog";
-import { auditParams, fillRate, filterShifts, formatChanges, NO_AUDIT_FILTERS, NO_FILTERS, paginate, sortByDate } from "./model";
+import { auditParams, coverageParams, fillRate, formatChanges, NO_AUDIT_FILTERS, paginate, sortByDate } from "./model";
 import { Timesheets } from "./Timesheets";
 
 vi.mock("@/lib/api-client", () => ({
@@ -42,6 +44,27 @@ const entry = (id: number, over: Partial<AuditLogEntry> = {}): AuditLogEntry => 
   agencyId: "agency-a", action: "shift.claimed", entityType: "shift", entityId: `shift-${id}`, changes: { status: ["open", "filled"] }, requestId: "r", ...over,
 });
 
+const NURSE = {
+  id: "nurse-1", name: "Nora Nurse", email: "nora@example.com", licenseType: "LPN",
+  credentials: [{ id: "c1", type: "license", licenseType: "LPN", status: "verified", expiresOn: "2027-01-01", screenedOn: null, uploadedAt: "2026-10-01T10:00:00.000Z", expired: false, hasFile: true }],
+};
+const NAMES: Record<string, string> = { "nurse-1": "Nora Nurse" };
+const withName = (s: Shift): CoverageRow => ({ ...s, claimedByName: s.claimedBy ? (NAMES[s.claimedBy] ?? s.claimedBy) : null });
+
+/** Server stand-in: filters like GET /api/admin/coverage (agency, q on agency/nurse name/id, status, page). */
+function coverage(path: string) {
+  const p = new URL(path, "http://x").searchParams;
+  const q = (p.get("q") ?? "").toLowerCase();
+  const base = shifts.map(withName).filter((s) => (!p.get("agencyId") || s.agencyId === p.get("agencyId")) && (!q || [s.id, s.agencyName, s.claimedByName ?? ""].some((v) => v.toLowerCase().includes(q))));
+  const statusCounts = { open: 0, filled: 0, cancelled: 0, completed: 0 };
+  for (const s of base) statusCounts[s.status]++;
+  const rows = base.filter((s) => !p.get("status") || s.status === p.get("status"));
+  const size = Number(p.get("pageSize") ?? 25);
+  const page = Number(p.get("page") ?? 1);
+  return { shifts: rows.slice((page - 1) * size, page * size), page, pageSize: size, total: rows.length, statusCounts };
+}
+const coverageCalls = () => fetchMock.mock.calls.map(([p]) => p as string).filter((p) => p.startsWith("/api/admin/coverage"));
+
 let shifts: Shift[] = SEED;
 let auditPages: Record<string, { items: AuditLogEntry[]; nextCursor: string | null }> = {};
 
@@ -50,6 +73,8 @@ beforeEach(() => {
   auditPages = {};
   fetchMock.mockImplementation(async (path: string) => {
     if (path === "/api/shifts") return { shifts };
+    if (path.startsWith("/api/admin/coverage")) return coverage(path);
+    if (path === "/api/shifts/shift-2/nurse") return NURSE;
     if (path.startsWith("/api/audit-logs")) {
       const cursor = new URL(path, "http://x").searchParams.get("cursor") ?? "first";
       return auditPages[cursor] ?? { items: [], nextCursor: null };
@@ -71,11 +96,11 @@ describe("model", () => {
     expect(fillRate({ open: 0, filled: 0 })).toBeNull();
   });
 
-  it("filters by agency, status and search (id, agency, nurse id)", () => {
-    expect(filterShifts(SEED, { ...NO_FILTERS, agencyId: "agency-b" }).map((s) => s.id)).toEqual(["shift-3"]);
-    expect(filterShifts(SEED, { ...NO_FILTERS, status: "filled" }).map((s) => s.id)).toEqual(["shift-2"]);
-    expect(filterShifts(SEED, { ...NO_FILTERS, search: "NURSE-1" }).map((s) => s.id)).toEqual(["shift-2"]);
-    expect(filterShifts(SEED, { ...NO_FILTERS, search: "metro" }).map((s) => s.id)).toEqual(["shift-3"]);
+  it("coverage params: all/empty filters are left out, the rest is sent trimmed", () => {
+    expect(coverageParams({ status: "all", agencyId: "all", q: "  ", page: 1 }).toString()).toBe("page=1&pageSize=25");
+    const p = coverageParams({ status: "filled", agencyId: "agency-b", q: " nora ", page: 2 });
+    expect([p.get("status"), p.get("agencyId"), p.get("q"), p.get("page")]).toEqual(["filled", "agency-b", "nora", "2"]);
+    expect(coverageParams({ status: "all", agencyId: "all", q: "", page: 1, sort: "desc" }).get("sort")).toBe("desc");
   });
 
   it("sorts by date and paginates 25 per page with clamped pages", () => {
@@ -108,6 +133,7 @@ describe("admin dashboard", () => {
   it("renders the shift table with a status badge on every row", async () => {
     renderWith(<AdminDashboard />);
     const table = await screen.findByTestId("admin-dashboard-shift-table");
+    await screen.findAllByTestId("admin-shift-status-badge");
     const rows = within(table).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(3);
     for (const row of rows) expect(within(row).getByTestId("admin-shift-status-badge")).toBeTruthy();
@@ -126,36 +152,70 @@ describe("admin dashboard", () => {
     expect(screen.getByText(/refreshes every 15 s/)).toBeTruthy();
   });
 
-  it("status chips (with counts), agency select and search filter the table", async () => {
+  it("status chips use server counts and every filter re-requests with params", async () => {
     renderWith(<AdminDashboard />);
-    await screen.findByTestId("admin-dashboard-shift-table");
+    await screen.findAllByTestId("admin-shift-status-badge");
     fireEvent.click(screen.getByRole("button", { name: "Filled 1" }));
-    expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1);
+    await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1));
+    expect(coverageCalls().some((p) => p.includes("status=filled"))).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "All 3" }));
     fireEvent.change(screen.getByLabelText("Agency"), { target: { value: "agency-b" } });
+    await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1));
     expect(within(screen.getByTestId("admin-dashboard-shift-table")).getByText("shift-3")).toBeTruthy();
-    expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1);
-    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "no-such-thing" } });
-    expect(screen.getByText("No shifts match")).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "Clear filters" })[0]!);
-    expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(3);
+    expect(coverageCalls().some((p) => p.includes("agencyId=agency-b"))).toBe(true);
   });
 
-  it("paginates 25 per page with Prev / Next", async () => {
+  it("search by nurse name is debounced, sent as q=, and Claimed by shows the name", async () => {
+    renderWith(<AdminDashboard />);
+    await screen.findAllByTestId("admin-shift-status-badge");
+    expect(screen.getByText("Nora Nurse")).toBeTruthy();
+    expect(screen.queryByText("nurse-1")).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText("Agency or nurse name"), { target: { value: "nora" } });
+    await waitFor(() => expect(coverageCalls().some((p) => p.includes("q=nora"))).toBe(true));
+    await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1));
+    fireEvent.change(screen.getByPlaceholderText("Agency or nurse name"), { target: { value: "no-such-thing" } });
+    expect(await screen.findByText("No shifts match")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Clear filters" })[0]!);
+    await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(3));
+  });
+
+  it("View details opens the shift with the nurse name and loads nurse details on demand", async () => {
+    renderWith(<AdminDashboard />);
+    await screen.findAllByTestId("admin-shift-status-badge");
+    fireEvent.click(screen.getByRole("button", { name: "View details for shift shift-2" }));
+    const dlg = await screen.findByRole("dialog", { name: "Shift details" });
+    expect(within(dlg).getByText("Nora Nurse", { exact: false })).toBeTruthy();
+    fireEvent.click(within(dlg).getByRole("button", { name: /View nurse details/ }));
+    expect(await screen.findByText("nora@example.com")).toBeTruthy();
+  });
+
+  it("paginates 25 per page with Prev / Next (server pages)", async () => {
     shifts = many(30);
     renderWith(<AdminDashboard />);
-    await screen.findByTestId("admin-dashboard-shift-table");
-    expect(screen.getByText("1–25 of 30 shifts")).toBeTruthy();
+    await screen.findByText("1–25 of 30 shifts");
     expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(25);
     expect((screen.getByRole("button", { name: "Previous page" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-    expect(screen.getByText("26–30 of 30 shifts")).toBeTruthy();
+    await screen.findByText("26–30 of 30 shifts");
+    expect(coverageCalls().some((p) => p.includes("page=2"))).toBe(true);
+    expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(5);
+  });
+
+  it("steps back a page when a refresh shrinks the results under the current page", async () => {
+    shifts = many(30);
+    const client = renderWith(<AdminDashboard />);
+    await screen.findByText("1–25 of 30 shifts");
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    await screen.findByText("26–30 of 30 shifts");
+    shifts = many(5);
+    await act(() => client.invalidateQueries({ queryKey: ["admin", "coverage"] })); // what the 15 s poll does
+    expect(await screen.findByText("1–5 of 5 shifts")).toBeTruthy();
     expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(5);
   });
 
   it("a failed refresh keeps the last data visible with an inline warning", async () => {
     renderWith(<AdminDashboard />);
-    await screen.findByTestId("admin-dashboard-shift-table");
+    await screen.findAllByTestId("admin-shift-status-badge");
     fetchMock.mockRejectedValue(new Error("API down"));
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(await screen.findByText("Live updates paused")).toBeTruthy();
@@ -168,6 +228,81 @@ describe("admin dashboard", () => {
     renderWith(<AdminDashboard />);
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText("API down")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+});
+
+describe("users", () => {
+  const page = (items: unknown[], nextCursor: string | null = null) => ({ items, nextCursor });
+  const nurseRow = (id: string, name: string) => ({ id, type: "nurse", name, email: `${id}@x.com`, licenseType: "RN" });
+  let credStatus = "pending";
+  beforeEach(() => {
+    credStatus = "pending";
+    fetchMock.mockImplementation(async (path: string, opts?: { method?: string; body?: unknown }) => {
+      if (path.startsWith("/api/admin/users")) {
+        const p = new URL(path, "http://x").searchParams;
+        if (p.get("type") === "agency") return page([{ id: "agency-a", type: "agency", name: "Sunrise Health Staffing", email: null, licenseType: null }]);
+        if (p.get("q") === "zzz") return page([]);
+        if (p.get("cursor") === "c2") return page([nurseRow("n3", "Third Nurse")]);
+        return page([nurseRow("n1", "First Nurse"), nurseRow("n2", "Second Nurse")], "c2");
+      }
+      if (path === "/api/admin/nurses/n1") return { ...NURSE, id: "n1", name: "First Nurse", credentials: [{ ...NURSE.credentials[0]!, status: credStatus }] };
+      if (path === "/api/admin/agencies/agency-a") {
+        return { id: "agency-a", name: "Sunrise Health Staffing", email: "a@x.com", phone: null, city: "Austin", state: "TX", status: "active", members: [{ userId: "u1", name: "Amy Admin", email: "amy@x.com", role: "admin" }], shiftCounts: { open: 1, filled: 1, cancelled: 0, completed: 0 } };
+      }
+      if (path === "/api/credentials/c1/review") {
+        credStatus = (opts!.body as { status: string }).status;
+        return { credential: { ...NURSE.credentials[0]!, status: credStatus } };
+      }
+      throw new Error(`unexpected ${path}`);
+    });
+  });
+
+  it("lists nurses, Load more follows the cursor, and the search shows an empty state", async () => {
+    renderWith(<AdminUsers />);
+    const table = await screen.findByTestId("admin-users-table");
+    expect(within(table).getAllByRole("row")).toHaveLength(3);
+    fireEvent.click(screen.getByRole("button", { name: "Load more nurses" }));
+    await screen.findByText("Third Nurse");
+    expect(screen.queryByRole("button", { name: "Load more nurses" })).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText("Name or email"), { target: { value: "zzz" } });
+    expect(await screen.findByText("No nurses match")).toBeTruthy();
+  });
+
+  it("Agencies tab lists agencies and opens details with members", async () => {
+    renderWith(<AdminUsers />);
+    await screen.findByTestId("admin-users-table");
+    fireEvent.click(screen.getByRole("button", { name: "Agencies" }));
+    fireEvent.click(await screen.findByRole("button", { name: "View details for Sunrise Health Staffing" }));
+    const dlg = await screen.findByRole("dialog", { name: "Agency details" });
+    expect(await within(dlg).findByText("Amy Admin")).toBeTruthy();
+    expect(within(dlg).getByText("Austin, TX")).toBeTruthy();
+  });
+
+  it("verifying a credential toasts its name and new status", async () => {
+    renderWith(<AdminUsers />);
+    fireEvent.click(await screen.findByRole("button", { name: "View details for First Nurse" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Verify Nursing license (LPN)" }));
+    await waitFor(() => expect(useToastStore.getState().toasts.some((t) => t.kind === "success" && t.title === "Nursing license (LPN) verified")).toBe(true));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Verify Nursing license (LPN)" }) as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it("Reject asks for confirmation first; Go back sends nothing, Reject sends it and toasts", async () => {
+    renderWith(<AdminUsers />);
+    fireEvent.click(await screen.findByRole("button", { name: "View details for First Nurse" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reject Nursing license (LPN)" }));
+    const confirm = await screen.findByRole("dialog", { name: "Reject Nursing license (LPN)?" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Go back" }));
+    expect(fetchMock.mock.calls.some(([p]) => p === "/api/credentials/c1/review")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Reject Nursing license (LPN)" }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Reject Nursing license (LPN)?" })).getByRole("button", { name: "Reject" }));
+    await waitFor(() => expect(useToastStore.getState().toasts.some((t) => t.kind === "success" && t.title === "Nursing license (LPN) rejected")).toBe(true));
+  });
+
+  it("shows an error with Retry when the list fails", async () => {
+    fetchMock.mockRejectedValue(new Error("API down"));
+    renderWith(<AdminUsers />);
+    expect(await screen.findByText("API down")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 });

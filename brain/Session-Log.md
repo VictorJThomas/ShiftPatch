@@ -189,3 +189,10 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 1 item fixed. Duplicate Notion row "Production DB: Railway Postgres..." still there for Victor.
 - Skills copied: none.
 - Open: flaky rollback timeout, PR, R2 env, deploy, Playwright real-API in CI.
+
+
+## 2026-11-08: Notion design notes (multi-agent)
+- Read `ShiftPatch > Notes` in full (5 Gemini toggles, 7 screenshots, 0 comments). Agent Teams unavailable (flag unset): background subagents, `model: sonnet`, each confirmed `claude-sonnet-5-5`; orchestrator relayed via `docs/ui/COMPONENT_CONTRACTS.md`. Agents: Shared Components, Backend, Nurse, Agency, Admin, Integration (e2e + sort), Review-Fix; independent code-reviewer.
+- Victor decided: instant claim stays (brief + spec), admin users = view + credential review, credentials = slim strip + modal.
+- Review: no critical or security findings; 5 important (admin Sign out off-screen on phones, agency stranded on profile on phones, suspended agencies listed, audit label, page past end) all fixed.
+- Results: see [[Status]]. Skill copied into repo: `building-components`. Nothing committed.

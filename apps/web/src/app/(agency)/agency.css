@@ -2,14 +2,6 @@
 
 /* page */
 .ag-note{align-items:center;font-size:14px}
-.ag-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-4)}
-.ag-stats .stat{padding:var(--s-4) var(--s-5)}
-.ag-stat-ic{display:inline-flex;color:var(--c-ink-3)}
-.ag-tone-open{color:var(--st-open-fg)}
-.ag-tone-filled{color:var(--st-filled-fg)}
-.ag-tone-cancelled{color:var(--st-cancelled-fg)}
-.ag-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
-.ag-toolbar .chips{min-width:0}
 
 /* table (≥720px) */
 .ag-tbl th[scope="row"]{font-weight:inherit;text-align:left}
@@ -46,7 +38,6 @@ li.ag-new{box-shadow:inset 0 0 0 1.5px var(--c-brand)}
 .ag-seg-hint{font-size:12px;font-weight:500;color:var(--c-ink-3)}
 .ag-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .ag-two .fld{min-width:0}
-.ag-hint{margin:-4px 0 var(--s-4)}
 .ag-preview{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-md);background:var(--c-sunken);font-weight:650;font-size:15px}
 
 /* cancel reasons */
@@ -71,14 +62,20 @@ li.ag-new{box-shadow:inset 0 0 0 1.5px var(--c-brand)}
 .ag-list li{display:flex;align-items:center;gap:12px;min-height:var(--tap)}
 .ag-list .grow{flex:1;min-width:0}
 
-@media (max-width:999px){.ag-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:719px){
-  .ag-stats{gap:8px}
-  .ag-stats .stat{padding:12px 14px}
-  .ag-stats .stat .n{font-size:28px}
-  .ag-stats .stat .l{font-size:13px}
-  .ag-toolbar{flex-wrap:wrap}
+
   .ag-prof{grid-template-columns:minmax(0,1fr)}
   .ag-main .page-actions .btn{flex:1}
 }
 @media (max-width:380px){.ag-two{grid-template-columns:minmax(0,1fr)}}
+
+/* feature/11: modal post form, claimant cell, filters */
+.ag-acts{display:inline-flex;gap:8px;align-items:center;justify-content:flex-end}
+.ag-claimant{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.ag-date{display:flex;align-items:center;gap:8px}
+.ag-date .inp{min-height:44px;width:auto}
+form .ag-note{margin:0 0 var(--s-4)}
+.ag-prof-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ag-prof-head h2{display:flex;align-items:center;gap:8px}
+.ag-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:650;color:var(--c-ink-2);background:var(--c-sunken);border-radius:var(--r-pill);padding:2px 10px}
+.ag-prof-foot{display:flex;justify-content:flex-end}

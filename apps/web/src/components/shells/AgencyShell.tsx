@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AccountMenu } from "@/components/ui/AccountMenu";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import type { IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { AgencySwitcher } from "@/features/agency/agency-switcher";
-import { useLogout } from "@/features/auth/use-logout";
 import { agencyColor, initials } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
 
@@ -35,18 +35,21 @@ function AgencyBand() {
           </div>
         </div>
         <AgencySwitcher />
+        {/* Below 720px the header is hidden: the account menu lives in the band instead. */}
+        <div className="ag-band-acct">
+          <AccountMenu profileHref="/agency/profile" links={[{ href: "/agency/shifts", label: "Shifts", icon: "brief" }]} />
+        </div>
       </div>
     </section>
   );
 }
 
-/** Agency shell: header + full-width "Active agency" band + switcher (>1 agency). Below 720 px: bottom tab bar, no header. */
+/** Agency shell: header + full-width "Active agency" band + switcher (>1 agency). Below 720 px: no header and no tab bar (one tab would be pointless); the band carries the account menu (Profile, Sign out). */
 export function AgencyShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const user = useSessionStore((s) => s.user);
   const activeId = useSessionStore((s) => s.activeAgencyId);
   const agencyCount = useSessionStore((s) => s.agencies.length);
-  const { signOut, pending } = useLogout();
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
@@ -67,13 +70,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="ag-user">
-            <span className="avatar" aria-hidden="true">
-              {initials(user?.name ?? "")}
-            </span>
-            <span>{user?.email ?? user?.name}</span>
-            <button type="button" className="iconbtn" aria-label="Sign out" onClick={() => void signOut()} disabled={pending}>
-              <Icon name="logout" />
-            </button>
+            <span className="ag-email">{user?.email ?? user?.name}</span>
+            <AccountMenu profileHref="/agency/profile" />
           </div>
         </div>
       </header>
@@ -87,17 +85,6 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           </EmptyState>
         )}
       </main>
-      <nav className="tabbar ag-tabbar" aria-label="Agency">
-        {NAV.map((item) => {
-          const on = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link key={item.href} href={item.href} className={`tab${on ? " on" : ""}`} aria-current={on ? "page" : undefined}>
-              <Icon name={item.icon} size="lg" />
-              {item.short}
-            </Link>
-          );
-        })}
-      </nav>
     </div>
   );
 }

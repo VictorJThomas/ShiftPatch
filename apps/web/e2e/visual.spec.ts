@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { signIn, signOutViaMenu } from "./helpers";
 import { MockApi, USERS } from "./mock-api";
 
 // Visual review artifacts for humans. Written to the OS temp dir on purpose: never committed.
@@ -56,7 +56,7 @@ test.describe("screenshots", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: shot("shell-agency-mobile") });
     await page.setViewportSize({ width: 1280, height: 844 });
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOutViaMenu(page);
     await expect(page).toHaveURL(/\/login$/);
 
     await signIn(page, "admin");

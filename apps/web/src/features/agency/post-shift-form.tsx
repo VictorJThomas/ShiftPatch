@@ -9,7 +9,7 @@ import { ShiftRole, type CreateShiftRequest, type Shift } from "@shiftpatch/cont
 import { Dialog } from "@/components/ui/Dialog";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
-import { formatShiftWhen, isOvernight, shiftHours } from "@/lib/format";
+import { formatShiftEcho } from "@/lib/format";
 import { useCreateShift } from "./queries";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -29,14 +29,13 @@ type Values = z.output<typeof PostShiftSchema>;
 
 const ROLE_HINT: Record<Values["role"], string> = { RN: "Registered", LPN: "Licensed practical", CNA: "Nursing assistant" };
 
-/** "Fri, Oct 2 · 19:00 → Sat 07:00 · Overnight · 12 h", or null until date + both times are valid. */
-export function previewLine(v: { date?: string; startTime?: string; endTime?: string }): string | null {
+/** Live echo ("Sat, Oct 3, 2026 · 07:00 → 19:00 · 12 h · Overnight"), or null until date + both times are valid. */
+export function echoLine(v: { date?: string; startTime?: string; endTime?: string }): string | null {
   if (!v.date || !ISO_DATE.test(v.date) || !v.startTime || !HHMM.test(v.startTime) || !v.endTime || !HHMM.test(v.endTime) || v.startTime === v.endTime) return null;
-  const times = { startTime: v.startTime, endTime: v.endTime };
-  return [formatShiftWhen({ date: v.date, ...times }), isOvernight(times) ? "Overnight" : null, `${shiftHours(times)} h`].filter(Boolean).join(" · ");
+  return formatShiftEcho({ date: v.date, startTime: v.startTime, endTime: v.endTime });
 }
 
-/** Right panel (≥720) / full-height sheet (<720). Stays open on a server error so nothing typed is lost. */
+/** Centered modal. Stays open on a server error so nothing typed is lost. */
 export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open: boolean; onClose: () => void; agencyName: string; onPosted: (shift: Shift) => void }) {
   const create = useCreateShift();
   const formId = useId();
@@ -51,7 +50,7 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
     defaultValues: { date: "", startTime: "", endTime: "" },
   });
   const watched = useWatch({ control });
-  const preview = previewLine(watched);
+  const preview = echoLine(watched);
   const pending = create.isPending;
 
   const close = () => {
@@ -74,7 +73,7 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
     <Dialog
       open={open}
       onClose={close}
-      variant="panel"
+      variant="modal"
       title="Post a shift"
       description={`For ${agencyName}. Nurses who match see it right away.`}
       footer={
@@ -119,7 +118,10 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
             {(p) => <input {...p} type="time" step={60} {...register("endTime")} />}
           </Field>
         </div>
-        <p className="hint ag-hint">Facility-local time, 24-hour. Ending earlier than the start is an overnight shift (ends next day).</p>
+        <p className="alert al-info ag-note">
+          <Icon name="info" />
+          <span>Facility-local time, 24-hour. Ending earlier than the start is an overnight shift (ends next day).</span>
+        </p>
         <div className="ag-preview" aria-live="polite">
           <Icon name="cal" />
           {preview ? <span className="tnum">{preview}</span> : <span className="muted">Pick a date and times to preview the shift.</span>}

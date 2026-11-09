@@ -133,3 +133,15 @@ Login unchanged (10/min per IP + per normalized email, failures). Valid refresh:
 - PostHog: escalated.
 - Past-date shift rule: product decision pending, board task.
 - Auditing denied writes, the cancel 403→404 oracle, mapping zod 400 texts on the API: roadmap §4 (P1/P2).
+
+
+## Notion design notes tracker (2026-11-08)
+| Area | Status |
+|---|---|
+| Notion notes processed / Gemini proposals interpreted | All; 5 of 5 toggles |
+| Component contracts | Published, `docs/ui/COMPONENT_CONTRACTS.md` |
+| Backend additive routes | Done, tests + Postman |
+| Nurse / Agency / Admin screens | Done |
+| Tests | `/verify` 4/4, e2e 49 + real-API 7/7 |
+| Deferred | Shift request queue (spec conflict), document links (needs R2), user profile editing, URL-synced filters |
+| Blockers | None for local; commit and deploy are Victor's |
