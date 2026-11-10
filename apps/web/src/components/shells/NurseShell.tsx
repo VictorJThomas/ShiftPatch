@@ -14,8 +14,6 @@ const TABS: { href: string; label: string; icon: IconName }[] = [
   { href: "/nurse/credentials", label: "Credentials", icon: "idcard" },
   { href: "/nurse/profile", label: "Profile", icon: "user" },
 ];
-/** Mobile tab bar: Profile lives in the avatar menu (top right) instead. */
-const MOBILE_TABS = TABS.filter((t) => t.href !== "/nurse/profile");
 
 /**
  * Nurse shell (design: Nurse-Scale-Up): bottom tab bar below 1000px, 232px left rail at ≥1000px.
@@ -47,7 +45,7 @@ export function NurseShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <nav className="tabbar nurse-tabs" aria-label="Main">
-        {MOBILE_TABS.map((tab) => (
+        {TABS.map((tab) => (
           <Link key={tab.href} href={tab.href} className={`tab${isOn(tab.href) ? " on" : ""}`} aria-current={isOn(tab.href) ? "page" : undefined}>
             <Icon name={tab.icon} size="lg" />
             {tab.label}

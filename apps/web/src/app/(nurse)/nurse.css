@@ -9,6 +9,7 @@
 /* filters: one scrollable row per group on phones, all in one wrapping row on wide screens */
 
 /* shift card: fills its grid cell so the action rows line up across a row of cards */
+@media (min-width:700px){.nurse-shell .card-grid{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}} /* F9: 2 cols >=700, 3 cols >=1000 inside the 1200px main */
 .nurse-shell .card-grid>li{display:flex;min-width:0}
 .nurse-shell .card-grid>li>.card{flex:1;min-width:0}
 .nurse-card{transition:box-shadow .15s ease,border-color .15s ease}
@@ -76,6 +77,7 @@
 .nurse-form-group{margin-top:var(--s-5)}
 .nurse-form-actions{display:flex;flex-direction:column;gap:var(--s-3);margin-top:var(--s-4)}
 .nurse-form-actions>*{width:100%}
+@media (max-width:999px){.nurse-form-actions{padding-bottom:calc(72px + env(safe-area-inset-bottom))}} /* F11: clear the fixed tab bar */
 @media (min-width:720px){.nurse-form-actions{flex-direction:row-reverse;justify-content:flex-start}.nurse-form-actions>*{width:auto;min-width:140px}}
 .nurse-progress-wrap{display:flex;flex-direction:column;gap:var(--s-2)}
 .nurse-progress{position:relative;height:8px;border-radius:999px;background:var(--c-sunken);overflow:hidden}

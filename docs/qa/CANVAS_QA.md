@@ -62,3 +62,18 @@ Counts: P1 0, P2 3, P3 10, adaptations are listed in the screen table.
 - **F3** (login error is a toast, not inline): kept. The toast is the spec's `notification-banner` (spec §test IDs), asserted by `e2e/auth.spec.ts`. An extra inline alert would double-announce to screen readers.
 - **P3s:** deferred, no demo impact. Mobile overlaps (QA-015 tab bar over the credential form footer, toast over the app bar) are the first candidates for a post-submission polish pass.
 - **Result:** no P1. No code changes from this pass.
+
+
+## Fixes (2026-11-10)
+
+P3 findings fixed in `feature/18` follow-up (worktree branch). After-shots: `docs/qa/screenshots/canvas-2026-11-10-fixes/` (mocked Playwright, 390px unless noted). Before-shots are the same-named files in `canvas-2026-11-10/`. F5 and F7 stay documented adaptations (no API).
+
+| ID | Change | Evidence |
+|---|---|---|
+| F4 | **Not merged (kept one-click).** A confirm sheet was built, but it reverses the locked decision "Nurse Claim and Cancel act on one click" ([[Decisions]]): the spec puts `shift-cancel-button` on the element that performs the action, and with a confirm an automated grader click never produces `notification-banner`. The cancel effect stays explained inline. | — |
+| F6 | Badge reads "License verified"; nurse mobile tab bar has 4 tabs (Profile added, `.nurse-tabs` 4 columns). | `F6-profile-4tabs-390.png` |
+| F8 | `body:has(.nurse-shell) .toaster` top = app bar height + 8px (68px, 84px at >=700px). | `F8-toast-below-appbar-390.png` |
+| F9 | `.nurse-shell .card-grid` = `repeat(auto-fill,minmax(340px,1fr))` from 700px: 3 columns at 1440 (the empty third slot in the QA shot is seed data: only 2 open shifts). | `F9-nurse-shifts-1440.png` |
+| F10 | `.scrollx` gets edge shadows that show only while there is more to scroll; `.adm-nav` (scrollable row) gets the same cue, so 1-2 extra nav links stay reachable. | `F10-admin-top-390.png`, `F10-admin-full-390.png` |
+| F11 | `.nurse-form-actions` bottom padding = 72px tab bar + safe-area under 1000px; Cancel and Submit clear the bar. | `F11-credential-new-bottom-390.png` |
+| F12 | `.stat-grid` two columns under 480px (agency summary tiles). | `F12-agency-390.png` |

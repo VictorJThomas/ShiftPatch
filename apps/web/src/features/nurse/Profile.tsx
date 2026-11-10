@@ -34,7 +34,7 @@ export function Profile() {
               (creds.data.licenseValid ? (
                 <Badge variant="verified" className="mt-1 self-start">
                   <Icon name="shield" />
-                  License valid
+                  License verified
                 </Badge>
               ) : (
                 <Badge variant="expired" className="mt-1 self-start">
