@@ -209,3 +209,7 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 0 drift; added "Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA" (Done).
 - Skills copied: `shadcn-ui`.
 - Open: commit + PR; legacy CSS prune; popstate guard gap; QA-013 not re-measured.
+
+## 2026-11-09 (transcript export)
+- Exported 24 Claude Code sessions (raw JSONL, byte-for-byte, + 82 subagent/tool-result files, 125 MB) to `transcripts/` with `transcripts/INDEX.md`. Folder is git-ignored via `.git/info/exclude` (not committed). Secret scan: only local dev creds / placeholders. Re-run the export after the final session before submission.
+- Skill created: `export-transcripts` (`.claude/skills/export-transcripts`, script + SKILL.md; default paths, secret-scan step).
