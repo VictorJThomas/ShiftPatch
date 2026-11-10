@@ -197,6 +197,47 @@ describe(`authorization matrix (${ACTORS_NOTE})`, () => {
     });
   });
 
+  describe("timesheets (submit: the holding nurse; review: owner/manager of the owning agency or its network admin)", () => {
+    const HIDDEN = { error: "Timesheet not found" };
+    /** A filled, started shift of agency-a held by nurse-1 with a submitted timesheet; returns the timesheet id. */
+    const mkTimesheet = async () => {
+      const id = await mkShift({ filled: true });
+      const r = await call("POST", `/api/shifts/${id}/timesheet`, "nurse-1", { clockIn: "07:00", clockOut: "19:00" });
+      expect(r.status).toBe(201);
+      return { shiftId: id, tsId: r.body.id as string };
+    };
+    it.each<Cell>([
+      ["nurse-1", 201, OK], ["nurse-2", 404, { error: "Shift not found" }],
+      ["agency-a", 403, FORBID], ["mgr-a", 403, FORBID], ["viewer-a", 403, FORBID], ["admin-1", 403, FORBID], ["admin-none", 403, FORBID],
+      ["revoked-a", 403, FORBID], ["susp-n", 401, UNAUTH], [null as unknown as string, 401, UNAUTH],
+    ])("POST /api/shifts/:id/timesheet: %s -> %i", async (who, status, body) => {
+      const id = await mkShift({ filled: true });
+      expectCell(await call("POST", `/api/shifts/${id}/timesheet`, who, { clockIn: "07:00", clockOut: "19:00" }), status, body);
+    });
+    it.each<Cell>([
+      ["agency-a", 200, OK], ["mgr-a", 200, OK], ["viewer-a", 403, FORBID], ["agency-b", 404, HIDDEN], ["owner-c", 404, HIDDEN],
+      ["admin-1", 200, OK], ["admin-2", 404, HIDDEN], ["admin-none", 404, HIDDEN],
+      ["nurse-1", 403, FORBID], ["revoked-a", 404, HIDDEN], ["susp-a", 401, UNAUTH], [null as unknown as string, 401, UNAUTH],
+    ])("POST /api/timesheets/:id/approve: %s -> %i", async (who, status, body) => {
+      const { shiftId, tsId } = await mkTimesheet();
+      expectCell(await call("POST", `/api/timesheets/${tsId}/approve`, who), status, body);
+      const [row] = await t.db.select({ status: shifts.status }).from(shifts).where(eq(shifts.id, shiftId));
+      expect(row!.status).toBe(status === 200 ? "completed" : "filled"); // a denied approval writes nothing
+    });
+    it.each<Cell>([
+      ["agency-a", 200, OK], ["mgr-a", 200, OK], ["viewer-a", 403, FORBID], ["agency-b", 404, HIDDEN],
+      ["admin-1", 200, OK], ["admin-2", 404, HIDDEN], ["nurse-1", 403, FORBID], ["susp-a", 401, UNAUTH], [null as unknown as string, 401, UNAUTH],
+    ])("POST /api/timesheets/:id/dispute: %s -> %i", async (who, status, body) => {
+      const { tsId } = await mkTimesheet();
+      expectCell(await call("POST", `/api/timesheets/${tsId}/dispute`, who, { reason: "Hours look off" }), status, body);
+    });
+    it.each<Cell>([
+      ["agency-a", 200, OK], ["viewer-a", 200, OK], ["admin-1", 200, OK], ["nurse-1", 403, FORBID], ["admin-none", 403, FORBID], ["susp-a", 401, UNAUTH], [null as unknown as string, 401, UNAUTH],
+    ])("GET /api/timesheets: %s -> %i", async (who, status, body) => expectCell(await call("GET", "/api/timesheets", who), status, body));
+    it.each<Cell>([["nurse-1", 200, OK], ["nurse-2", 200, OK], ["agency-a", 403, FORBID], ["admin-1", 403, FORBID], [null as unknown as string, 401, UNAUTH]])(
+      "GET /api/nurses/me/timesheets: %s -> %i", async (who, status, body) => expectCell(await call("GET", "/api/nurses/me/timesheets", who), status, body));
+  });
+
   describe("GET /api/audit-logs (admin: own networks; agency owner/manager: own agency; others denied)", () => {
     it.each<Cell>([
       ["agency-a", 200, OK], ["mgr-a", 200, OK], ["viewer-a", 403, FORBID], ["agency-b", 200, OK],

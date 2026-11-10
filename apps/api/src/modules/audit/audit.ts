@@ -10,6 +10,7 @@ export type AuditAction =
   | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.deleted"
   | "credential.uploaded" | "credential.reviewed" | "credential.document_viewed"
   | "agency.updated" | "membership.granted" | "membership.revoked"
+  | "timesheet.submitted" | "timesheet.approved" | "timesheet.disputed"
   | "access.denied";
 export type AuditEntry = Omit<typeof auditLog.$inferInsert, "action"> & { action: AuditAction };
 /** Request context copied onto every audit row (ARCHITECTURE §11: request ID links audit rows to logs). */

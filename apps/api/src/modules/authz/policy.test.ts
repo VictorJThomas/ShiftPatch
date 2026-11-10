@@ -184,6 +184,42 @@ describe("layer 1: agency memberships only count for the global role agency", ()
   });
 });
 
+describe("timesheet:submit (the nurse holding the shift)", () => {
+  it("allows the holder, hides another nurse's / an open shift (out_of_scope), refuses other roles", () => {
+    expect(can(nurse("nurse-1"), "timesheet:submit", { claimedBy: "nurse-1" })).toEqual(ok);
+    expect(can(nurse("nurse-2"), "timesheet:submit", { claimedBy: "nurse-1" })).toEqual(no("out_of_scope"));
+    expect(can(nurse("nurse-1"), "timesheet:submit", { claimedBy: null })).toEqual(no("out_of_scope"));
+    for (const a of [member("owner"), member("manager"), member("viewer"), admin()]) expect(can(a, "timesheet:submit", { claimedBy: "u1" })).toEqual(no("role_not_permitted"));
+  });
+});
+
+describe("timesheet:list-mine / timesheet:list", () => {
+  it("list-mine is nurse-only", () => {
+    expect(can(nurse(), "timesheet:list-mine", {})).toEqual(ok);
+    expect(can(member("owner"), "timesheet:list-mine", {})).toEqual(no("role_not_permitted"));
+    expect(can(admin(), "timesheet:list-mine", {})).toEqual(no("role_not_permitted"));
+  });
+  it("list: every agency member incl. viewer, admins with a network; nurses refused; multi-agency needs a selection", () => {
+    for (const a of [member("owner"), member("manager"), member("viewer"), multi("agency-a"), admin()]) expect(can(a, "timesheet:list", {})).toEqual(ok);
+    expect(can(nurse(), "timesheet:list", {})).toEqual(no("role_not_permitted"));
+    expect(can(multi(null), "timesheet:list", {})).toEqual(no("agency_selection_required"));
+    expect(can(admin([]), "timesheet:list", {})).toEqual(no("not_a_member"));
+    expect(can(actor({ role: "agency" }), "timesheet:list", {})).toEqual(no("not_a_member"));
+  });
+});
+
+describe("timesheet:review (owner/manager of the owning agency, admin of its network)", () => {
+  it("allows owner, manager and the network admin", () => {
+    for (const a of [member("owner"), member("manager"), admin()]) expect(can(a, "timesheet:review", shiftA)).toEqual(ok);
+  });
+  it("denies the viewer (403 reason), another agency's member, a foreign admin and a nurse", () => {
+    expect(can(member("viewer"), "timesheet:review", shiftA)).toEqual(no("insufficient_membership_role"));
+    expect(can(member("owner", "agency-b"), "timesheet:review", shiftA)).toEqual(no("not_a_member"));
+    expect(can(admin([OTHER_NET]), "timesheet:review", shiftA)).toEqual(no("out_of_scope"));
+    expect(can(nurse(), "timesheet:review", shiftA)).toEqual(no("role_not_permitted"));
+  });
+});
+
 describe("denial -> HTTP", () => {
   it("maps reasons to the exact bodies", () => {
     expect(denialResponse("not_a_member")).toEqual({ status: 403, body: { error: "Forbidden" } });

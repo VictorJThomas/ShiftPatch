@@ -152,7 +152,33 @@ const shiftReminder: Render = (p, appUrl) =>
 const shiftUnfilled: Render = (p, appUrl) =>
   layout({ subject: `Unfilled: ${field(p, "role")} shift ${field(p, "date")} ${field(p, "startTime")}`, heading: "Shift still unfilled", intro: "A shift starting within 24 hours has not been claimed.", rows: shiftRows(p, false), outro: SEE_STATUS, badge: ["pending", "Unfilled"], cta: "View shift" }, appUrl);
 
+/** Timesheets: shift facts + worked time. The dispute reason and the nurse's note are free text and are never mailed (read them in the app). */
+const timesheetSubmitted: Render = (p, appUrl) => {
+  const nurse = field(p, "nurseName");
+  const again = p.resubmitted === "yes";
+  return layout({
+    subject: `${nurse} ${again ? "resubmitted" : "submitted"} hours for ${field(p, "role")} on ${field(p, "date")}`, heading: again ? "Hours resubmitted" : "Hours submitted",
+    intro: `${nurse} ${again ? "resubmitted" : "submitted"} hours for one of your shifts.`, rows: [...shiftRows(p, false), ["Worked", field(p, "workedTime")]],
+    outro: "Sign in to ShiftPatch to approve the hours or dispute them.", badge: ["pending", "Review needed"], cta: "Review hours",
+  }, appUrl);
+};
+
+const timesheetApproved: Render = (p, appUrl) =>
+  layout({
+    subject: `Hours approved: ${field(p, "role")} on ${field(p, "date")}`, heading: "Hours approved", intro: "Your submitted hours were approved and the shift is complete.",
+    rows: [...shiftRows(p), ["Worked", field(p, "workedTime")]], outro: SEE_STATUS, badge: ["filled", "Approved"], cta: "View my shifts",
+  }, appUrl);
+
+const timesheetDisputed: Render = (p, appUrl) =>
+  layout({
+    subject: `Hours disputed: ${field(p, "role")} on ${field(p, "date")}`, heading: "Hours disputed", intro: "The agency disputed the hours you submitted.",
+    rows: [...shiftRows(p), ["Submitted", field(p, "workedTime")]], outro: "Sign in to ShiftPatch to read the reason and resubmit your hours.", badge: ["rejected", "Disputed"], cta: "Review and resubmit",
+  }, appUrl);
+
 const registry: Record<string, Render> = {
+  "timesheet.submitted": timesheetSubmitted,
+  "timesheet.approved": timesheetApproved,
+  "timesheet.disputed": timesheetDisputed,
   "shift.cancelled": shiftCancelled,
   "shift.posted": shiftPosted,
   "shift.claimed.agency": shiftClaimedAgency,

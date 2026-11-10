@@ -11,6 +11,7 @@ import { authRoutes } from "./modules/auth/routes.js";
 import { credentialRoutes } from "./modules/credentials/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
 import { shiftRoutes } from "./modules/shifts/routes.js";
+import { timesheetRoutes } from "./modules/timesheets/routes.js";
 import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
 
 /**
@@ -82,6 +83,7 @@ export function buildApp({ logger = false, storage }: { logger?: LoggerOption; s
   app.register(loadActorPlugin, { db });
   app.register(async (scope) => authRoutes(scope, db)); // after the plugins above, so their decorators exist
   app.register(async (scope) => shiftRoutes(scope, db));
+  app.register(async (scope) => timesheetRoutes(scope, db));
   app.register(async (scope) => meRoutes(scope, db));
   app.register(async (scope) => auditRoutes(scope, db));
   app.register(async (scope) => adminRoutes(scope, db));
