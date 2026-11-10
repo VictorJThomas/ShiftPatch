@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@/components/shadcn/badge";
+import { Button } from "@/components/shadcn/button";
 import { DetailList } from "@/components/ui/DetailList";
 import { Icon } from "@/components/ui/Icon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -35,7 +37,7 @@ export default function AgencyProfilePage() {
               </div>
               <DetailList
                 items={[
-                  { label: "Your role", value: <span className="badge b-verified">{ROLE_LABEL[membership.role]}</span>, icon: "shield" },
+                  { label: "Your role", value: <Badge variant="verified">{ROLE_LABEL[membership.role]}</Badge>, icon: "shield" },
                 ]}
               />
             </>
@@ -45,7 +47,7 @@ export default function AgencyProfilePage() {
         <section className="card ag-prof-card" aria-labelledby="ag-prof-list">
           <div className="ag-prof-head">
             <h2 id="ag-prof-list">Your agencies</h2>
-            <span className="ag-badge">{agencies.length} connected</span>
+            <Badge>{agencies.length} connected</Badge>
           </div>
           <ul className="ag-list">
             {agencies.map((a, index) => {
@@ -60,14 +62,14 @@ export default function AgencyProfilePage() {
                     <span className="ag-opt-role">{ROLE_LABEL[a.role]}</span>
                   </span>
                   {current ? (
-                    <span className="badge b-verified">
+                    <Badge variant="verified">
                       <Icon name="check" />
                       Current
-                    </span>
+                    </Badge>
                   ) : (
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => switchAgency(a.agencyId)} aria-label={`Switch to ${a.name}`}>
+                    <Button variant="secondary" size="sm" onClick={() => switchAgency(a.agencyId)} aria-label={`Switch to ${a.name}`}>
                       Switch
-                    </button>
+                    </Button>
                   )}
                 </li>
               );
@@ -76,10 +78,10 @@ export default function AgencyProfilePage() {
         </section>
       </div>
       <div className="ag-prof-foot">
-        <button type="button" className="btn btn-secondary" onClick={() => void signOut()} disabled={pending}>
+        <Button variant="secondary" onClick={() => void signOut()} disabled={pending}>
           <Icon name="logout" />
           Sign out
-        </button>
+        </Button>
       </div>
     </>
   );

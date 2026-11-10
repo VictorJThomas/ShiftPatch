@@ -3,7 +3,7 @@
 import "@/lib/zod-csp"; // first: the contracts import below builds zod schemas
 import type { NurseCredential } from "@shiftpatch/contracts";
 import { DetailList } from "@/components/ui/DetailList";
-import { Dialog } from "@/components/ui/Dialog";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { credentialLabel, credentialTypeLabel } from "@/lib/credential-label";
@@ -12,7 +12,7 @@ import { credentialLabel, credentialTypeLabel } from "@/lib/credential-label";
 export function CredentialDetailDialog({ credential, onClose }: { credential: NurseCredential | null; onClose: () => void }) {
   const c = credential;
   return (
-    <Dialog open={!!c} onClose={onClose} variant="modal" title={c ? credentialLabel(c) : "Credential"}>
+    <AppDialog open={!!c} onClose={onClose} size="md" title={c ? credentialLabel(c) : "Credential"}>
       {c && (
         <DetailList
           items={[
@@ -26,6 +26,6 @@ export function CredentialDetailDialog({ credential, onClose }: { credential: Nu
           ]}
         />
       )}
-    </Dialog>
+    </AppDialog>
   );
 }

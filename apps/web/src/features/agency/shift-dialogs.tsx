@@ -5,7 +5,8 @@ import { useId, useState } from "react";
 import type { CancelShiftRequest, CoverageRow } from "@shiftpatch/contracts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DetailList } from "@/components/ui/DetailList";
-import { Dialog } from "@/components/ui/Dialog";
+import { Button } from "@/components/shadcn/button";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { Icon } from "@/components/ui/Icon";
 import { NurseDetailDialog } from "@/components/ui/NurseDetailDialog";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -70,21 +71,21 @@ export function CancelDialog({ shift, onClose }: { shift: CoverageRow | null; on
   };
 
   return (
-    <Dialog
+    <AppDialog
       open={!!shift}
       onClose={close}
-      variant="sheet"
+      size="md"
+      blockClose={pending}
       title="Cancel this filled shift?"
       description={shift ? `${shiftSummary(shift)} · Filled by ${shift.claimedByName ?? "the nurse"}. The shift reopens for other nurses.` : undefined}
       footer={
         <>
-          <button type="button" className="btn btn-secondary" onClick={close} disabled={pending}>
+          <Button variant="secondary" onClick={close} disabled={pending}>
             Keep shift
-          </button>
-          <button type="submit" form={formId} className="btn btn-danger-solid" disabled={pending} aria-busy={pending || undefined}>
-            {pending && <span className="spin" aria-hidden="true" />}
+          </Button>
+          <Button type="submit" form={formId} variant="destructive" loading={pending}>
             Cancel shift
-          </button>
+          </Button>
         </>
       }
     >
@@ -126,7 +127,7 @@ export function CancelDialog({ shift, onClose }: { shift: CoverageRow | null; on
           )}
         </fieldset>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }
 
@@ -148,22 +149,22 @@ export function ShiftDetailsDialog({
 }) {
   const showActions = !!shift && canWrite && (shift.status === "open" || shift.status === "filled");
   return (
-    <Dialog
+    <AppDialog
       open={!!shift}
       onClose={onClose}
-      variant="sheet"
+      size="md"
       title={shift ? `${shift.role} shift` : "Shift"}
       description={shift ? formatShiftWhen(shift) : undefined}
       footer={
         showActions && shift ? (
           shift.status === "open" ? (
-            <button type="button" className="btn btn-danger" onClick={() => onWithdraw(shift)}>
+            <Button variant="danger" onClick={() => onWithdraw(shift)}>
               Withdraw shift
-            </button>
+            </Button>
           ) : (
-            <button type="button" className="btn btn-danger" onClick={() => onCancel(shift)}>
+            <Button variant="danger" onClick={() => onCancel(shift)}>
               Cancel shift
-            </button>
+            </Button>
           )
         ) : undefined
       }
@@ -182,10 +183,10 @@ export function ShiftDetailsDialog({
                 <span className="ag-claimant">
                   {shift.claimedByName}
                   {canWrite && (
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => onViewNurse(shift)}>
+                    <Button variant="secondary" size="sm" onClick={() => onViewNurse(shift)}>
                       <Icon name="user" />
                       View nurse details
-                    </button>
+                    </Button>
                   )}
                 </span>
               ) : (
@@ -195,7 +196,7 @@ export function ShiftDetailsDialog({
           ]}
         />
       )}
-    </Dialog>
+    </AppDialog>
   );
 }
 

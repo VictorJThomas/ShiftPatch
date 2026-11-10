@@ -2,9 +2,10 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import { useState } from "react";
+import { Button } from "@/components/shadcn/button";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DetailList } from "@/components/ui/DetailList";
-import { Dialog } from "@/components/ui/Dialog";
 import { Icon } from "@/components/ui/Icon";
 import { NurseDetailDialog } from "@/components/ui/NurseDetailDialog";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
@@ -12,9 +13,9 @@ import { credentialLabel } from "@/lib/credential-label";
 import { useAdminAgency, useAdminNurse, useReviewCredential } from "./queries";
 
 const closeFooter = (onClose: () => void) => (
-  <button type="button" className="btn btn-secondary" onClick={onClose}>
+  <Button variant="secondary" onClick={onClose}>
     Close
-  </button>
+  </Button>
 );
 
 /** Nurse detail with Verify / Reject on every credential (the shared dialog's `credentialActions` slot). Reject asks first. */
@@ -33,14 +34,15 @@ export function NurseReviewDialog({ nurseId, onClose }: { nurseId: string | null
         error={q.isError || !q.data ? (q.error?.message ?? "Something went wrong. Try again.") : undefined}
         onRetry={() => void q.refetch()}
         footer={closeFooter(onClose)}
+        blockClose={review.isPending}
         credentialActions={(c) => {
           const label = credentialLabel(c);
           const busy = pendingId === c.id;
           return (
             <>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
+              <Button
+                variant="secondary"
+                size="sm"
                 disabled={c.status === "verified" || review.isPending}
                 aria-busy={busy && review.variables?.status === "verified"}
                 aria-label={`Verify ${label}`}
@@ -48,10 +50,10 @@ export function NurseReviewDialog({ nurseId, onClose }: { nurseId: string | null
               >
                 <Icon name="check" />
                 Verify
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger btn-sm"
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
                 disabled={c.status === "rejected" || review.isPending}
                 aria-busy={busy && review.variables?.status === "rejected"}
                 aria-label={`Reject ${label}`}
@@ -59,7 +61,7 @@ export function NurseReviewDialog({ nurseId, onClose }: { nurseId: string | null
               >
                 <Icon name="x" />
                 Reject
-              </button>
+              </Button>
             </>
           );
         }}
@@ -71,6 +73,7 @@ export function NurseReviewDialog({ nurseId, onClose }: { nurseId: string | null
         confirmLabel="Reject"
         tone="danger"
         pending={review.isPending}
+        size="sm"
         onConfirm={() => {
           if (rejecting) review.mutate({ id: rejecting.id, status: "rejected", label: rejecting.label }, { onSettled: () => setRejecting(null) });
         }}
@@ -86,7 +89,7 @@ export function AgencyDetailDialog({ agencyId, onClose }: { agencyId: string | n
   const q = useAdminAgency(agencyId);
   const a = q.data;
   return (
-    <Dialog open={!!agencyId} onClose={onClose} title="Agency details" footer={closeFooter(onClose)}>
+    <AppDialog size="md" open={!!agencyId} onClose={onClose} title="Agency details" footer={closeFooter(onClose)}>
       {q.isPending ? (
         <ListSkeleton variant="table" rows={3} />
       ) : q.isError || !a ? (
@@ -121,6 +124,6 @@ export function AgencyDetailDialog({ agencyId, onClose }: { agencyId: string | n
           )}
         </>
       )}
-    </Dialog>
+    </AppDialog>
   );
 }

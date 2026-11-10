@@ -3,9 +3,13 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import type { AuditLogEntry } from "@shiftpatch/contracts";
 import { useMemo, useState } from "react";
-import { Dialog } from "@/components/ui/Dialog";
+import { Alert } from "@/components/shadcn/alert";
+import { Button } from "@/components/shadcn/button";
+import { Input } from "@/components/shadcn/input";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field, Select } from "@/components/ui/Field";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { formatDateTime } from "@/lib/format";
@@ -30,7 +34,8 @@ export function AuditLog() {
   const agencyName = (id: string | null) => (id ? (agencies.find((a) => a.id === id)?.name ?? id) : null);
   const items = q.data?.pages.flatMap((p) => p.items) ?? [];
   const set = (patch: Partial<AuditFilters>) => setFilters((f) => ({ ...f, ...patch }));
-  const filtered = Object.values(filters).some((v) => v !== "");
+  const activeCount = Object.values(filters).filter((v) => v !== "").length;
+  const filtered = activeCount > 0;
   const badRange = invalidRange(filters);
 
   return (
@@ -41,6 +46,8 @@ export function AuditLog() {
           Audit entries
         </h2>
         <div className="adm-toolbar">
+          <FilterDropdown label="Filters" activeCount={activeCount} onReset={() => setFilters(NO_AUDIT_FILTERS)}>
+            <div className="flex flex-col gap-4">
           <Field label="Action">
             {(p) => (
               <Select {...p} value={filters.action} onChange={(e) => set({ action: e.target.value })}>
@@ -77,15 +84,12 @@ export function AuditLog() {
               </Select>
             )}
           </Field>
-          <Field label="From">{(p) => <input {...p} type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => set({ from: e.target.value })} />}</Field>
+          <Field label="From">{(p) => <Input {...p} type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => set({ from: e.target.value })} />}</Field>
           <Field label="To" error={badRange ? "End date is before the start date" : undefined}>
-            {(p) => <input {...p} type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => set({ to: e.target.value })} />}
+            {(p) => <Input {...p} type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => set({ to: e.target.value })} />}
           </Field>
-          {filtered && (
-            <button type="button" className="btn btn-ghost" onClick={() => setFilters(NO_AUDIT_FILTERS)}>
-              Reset filters
-            </button>
-          )}
+            </div>
+          </FilterDropdown>
         </div>
         {q.isPending ? (
           <ListSkeleton variant="table" rows={8} />
@@ -115,9 +119,9 @@ export function AuditLog() {
                           title={filtered ? "No entries match these filters" : "No audit entries yet"}
                           action={
                             filtered ? (
-                              <button type="button" className="btn btn-secondary" onClick={() => setFilters(NO_AUDIT_FILTERS)}>
+                              <Button variant="secondary" onClick={() => setFilters(NO_AUDIT_FILTERS)}>
                                 Reset filters
-                              </button>
+                              </Button>
                             ) : undefined
                           }
                         >
@@ -162,9 +166,9 @@ export function AuditLog() {
                                   ))}
                                 </ul>
                                 {long && (
-                                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDetail(e)} aria-label={`Show all changes for ${actionLabel(e.action)} ${e.entityId}`}>
+                                  <Button variant="ghost" size="sm" onClick={() => setDetail(e)} aria-label={`Show all changes for ${actionLabel(e.action)} ${e.entityId}`}>
                                     Show all
-                                  </button>
+                                  </Button>
                                 )}
                               </>
                             )}
@@ -177,9 +181,9 @@ export function AuditLog() {
               </table>
             </div>
             {q.isError && (
-              <p className="alert al-err adm-inline-alert" role="alert">
+              <Alert variant="destructive" role="alert" className="m-4">
                 Couldn&apos;t load more entries: {q.error.message}
-              </p>
+              </Alert>
             )}
             <div className="adm-foot">
               <span className="tnum" aria-live="polite">
@@ -187,23 +191,17 @@ export function AuditLog() {
                 {q.hasNextPage ? " · more available" : ""}
               </span>
               {q.hasNextPage && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => void q.fetchNextPage()}
-                  disabled={q.isFetchingNextPage}
-                  aria-busy={q.isFetchingNextPage}
-                >
+                <Button variant="secondary" size="sm" onClick={() => void q.fetchNextPage()} loading={q.isFetchingNextPage}>
                   {q.isFetchingNextPage ? "Loading…" : "Load more entries"}
-                </button>
+                </Button>
               )}
             </div>
           </>
         )}
       </section>
-      <Dialog open={detail !== null} onClose={() => setDetail(null)} title="All changes" description={detail ? `${actionLabel(detail.action)} · ${detail.entityId}` : undefined}>
+      <AppDialog size="lg" open={detail !== null} onClose={() => setDetail(null)} title="All changes" description={detail ? `${actionLabel(detail.action)} · ${detail.entityId}` : undefined}>
         {detail && <pre className="adm-full">{formatChanges(detail.changes).join("\n")}</pre>}
-      </Dialog>
+      </AppDialog>
     </>
   );
 }

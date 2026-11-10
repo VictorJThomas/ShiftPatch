@@ -10,11 +10,18 @@ import { agencyKey } from "@/lib/query-client";
 import { useSessionStore, type AgencyMembership } from "@/stores/session";
 import { useToastStore } from "@/stores/toasts";
 import { AgencySwitcher } from "./agency-switcher";
+import { useSwitchAgency } from "./queries";
 import { echoLine } from "./post-shift-form";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }), usePathname: () => "/agency/shifts" }));
 
 beforeAll(() => {
+  // Radix Popper (FilterDropdown) needs ResizeObserver; jsdom has none.
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.setAttribute("open", "");
   };
@@ -61,7 +68,7 @@ function routes(method: string, url: string): [number, unknown] {
   const key = `${method} ${path}`;
   if (overrides[key]) return overrides[key];
   if (key === "GET /api/agencies/agency-a/coverage") {
-    const rows = [SHIFT_1, SHIFT_2].filter((r) => (!params.get("status") || r.status === params.get("status")) && (!params.get("role") || r.role === params.get("role")));
+    const rows = [SHIFT_1, SHIFT_2].filter((r) => (!params.get("status") || r.status === params.get("status")) && (!params.get("role") || r.role === params.get("role")) && (!params.get("date") || r.date === params.get("date")));
     return [200, { agencyId: "agency-a", shifts: rows }];
   }
   if (key === "GET /api/agencies/agency-b/coverage") return [200, { agencyId: "agency-b", shifts: [SHIFT_3] }];
@@ -107,6 +114,10 @@ function renderWith(ui: ReactNode) {
 }
 
 const toasts = () => useToastStore.getState().toasts.map((t) => `${t.kind}:${t.title}`);
+const openFilters = () => {
+  const btn = screen.getByRole("button", { name: /^Filters/ });
+  if (btn.getAttribute("aria-expanded") !== "true") fireEvent.click(btn);
+};
 const posts = (path: string) => calls.filter((c) => c.method === "POST" && c.path === path);
 
 describe("agency shifts dashboard", () => {
@@ -124,6 +135,7 @@ describe("agency shifts dashboard", () => {
     expect(within(table).getByRole("button", { name: /Maria Lopez/ })).toBeTruthy();
     expect(table.textContent).not.toContain("shift-");
     expect(table.textContent).not.toContain("nurse-1");
+    openFilters();
     expect(screen.getByRole("button", { name: "Filled 1" })).toBeTruthy();
   });
 
@@ -131,6 +143,7 @@ describe("agency shifts dashboard", () => {
     signIn([A], "agency-a");
     renderWith(<AgencyShiftsPage />);
     await screen.findByRole("table");
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: "Cancelled 0" }));
     expect(await screen.findByRole("heading", { name: "No cancelled shifts" })).toBeTruthy();
     expect(calls.some((c) => c.path === "/api/agencies/agency-a/coverage?status=cancelled")).toBe(true);
@@ -142,11 +155,32 @@ describe("agency shifts dashboard", () => {
     signIn([A], "agency-a");
     renderWith(<AgencyShiftsPage />);
     await screen.findByRole("table");
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: "LPN 1" }));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/agencies/agency-a/coverage?role=LPN")).toBe(true));
     await waitFor(() => expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(2));
     expect(screen.getByRole("button", { name: "RN 1" })).toBeTruthy();
     expect(screen.getByTestId("agency-shift-count").textContent).toBe("2 shifts");
+  });
+
+  it("filter dropdown: count of non-default filters, params, and Reset restores defaults", async () => {
+    signIn([A], "agency-a");
+    renderWith(<AgencyShiftsPage />);
+    await screen.findByRole("table");
+    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy(); // no count at defaults
+    openFilters();
+    fireEvent.click(screen.getByRole("button", { name: "Filled 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "LPN 1" }));
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-03" } });
+    expect(screen.getByRole("button", { name: "Filters, 3 active" })).toBeTruthy();
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/agencies/agency-a/coverage?status=filled&role=LPN&date=2026-10-03")).toBe(true));
+    // Search is outside the dropdown and does not count.
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "lop" } });
+    expect(screen.getByRole("button", { name: "Filters, 3 active" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
+    expect((screen.getByLabelText("Date") as HTMLInputElement).value).toBe("");
+    expect(screen.getAllByRole("button", { name: "All 2", pressed: true })).toHaveLength(2); // status and role back to All
   });
 
   it("shows an error state with Retry", async () => {
@@ -242,6 +276,18 @@ describe("post shift form", () => {
     await waitFor(() => expect(calls.filter((c) => c.path === "/api/agencies/agency-a/coverage")).toHaveLength(2));
   });
 
+  it("submits from the footer button and with Enter from an input (button is outside the form)", async () => {
+    overrides["POST /api/shifts"] = [201, { id: "shift-4", agencyId: "agency-a", agencyName: "Sunrise Health Staffing", role: "RN", date: "2026-12-01", startTime: "19:00", endTime: "07:00", status: "open", claimedBy: null }];
+    const dialog = await openForm();
+    expect(screen.getAllByTestId("agency-post-shift-submit-button")).toHaveLength(1);
+    const submit = screen.getByTestId("agency-post-shift-submit-button") as HTMLButtonElement;
+    expect(submit.form).toBe(dialog.querySelector("form"));
+    fireEvent.click(within(dialog).getByLabelText(/^RN/));
+    fill(dialog, { date: "2026-12-01", start: "19:00", end: "07:00" });
+    fireEvent.submit(dialog.querySelector("form") as HTMLFormElement); // what Enter in an input triggers
+    await waitFor(() => expect(posts("/api/shifts")).toHaveLength(1));
+  });
+
   it("surfaces the server error verbatim and keeps the form open", async () => {
     overrides["POST /api/shifts"] = [403, { error: "Forbidden" }];
     const dialog = await openForm();
@@ -300,12 +346,17 @@ describe("row actions", () => {
   });
 });
 
+function SwitchTo({ id }: { id: string }) {
+  const switchAgency = useSwitchAgency();
+  return <button onClick={() => switchAgency(id)}>{`go-${id.slice(-1)}`}</button>;
+}
+
 describe("agency switching", () => {
   it("switcher: new X-Agency-Id, previous agency's cache removed, dialogs closed", async () => {
     signIn([A, B], "agency-a");
     const { client } = renderWith(
       <>
-        <AgencySwitcher />
+        <SwitchTo id="agency-b" />
         <AgencyShiftsPage />
       </>,
     );
@@ -314,12 +365,9 @@ describe("agency switching", () => {
     expect(screen.getByRole("dialog", { name: "Post a shift" })).toBeTruthy();
     expect(client.getQueryData(agencyKey("agency-a", "shifts", "coverage", {}))).toBeTruthy();
 
-    // The real modal makes the page inert; switching from the band is still exercised directly here.
-    fireEvent.click(screen.getByRole("button", { name: /Switch agency/ }));
-    const listbox = screen.getByRole("listbox");
-    fireEvent.keyDown(listbox, { key: "ArrowDown" });
-    expect(document.activeElement?.textContent).toContain("Metro Care Partners");
-    fireEvent.click(screen.getByRole("option", { name: /Metro Care Partners/ }));
+    // A real modal makes the page inert (Radix aria-hides it and traps focus), so the switcher UI is unreachable here;
+    // drive the same hook it uses. The switcher's own keyboard behavior is covered by the Escape test below.
+    fireEvent.click(screen.getByRole("button", { name: "go-b", hidden: true }));
 
     expect(useSessionStore.getState().activeAgencyId).toBe("agency-b");
     expect(client.getQueryData(agencyKey("agency-a", "shifts", "coverage", {}))).toBeUndefined();

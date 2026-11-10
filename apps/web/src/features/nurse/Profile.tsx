@@ -2,6 +2,7 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import Link from "next/link";
+import { Badge } from "@/components/shadcn/badge";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
 import { Icon } from "@/components/ui/Icon";
 import { useLogout } from "@/features/auth/use-logout";
@@ -31,15 +32,15 @@ export function Profile() {
             {user?.email && <span className="muted">{user.email}</span>}
             {creds.data &&
               (creds.data.licenseValid ? (
-                <span className="badge b-verified">
+                <Badge variant="verified" className="mt-1 self-start">
                   <Icon name="shield" />
                   License valid
-                </span>
+                </Badge>
               ) : (
-                <span className="badge b-expired">
+                <Badge variant="expired" className="mt-1 self-start">
                   <Icon name="cal-x" />
                   No valid license
-                </span>
+                </Badge>
               ))}
           </div>
         </section>

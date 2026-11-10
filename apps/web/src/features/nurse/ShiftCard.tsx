@@ -3,7 +3,7 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import type { ReactNode } from "react";
 import type { Shift } from "@shiftpatch/contracts";
-import { Dialog } from "@/components/ui/Dialog";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { Icon } from "@/components/ui/Icon";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatShiftWhen, isOvernight, shiftHours } from "@/lib/format";
@@ -70,7 +70,7 @@ export function ShiftSummary({ shift }: { shift: Shift }) {
 /** Full shift info in a bottom sheet. Only fields the API returns: no invented pay, facility or contact. */
 export function ShiftDetailsDialog({ shift, onClose, footer }: { shift: Shift | null; onClose: () => void; footer?: ReactNode }) {
   return (
-    <Dialog open={!!shift} onClose={onClose} variant="sheet" title={shift?.agencyName ?? "Shift details"} description={shift ? formatShiftWhen(shift) : undefined} footer={footer}>
+    <AppDialog open={!!shift} onClose={onClose} size="md" title={shift?.agencyName ?? "Shift details"} description={shift ? formatShiftWhen(shift) : undefined} footer={footer}>
       {shift && (
         <>
           <div className="row nurse-card-tags">
@@ -105,6 +105,6 @@ export function ShiftDetailsDialog({ shift, onClose, footer }: { shift: Shift | 
           </dl>
         </>
       )}
-    </Dialog>
+    </AppDialog>
   );
 }

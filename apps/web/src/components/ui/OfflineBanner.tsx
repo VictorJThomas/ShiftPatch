@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { Alert } from "@/components/shadcn/alert";
 import { Icon } from "./Icon";
 
 const subscribe = (onChange: () => void) => {
@@ -22,12 +23,12 @@ export function OfflineBanner({ message = "Showing the last loaded data. Actions
   const online = useOnline();
   if (online) return null;
   return (
-    <div className="alert al-warn" role="status">
+    <Alert variant="warning" role="status">
       <Icon name="wifi-off" size="lg" />
       <div>
         <b>You are offline</b>
         {message}
       </div>
-    </div>
+    </Alert>
   );
 }

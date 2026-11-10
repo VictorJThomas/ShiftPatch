@@ -3,6 +3,7 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import type { AdminUserRow, AdminUserType } from "@shiftpatch/contracts";
 import { useState } from "react";
+import { Button } from "@/components/shadcn/button";
 import { ChipGroup } from "@/components/ui/ChipGroup";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
@@ -51,9 +52,9 @@ export function AdminUsers() {
                 icon="search"
                 title={`No ${noun} match`}
                 action={
-                  <button type="button" className="btn btn-secondary" onClick={() => setSearch("")}>
+                  <Button variant="secondary" onClick={() => setSearch("")}>
                     Clear search
-                  </button>
+                  </Button>
                 }
               >
                 Try another name or email.
@@ -89,10 +90,10 @@ export function AdminUsers() {
                       </td>
                     )}
                     <td>
-                      <button type="button" className="btn btn-ghost btn-sm" aria-label={`View details for ${u.name}`} onClick={() => setSelected(u)}>
+                      <Button variant="ghost" size="sm" aria-label={`View details for ${u.name}`} onClick={() => setSelected(u)}>
                         <Icon name="eye" />
                         View details
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -106,9 +107,9 @@ export function AdminUsers() {
               Showing {items.length} {noun}
             </span>
             {q.hasNextPage && (
-              <button type="button" className="btn btn-secondary btn-sm" disabled={q.isFetchingNextPage} aria-busy={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
+              <Button variant="secondary" size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
                 {q.isFetchingNextPage ? "Loading…" : `Load more ${noun}`}
-              </button>
+              </Button>
             )}
           </div>
         )}

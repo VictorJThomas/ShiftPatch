@@ -21,6 +21,12 @@ vi.mock("@/lib/api-client", () => ({
 const fetchMock = vi.mocked(apiFetch);
 
 beforeAll(() => {
+  // Radix Popper (FilterDropdown) needs ResizeObserver; jsdom has none.
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.setAttribute("open", "");
   };
@@ -88,6 +94,11 @@ function renderWith(ui: ReactNode) {
   render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
   return client;
 }
+/** Opens the FilterDropdown panel (trigger name is "Filters" or "Filters, n active"). */
+const openFilters = async () => {
+  fireEvent.click(screen.getByRole("button", { name: /^Filters/ }));
+  return screen.findByRole("dialog", { name: "Filters" });
+};
 const auditCalls = () => fetchMock.mock.calls.map(([p]) => p as string).filter((p) => p.startsWith("/api/audit-logs"));
 
 describe("model", () => {
@@ -155,11 +166,12 @@ describe("admin dashboard", () => {
   it("status chips use server counts and every filter re-requests with params", async () => {
     renderWith(<AdminDashboard />);
     await screen.findAllByTestId("admin-shift-status-badge");
-    fireEvent.click(screen.getByRole("button", { name: "Filled 1" }));
+    const panel = await openFilters();
+    fireEvent.click(within(panel).getByRole("button", { name: "Filled 1" }));
     await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1));
     expect(coverageCalls().some((p) => p.includes("status=filled"))).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "All 3" }));
-    fireEvent.change(screen.getByLabelText("Agency"), { target: { value: "agency-b" } });
+    fireEvent.click(within(panel).getByRole("button", { name: "All 3" }));
+    fireEvent.change(within(panel).getByLabelText("Agency"), { target: { value: "agency-b" } });
     await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(1));
     expect(within(screen.getByTestId("admin-dashboard-shift-table")).getByText("shift-3")).toBeTruthy();
     expect(coverageCalls().some((p) => p.includes("agencyId=agency-b"))).toBe(true);
@@ -177,6 +189,27 @@ describe("admin dashboard", () => {
     expect(await screen.findByText("No shifts match")).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Clear filters" })[0]!);
     await waitFor(() => expect(screen.getAllByTestId("admin-shift-status-badge")).toHaveLength(3));
+  });
+
+  it("filter dropdown shows the active count and Reset restores the defaults (page back to 1)", async () => {
+    shifts = many(30);
+    renderWith(<AdminDashboard />);
+    await screen.findByText("1–25 of 30 shifts");
+    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    await screen.findByText("26–30 of 30 shifts");
+    const panel = await openFilters();
+    fireEvent.click(within(panel).getByRole("button", { name: /^Open/ }));
+    await screen.findByText(/^1–25 of 30 shifts/); // changing a filter starts over at page 1
+    expect(coverageCalls().at(-1)).toContain("page=1");
+    expect(coverageCalls().at(-1)).toContain("status=open");
+    fireEvent.change(within(panel).getByLabelText("Agency"), { target: { value: "agency-a" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Filters, 2 active" })).toBeTruthy());
+    expect(coverageCalls().at(-1)).toContain("agencyId=agency-a");
+    fireEvent.click(within(panel).getByRole("button", { name: "Reset" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy());
+    await waitFor(() => expect(coverageCalls().at(-1)).not.toMatch(/status=|agencyId=/));
+    expect((within(panel).getByLabelText("Agency") as HTMLSelectElement).value).toBe("all");
   });
 
   it("View details opens the shift with the nurse name and loads nurse details on demand", async () => {
@@ -294,6 +327,7 @@ describe("users", () => {
     const confirm = await screen.findByRole("dialog", { name: "Reject Nursing license (LPN)?" });
     fireEvent.click(within(confirm).getByRole("button", { name: "Go back" }));
     expect(fetchMock.mock.calls.some(([p]) => p === "/api/credentials/c1/review")).toBe(false);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reject Nursing license (LPN)?" })).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Reject Nursing license (LPN)" }));
     fireEvent.click(within(await screen.findByRole("dialog", { name: "Reject Nursing license (LPN)?" })).getByRole("button", { name: "Reject" }));
     await waitFor(() => expect(useToastStore.getState().toasts.some((t) => t.kind === "success" && t.title === "Nursing license (LPN) rejected")).toBe(true));
@@ -334,11 +368,38 @@ describe("audit log", () => {
   it("the agency filter sends agencyId= and starts over", async () => {
     renderWith(<AuditLog />);
     await screen.findByTestId("audit-log-table");
-    await waitFor(() => expect(screen.getByRole("option", { name: "Metro Care Partners" })).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("Agency"), { target: { value: "agency-b" } });
+    const panel = await openFilters();
+    await waitFor(() => expect(within(panel).getByRole("option", { name: "Metro Care Partners" })).toBeTruthy());
+    fireEvent.change(within(panel).getByLabelText("Agency"), { target: { value: "agency-b" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Filters, 1 active" })).toBeTruthy());
     await waitFor(() => expect(auditCalls().some((p) => p.includes("agencyId=agency-b"))).toBe(true));
     expect(auditCalls().every((p) => p.includes("limit=50"))).toBe(true);
     expect(await screen.findByText("No entries match these filters")).toBeTruthy();
+  });
+
+  it("every filter maps to params, counts as active, and Reset clears them all", async () => {
+    renderWith(<AuditLog />);
+    await screen.findByTestId("audit-log-table");
+    const panel = await openFilters();
+    fireEvent.change(within(panel).getByLabelText("Action"), { target: { value: "shift.claimed" } });
+    fireEvent.change(within(panel).getByLabelText("Item type"), { target: { value: "shift" } });
+    fireEvent.change(within(panel).getByLabelText("From"), { target: { value: "2026-10-01" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Filters, 3 active" })).toBeTruthy());
+    await waitFor(() => {
+      const last = auditCalls().at(-1)!;
+      for (const k of ["action=shift.claimed", "entityType=shift", "from="]) expect(last).toContain(k);
+    });
+    fireEvent.click(within(panel).getByRole("button", { name: "Reset" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy());
+    await waitFor(() => expect(auditCalls().at(-1)).not.toMatch(/action=|entityType=|from=/));
+  });
+
+  it("Show all opens the full change list in a dialog", async () => {
+    auditPages.first = { items: [entry(1, { changes: { a: [1, 2], b: [1, 2], c: [1, 2] } })], nextCursor: null };
+    renderWith(<AuditLog />);
+    fireEvent.click(await screen.findByRole("button", { name: /Show all changes/ }));
+    const dlg = await screen.findByRole("dialog", { name: "All changes" });
+    expect(dlg.textContent).toContain("c: 1 → 2");
   });
 
   it("shows the empty state only when the API returns 0 items", async () => {

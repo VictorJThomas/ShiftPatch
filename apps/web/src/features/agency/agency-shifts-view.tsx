@@ -3,8 +3,11 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { AgencyCoverageQuery, CoverageRow } from "@shiftpatch/contracts";
+import { Button } from "@/components/shadcn/button";
+import { Input } from "@/components/shadcn/input";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { FilterBar, FilterGroup } from "@/components/ui/FilterBar";
+import { FilterGroup } from "@/components/ui/FilterBar";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -93,17 +96,20 @@ export function AgencyShiftsView() {
 
   const agencyName = membership?.name ?? "this agency";
   const viewerNote = "View-only access: owners and managers can post and change shifts.";
-  const clearFilters = () => {
+  const resetFilters = () => {
     setStatus("all");
     setRole("all");
     setDate("");
+  };
+  const clearFilters = () => {
+    resetFilters();
     setSearch("");
   };
+  // Non-default filters inside the dropdown (the search box lives outside it).
+  const activeCount = (status !== "all" ? 1 : 0) + (role !== "all" ? 1 : 0) + (date ? 1 : 0);
 
   const postButton = (
-    <button
-      type="button"
-      className="btn btn-primary"
+    <Button
       data-testid="agency-post-shift-button"
       onClick={() => setPosting(true)}
       disabled={!canWrite}
@@ -111,7 +117,7 @@ export function AgencyShiftsView() {
     >
       <Icon name="plus" />
       Post shift
-    </button>
+    </Button>
   );
 
   const actions = {
@@ -155,9 +161,8 @@ export function AgencyShiftsView() {
         }
         actions={
           <>
-            <button
-              type="button"
-              className="btn btn-secondary"
+            <Button
+              variant="secondary"
               onClick={() => {
                 void all.refetch();
                 if (filtered) void list.refetch();
@@ -167,7 +172,7 @@ export function AgencyShiftsView() {
             >
               <Icon name="refresh" />
               Refresh
-            </button>
+            </Button>
             {postButton}
           </>
         }
@@ -190,10 +195,10 @@ export function AgencyShiftsView() {
           title="No shifts posted yet"
           action={
             canWrite ? (
-              <button type="button" className="btn btn-primary" onClick={() => setPosting(true)}>
+              <Button onClick={() => setPosting(true)}>
                 <Icon name="plus" />
                 Post shift
-              </button>
+              </Button>
             ) : undefined
           }
         >
@@ -207,29 +212,34 @@ export function AgencyShiftsView() {
             <StatTile label="Cancelled" value={counts.st.cancelled} icon="ban" />
             <StatTile label="Open in next 7 days" value={openNextWeek(everything)} icon="cal" />
           </section>
-          <FilterBar label="Filter shifts" trailing={<SearchInput label="Search by nurse name" placeholder="Nurse name" value={search} onChange={setSearch} />}>
-            <FilterGroup label="Status" value={status} onChange={setStatus} options={statusOptions} />
-            <FilterGroup label="Role" value={role} onChange={setRole} options={roleOptions} />
-            <div className="fgroup">
-              <label htmlFor="ag-date" className="fgroup-l">
-                Date
-              </label>
-              <span className="ag-date">
-                <input id="ag-date" type="date" className="inp" value={date} onChange={(e) => setDate(e.target.value)} />
-                {date && (
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDate("")} aria-label="Clear date filter">
-                    <Icon name="x" />
-                  </button>
-                )}
-              </span>
-            </div>
-          </FilterBar>
+          <div className="row" style={{ flexWrap: "wrap", gap: 12 }}>
+            <FilterDropdown label="Filters" activeCount={activeCount} onReset={resetFilters}>
+              <div className="col" style={{ gap: 16 }}>
+                <FilterGroup label="Status" value={status} onChange={setStatus} options={statusOptions} />
+                <FilterGroup label="Role" value={role} onChange={setRole} options={roleOptions} />
+                <div className="fgroup">
+                  <label htmlFor="ag-date" className="fgroup-l">
+                    Date
+                  </label>
+                  <span className="ag-date">
+                    <Input id="ag-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                    {date && (
+                      <Button variant="secondary" size="sm" onClick={() => setDate("")} aria-label="Clear date filter">
+                        <Icon name="x" />
+                      </Button>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </FilterDropdown>
+            <SearchInput label="Search by nurse name" placeholder="Nurse name" value={search} onChange={setSearch} />
+          </div>
           {!desktop && (
             <div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSort((s) => (s === "asc" ? "desc" : "asc"))}>
+              <Button variant="secondary" size="sm" onClick={() => setSort((s) => (s === "asc" ? "desc" : "asc"))}>
                 <Icon name="cal" />
                 {sort === "asc" ? "Soonest first" : "Latest first"}
-              </button>
+              </Button>
             </div>
           )}
           {list.isPending ? (
@@ -241,9 +251,9 @@ export function AgencyShiftsView() {
               icon="search"
               title={status === "all" ? "No matching shifts" : `No ${status} shifts`}
               action={
-                <button type="button" className="btn btn-secondary" onClick={clearFilters}>
+                <Button variant="secondary" onClick={clearFilters}>
                   Clear filter
-                </button>
+                </Button>
               }
             >
               Nothing matches these filters for {agencyName}.
@@ -312,16 +322,16 @@ function Claimant({ shift, canWrite, onNurse }: { shift: CoverageRow; canWrite: 
  */
 function RowAction({ shift, canWrite, onWithdraw, onCancel, block }: RowActions & { shift: CoverageRow; block?: boolean }) {
   const label = shiftSummary(shift);
-  const cls = `btn btn-danger btn-sm${block ? " ag-card-btn" : ""}`;
+  const cls = block ? "flex-1" : undefined;
   if (!canWrite || (shift.status !== "open" && shift.status !== "filled")) return null;
   return shift.status === "open" ? (
-    <button type="button" className={cls} onClick={() => onWithdraw(shift)} aria-label={`Withdraw, ${label}`}>
+    <Button variant="danger" size="sm" className={cls} onClick={() => onWithdraw(shift)} aria-label={`Withdraw, ${label}`}>
       Withdraw
-    </button>
+    </Button>
   ) : (
-    <button type="button" className={cls} onClick={() => onCancel(shift)} aria-label={`Cancel shift, ${label}`} data-testid="agency-cancel-shift-button">
+    <Button variant="danger" size="sm" className={cls} onClick={() => onCancel(shift)} aria-label={`Cancel shift, ${label}`} data-testid="agency-cancel-shift-button">
       Cancel shift
-    </button>
+    </Button>
   );
 }
 
@@ -388,9 +398,9 @@ function ShiftTable({
               </td>
               <td className="ag-cell-act">
                 <span className="ag-acts">
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => actions.onDetails(s)} aria-label={`Details, ${shiftSummary(s)}`}>
+                  <Button variant="secondary" size="sm" onClick={() => actions.onDetails(s)} aria-label={`Details, ${shiftSummary(s)}`}>
                     Details
-                  </button>
+                  </Button>
                   <RowAction shift={s} {...actions} />
                 </span>
               </td>
@@ -416,9 +426,9 @@ function ShiftCards({ shifts, highlight, ...actions }: RowActions & { shifts: Co
             <span className="muted">Claimed by</span> <Claimant shift={s} canWrite={actions.canWrite} onNurse={actions.onNurse} />
           </div>
           <div className="ag-card-actions">
-            <button type="button" className="btn btn-secondary btn-sm ag-card-btn" onClick={() => actions.onDetails(s)} aria-label={`Details, ${shiftSummary(s)}`}>
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => actions.onDetails(s)} aria-label={`Details, ${shiftSummary(s)}`}>
               Details
-            </button>
+            </Button>
             <RowAction shift={s} {...actions} block />
           </div>
         </li>

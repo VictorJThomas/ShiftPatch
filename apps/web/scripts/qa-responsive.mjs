@@ -20,7 +20,7 @@ const VIEWPORTS = [
 const PASSWORD = process.env.QA_PASSWORD; // spec password, passed via env, never logged
 const ROLES = [
   { role: "login", email: null, pages: ["/login"] },
-  { role: "nurse", email: "maria.lopez@example.com", pages: ["/nurse/shifts", "/nurse/my-shifts", "/nurse/credentials", "/nurse/profile"] },
+  { role: "nurse", email: "maria.lopez@example.com", pages: ["/nurse/shifts", "/nurse/my-shifts", "/nurse/credentials", "/nurse/credentials/new", "/nurse/profile"] },
   { role: "agency", email: "admin@sunrisehealth.example", pages: ["/agency/shifts", "/agency/profile"] },
   { role: "admin", email: "alex.kim@example.com", pages: ["/admin/dashboard", "/admin/users", "/admin/audit", "/admin/timesheets"] },
 ];

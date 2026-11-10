@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { LoginRequest } from "@shiftpatch/contracts";
+import { Button } from "@/components/shadcn/button";
 import { Icon } from "@/components/ui/Icon";
 import { ApiError } from "@/lib/api-client";
 import { HOME_BY_ROLE } from "@/lib/routes";
@@ -93,10 +94,10 @@ export function LoginForm() {
             aria-describedby={errors.password ? "login-password-err" : undefined}
             {...register("password")}
           />
-          <button type="button" className="btn btn-ghost btn-sm" aria-pressed={showPassword} onClick={() => setShowPassword((v) => !v)}>
+          <Button variant="ghost" size="sm" aria-pressed={showPassword} onClick={() => setShowPassword((v) => !v)}>
             {showPassword ? "Hide" : "Show"}
             <span className="sr"> password</span>
-          </button>
+          </Button>
         </div>
         {errors.password && (
           <p className="errmsg" id="login-password-err">
@@ -106,17 +107,9 @@ export function LoginForm() {
         )}
       </div>
 
-      <button
-        type="submit"
-        className="btn btn-primary btn-block"
-        style={{ minHeight: 52, fontSize: 16 }}
-        data-testid="login-submit-button"
-        disabled={busy}
-        aria-busy={busy}
-      >
-        {busy && <span className="spin" aria-hidden="true" />}
+      <Button type="submit" block loading={busy} style={{ minHeight: 52, fontSize: 16 }} data-testid="login-submit-button" aria-busy={busy}>
         {busy ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

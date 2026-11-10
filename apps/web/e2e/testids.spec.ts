@@ -73,21 +73,25 @@ test("nurse-2: the 403 reaches notification-banner with the exact spec text, as 
 test("nurse: credential upload input (file) and expiry input (date) on the upload form", async ({ page }) => {
   await signIn(page, "nurse");
   await nav(page, "/nurse/credentials");
-  await expect(page.getByRole("heading", { name: "Add a credential" })).toBeVisible();
+  // The overview has no form: the inputs live only on the dedicated screen.
+  await expect(page.getByRole("link", { name: "Add credential" }).first()).toBeVisible();
+  await expect(page.getByTestId("credential-upload-input")).toHaveCount(0);
+  await expect(page.getByTestId("credential-expiry-date-input")).toHaveCount(0);
+  await page.getByRole("link", { name: "Add credential" }).first().click();
+  await expect(page).toHaveURL(/\/nurse\/credentials\/new/);
   const file = page.getByTestId("credential-upload-input");
   const expiry = page.getByTestId("credential-expiry-date-input");
-  await expect(file).toHaveCount(1); // on the page from load, once each
+  await expect(file).toHaveCount(1); // once each
   await expect(expiry).toHaveCount(1);
   expect(await attr(file, "type")).toBe("file");
   expect(await attr(expiry, "type")).toBe("date");
 
   await file.setInputFiles({ name: "license.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%%EOF\n") });
   await expiry.fill("2028-01-01");
-  await page.getByRole("button", { name: "Continue" }).click(); // opens the modal: type-specific fields + submit
-  const dlg = page.getByRole("dialog");
-  await expect(dlg.getByLabel("Credential type")).toBeVisible(); // the type select exists only inside the dialog
-  await dlg.getByRole("button", { name: "Add credential" }).click();
+  await expect(page.getByLabel("Credential type")).toBeVisible();
+  await page.getByRole("button", { name: "Add credential" }).click();
   await expect(page.getByTestId("notification-banner")).toContainText("Credential submitted");
+  await expect(page).toHaveURL(/\/nurse\/credentials$/);
   await expect(page.locator("article").filter({ hasText: /pending/i })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: /On file · 2/ })).toBeVisible();
 });
@@ -145,6 +149,7 @@ test("admin: audit log pages with Load more and filters by agency", async ({ pag
   await expect(rows).toHaveCount(60);
   await expect(page.getByRole("button", { name: /Load more/ })).toHaveCount(0);
 
+  await page.getByRole("button", { name: /^Filters/ }).click();
   await page.getByLabel("Agency").selectOption({ label: "Metro Care Partners" });
   await expect.poll(() => api.requests.some((r) => r.path === "/api/audit-logs" && r.search.includes("agencyId=agency-b"))).toBe(true);
   await expect(rows).toHaveCount(15); // every 4th entry is a login (no agency); half of the rest are agency-b

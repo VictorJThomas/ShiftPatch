@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { credentialLabel } from "@/lib/credential-label";
 import { formatDate } from "@/lib/format";
 import { DetailList } from "./DetailList";
-import { Dialog } from "./Dialog";
+import { AppDialog } from "./AppDialog";
 import { ErrorState, ListSkeleton } from "./States";
 import { StatusBadge } from "./StatusBadge";
 
@@ -22,12 +22,14 @@ export interface NurseDetailDialogProps {
   title?: string;
   /** Per-credential actions (admin Verify / Reject). Omit for a read-only list. */
   credentialActions?: (credential: NurseDetailData["credentials"][number]) => ReactNode;
+  /** True while a credential action is in flight: Esc, overlay and X do nothing. */
+  blockClose?: boolean;
 }
 
 /** Presentational nurse info + credentials list. The caller fetches the data and owns `open`. */
-export function NurseDetailDialog({ open, onClose, nurse, loading, error, onRetry, footer, title = "Nurse details", credentialActions }: NurseDetailDialogProps) {
+export function NurseDetailDialog({ open, onClose, nurse, loading, error, onRetry, footer, title = "Nurse details", credentialActions, blockClose }: NurseDetailDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} title={title} footer={footer}>
+    <AppDialog open={open} onClose={onClose} title={title} footer={footer} size="md" blockClose={blockClose}>
       {loading ? (
         <ListSkeleton variant="table" rows={3} />
       ) : error ? (
@@ -60,6 +62,6 @@ export function NurseDetailDialog({ open, onClose, nurse, loading, error, onRetr
           )}
         </>
       ) : null}
-    </Dialog>
+    </AppDialog>
   );
 }

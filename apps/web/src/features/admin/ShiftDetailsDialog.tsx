@@ -3,8 +3,9 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import type { CoverageRow } from "@shiftpatch/contracts";
 import { useState } from "react";
+import { Button } from "@/components/shadcn/button";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { DetailList } from "@/components/ui/DetailList";
-import { Dialog } from "@/components/ui/Dialog";
 import { Icon } from "@/components/ui/Icon";
 import { NurseDetailDialog } from "@/components/ui/NurseDetailDialog";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -18,7 +19,8 @@ export function ShiftDetailsDialog({ shift, onClose }: { shift: CoverageRow | nu
   const nurse = useShiftNurse(nurseOpen && shift ? shift.id : null);
   return (
     <>
-      <Dialog
+      <AppDialog
+        size="md"
         open={!!shift}
         onClose={() => {
           setNurseOpen(false);
@@ -26,9 +28,9 @@ export function ShiftDetailsDialog({ shift, onClose }: { shift: CoverageRow | nu
         }}
         title="Shift details"
         footer={
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Close
-          </button>
+          </Button>
         }
       >
         {shift && (
@@ -47,10 +49,10 @@ export function ShiftDetailsDialog({ shift, onClose }: { shift: CoverageRow | nu
                 value: shift.claimedByName ? (
                   <span>
                     {shift.claimedByName}{" "}
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNurseOpen(true)}>
+                    <Button variant="ghost" size="sm" onClick={() => setNurseOpen(true)}>
                       <Icon name="eye" />
                       View nurse details
-                    </button>
+                    </Button>
                   </span>
                 ) : (
                   <span className="muted">Not claimed</span>
@@ -59,7 +61,7 @@ export function ShiftDetailsDialog({ shift, onClose }: { shift: CoverageRow | nu
             ]}
           />
         )}
-      </Dialog>
+      </AppDialog>
       <NurseDetailDialog
         open={nurseOpen && !!shift}
         onClose={() => setNurseOpen(false)}

@@ -1,5 +1,5 @@
 # UI primitives (`@/components/ui/*`)
-Small, typed, no dependencies. Use `tokens.css` classes; no new inline colours. Status = icon + label + tint.
+Small, typed. Internals now compose Shadcn (`@/components/shadcn/*`, Radix + Tailwind v4); props unchanged. Full catalog, size table and legacy-class mapping: `docs/ui/COMPONENT_CONTRACTS.md`. Status = icon + label + tint.
 
 | Primitive | Signature |
 |---|---|
@@ -33,13 +33,11 @@ Small, typed, no dependencies. Use `tokens.css` classes; no new inline colours. 
 ```
 
 Notes
-- `Dialog` is native `<dialog>` + `showModal()`: focus trap, Esc, inert page for free. Content mounts only while
-  `open`, so a test ID inside never exists twice. Focus returns to the opener; page scroll locks via CSS.
-- Dialog sizes: `sheet` bottom sheet <720px / centered ≥720; `panel` right 480px panel ≥720 / full-height sheet <720.
-  Footer buttons stack full-width (52px) on phones. Put the form's submit in `footer` with `form="<form id>"`.
+- `Dialog` is now a shim over `AppDialog` (Radix Dialog): focus trap, Esc, overlay close, focus return, `dvh` max height, pinned header/footer, scrolling body. Prefer `AppDialog` with `size` (`sm|md|lg|xl|full`). Content mounts only while `open`.
+- Dialog sizes (legacy `variant`): `sheet`/`modal` -> `md`, `panel` -> `lg`. Below 720px: bottom sheet (`lg`/`xl` near full height). Footer buttons stack full-width (52px) on phones. The dialog is portaled to `<body>`, so put the form's submit in `footer` with `form="<form id>"`.
 - `Field` passes `id`, `className` ("inp" / "inp err"), `aria-describedby`, `aria-invalid`, `required`.
   With react-hook-form spread `register()` after `p`. Use `noValidate` on the form if you rely on zod messages.
-- jsdom has no `showModal`: stub it in tests (see `primitives.test.tsx`).
+- Tests: Radix dialogs/menus work in jsdom without stubs, but popovers/menus need a `ResizeObserver` stub; see `AppDialog.test.tsx`, `FilterDropdown.test.tsx`.
 - Toasts: success is announced once by the Toaster's persistent `role="status"` region; errors are `role="alert"`.
 
 ## CSS utilities (`app/globals.css`)

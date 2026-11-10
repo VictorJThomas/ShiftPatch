@@ -196,3 +196,16 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Victor decided: instant claim stays (brief + spec), admin users = view + credential review, credentials = slim strip + modal.
 - Review: no critical or security findings; 5 important (admin Sign out off-screen on phones, agency stranded on profile on phones, suspended agencies listed, audit label, page past end) all fixed.
 - Results: see [[Status]]. Skill copied into repo: `building-components`. Nothing committed.
+
+## 2026-11-08: R2 production plan
+- Read the brain and traced the credential flow. Upload is built; only the bucket + Railway env are missing. The read path (`GET /api/credentials/:id/download-url`, §9.3) was never built and no screen offers the file.
+- Wrote `docs/r2-storage-plan.md`: signed 5-minute GET via `aws4fetch`, `Content-Disposition` set at PUT, one shared download button (nurse, admin, agency). Open risk: 10 MB uploads through the Vercel rewrite (documented 4.5 MB function limit) must be tested first.
+- Plan only, no app code. Skills already in the repo: `using-agent-skills`, `ponytail`, `plan-md`. No board rows added.
+
+## 2026-11-08/09: Shadcn migration, credentials screen, FilterDropdown, recursive Chrome QA
+- Done: checkpoint commit `8809cd3` (Victor approved) after /verify GREEN; API tests now run file by file (rollback test timed out in parallel). Previous agent team was gone; new background subagents, all confirmed `claude-sonnet-5-5`: Shared Components Lead (Tailwind v4 + Radix + Shadcn foundation, AppDialog, FilterDropdown), then Nurse / Agency / Admin in parallel with disjoint file ownership; orchestrator integrated e2e specs, login/role-guard buttons, NurseDetailDialog `blockClose`.
+- QA: fresh Sonnet agent in real Chrome, 3 rounds; fixers per defect: QA-007 chips clipped in the filter panel, QA-008 stale expiry error after type switch, QA-009 email broke mid-word, QA-011 36px touch targets (Button sm 44px on touch / small screens), QA-013 admin search 40px. Code review (agent-skills code-reviewer): stacked dialogs gave 2 `notification-banner` (fixed: dialog stack, only top toaster active) and guard missed shell links (fixed: capture-phase link interception).
+- Decided: full Shadcn + Tailwind; test IDs only on `/nurse/credentials/new`; native select/date kept (see [[Decisions]]).
+- Board: 0 drift; added "Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA" (Done).
+- Skills copied: `shadcn-ui`.
+- Open: commit + PR; legacy CSS prune; popstate guard gap; QA-013 not re-measured.

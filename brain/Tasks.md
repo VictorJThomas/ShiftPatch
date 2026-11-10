@@ -7,7 +7,7 @@ Notion columns: `Task` (title) · `Status` (Pending / Active / Done) · `Scope` 
 - Match rows by **exact title**. Never rename a task in one place only.
 - Starting a task: set Status `Active` in BOTH places. Finishing: `Done` in both. New task: add to both, with Stage tag.
 - Edit here first (it is the diff-able record), then push to Notion (`notion-update-page` / `notion-create-pages`). If they disagree, read Notion (query rows), reconcile, note it in [[Session-Log]].
-- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-08.
+- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-09.
 
 Legend: ☐ Pending · ◐ Active · ☑ Done
 
@@ -81,6 +81,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Admin dashboard and reporting
 - ☐ Timesheets
 - ☑ Notion design notes: screen UI/UX implementation
+- ☑ Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA · 2026-11-08; QA-007..013 in docs/qa/DEFECT_LOG.md
 
 ## 7 Credentials
 - ☑ Credential upload route: private R2/MinIO, sniffed type, 10MB limit

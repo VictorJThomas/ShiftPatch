@@ -6,7 +6,9 @@ import { useId } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { ShiftRole, type CreateShiftRequest, type Shift } from "@shiftpatch/contracts";
-import { Dialog } from "@/components/ui/Dialog";
+import { Button } from "@/components/shadcn/button";
+import { Input } from "@/components/shadcn/input";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { formatShiftEcho } from "@/lib/format";
@@ -70,21 +72,21 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
   });
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
       onClose={close}
-      variant="modal"
+      size="lg"
+      blockClose={pending}
       title="Post a shift"
       description={`For ${agencyName}. Nurses who match see it right away.`}
       footer={
         <>
-          <button type="button" className="btn btn-secondary" onClick={close} disabled={pending}>
+          <Button variant="secondary" onClick={close} disabled={pending}>
             Cancel
-          </button>
-          <button type="submit" form={formId} className="btn btn-primary" disabled={pending} aria-busy={pending || undefined} data-testid="agency-post-shift-submit-button">
-            {pending && <span className="spin" aria-hidden="true" />}
+          </Button>
+          <Button type="submit" form={formId} loading={pending} data-testid="agency-post-shift-submit-button">
             Post shift
-          </button>
+          </Button>
         </>
       }
     >
@@ -108,14 +110,14 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
           )}
         </fieldset>
         <Field label="Date" error={errors.date?.message} required>
-          {(p) => <input {...p} type="date" {...register("date")} />}
+          {(p) => <Input {...p} type="date" {...register("date")} />}
         </Field>
         <div className="ag-two">
           <Field label="Start time" error={errors.startTime?.message} required>
-            {(p) => <input {...p} type="time" step={60} {...register("startTime")} />}
+            {(p) => <Input {...p} type="time" step={60} {...register("startTime")} />}
           </Field>
           <Field label="End time" error={errors.endTime?.message} required>
-            {(p) => <input {...p} type="time" step={60} {...register("endTime")} />}
+            {(p) => <Input {...p} type="time" step={60} {...register("endTime")} />}
           </Field>
         </div>
         <p className="alert al-info ag-note">
@@ -127,6 +129,6 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
           {preview ? <span className="tnum">{preview}</span> : <span className="muted">Pick a date and times to preview the shift.</span>}
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }

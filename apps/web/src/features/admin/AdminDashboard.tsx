@@ -3,9 +3,12 @@
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import type { CoverageRow, Shift } from "@shiftpatch/contracts";
 import { useEffect, useMemo, useState } from "react";
+import { Alert } from "@/components/shadcn/alert";
+import { Button } from "@/components/shadcn/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field, Select } from "@/components/ui/Field";
 import { FilterBar, FilterGroup } from "@/components/ui/FilterBar";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Icon } from "@/components/ui/Icon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
@@ -52,17 +55,17 @@ export function AdminDashboard() {
       ) : (
         <>
           {q.isError && (
-            <div className="alert al-err adm-stale" role="alert">
+            <Alert variant="destructive" role="alert" className="mb-4 flex-wrap items-center">
               <Icon name="alert-circle" />
-              <div>
+              <div className="min-w-60 flex-1">
                 <b>Live updates paused</b>
                 Couldn&apos;t refresh. Showing data from {formatDateTime(new Date(q.dataUpdatedAt))}, retrying every {POLL_MS / 1000} s.
               </div>
-              <button type="button" className="btn btn-danger btn-sm" onClick={() => void q.refetch()}>
+              <Button variant="danger" size="sm" onClick={() => void q.refetch()}>
                 <Icon name="refresh" />
                 Retry now
-              </button>
-            </div>
+              </Button>
+            </Alert>
           )}
           {shifts.length > 0 && (
             <>
@@ -88,10 +91,10 @@ function LiveStatus({ updatedAt, fetching, onRefresh }: { updatedAt: number; fet
           <b>Live</b> · updated {relativeFrom(new Date(updatedAt), new Date(now))} · refreshes every {POLL_MS / 1000} s
         </span>
       </p>
-      <button type="button" className="btn btn-secondary btn-sm" onClick={onRefresh} disabled={fetching} aria-busy={fetching}>
+      <Button variant="secondary" size="sm" onClick={onRefresh} disabled={fetching} aria-busy={fetching}>
         <Icon name="refresh" />
         {fetching ? "Refreshing…" : "Refresh"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -191,6 +194,7 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
     setPage(1);
   };
   const clear = () => reset({ status: "all", agencyId: "all", search: "" });
+  const clearFilters = () => reset({ status: "all", agencyId: "all" });
 
   const counts = data?.statusCounts ?? ZERO;
   const statusOptions = [
@@ -208,6 +212,7 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
   const from = !data || total === 0 ? 0 : (data.page - 1) * data.pageSize + 1;
   const to = !data || total === 0 ? 0 : from + data.shifts.length - 1;
   const rows = data?.shifts ?? []; // the server sorts globally (sort=asc|desc)
+  const activeCount = (status !== "all" ? 1 : 0) + (agencyId !== "all" ? 1 : 0);
   const filtered = agencyId !== "all" || status !== "all" || search.trim() !== "";
   const sortLabel = dir === "asc" ? "earliest first" : "latest first";
 
@@ -218,31 +223,33 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
       </h2>
       <p className="adm-sec-sub">Every shift posted by agencies in your network.</p>
       <div className="adm-toolbar">
-        <Field label="Agency">
-          {(p) => (
-            <Select {...p} value={agencyId} onChange={(e) => reset({ agencyId: e.target.value })}>
-              <option value="all">All agencies</option>
-              {agencies.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
         <div className="fld grow">
           <SearchInput label="Search shifts" placeholder="Agency or nurse name" value={search} onChange={(v) => reset({ search: v })} />
         </div>
+        <FilterDropdown label="Filters" activeCount={activeCount} onReset={clearFilters}>
+          <div className="flex flex-col gap-4">
+            <Field label="Agency">
+              {(p) => (
+                <Select {...p} value={agencyId} onChange={(e) => reset({ agencyId: e.target.value })}>
+                  <option value="all">All agencies</option>
+                  {agencies.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <FilterBar label="Shift filters">
+              <FilterGroup label="Status" options={statusOptions} value={status} onChange={(v) => reset({ status: v })} />
+            </FilterBar>
+          </div>
+        </FilterDropdown>
         {filtered && (
-          <button type="button" className="btn btn-ghost" onClick={clear}>
+          <Button variant="ghost" onClick={clear}>
             Clear filters
-          </button>
+          </Button>
         )}
-      </div>
-      <div className="adm-chips">
-        <FilterBar label="Shift filters">
-          <FilterGroup label="Status" options={statusOptions} value={status} onChange={(v) => reset({ status: v })} />
-        </FilterBar>
       </div>
       <div className="scrollx" aria-busy={cov.isFetching}>
         <table data-testid="admin-dashboard-shift-table" className="tbl adm-tbl">
@@ -289,9 +296,9 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
                       icon="search"
                       title="No shifts match"
                       action={
-                        <button type="button" className="btn btn-secondary" onClick={clear}>
+                        <Button variant="secondary" onClick={clear}>
                           Clear filters
-                        </button>
+                        </Button>
                       }
                     >
                       Try another agency, status or name.
@@ -329,10 +336,10 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
                     )}
                   </td>
                   <td>
-                    <button type="button" className="btn btn-ghost btn-sm" aria-label={`View details for shift ${s.id}`} onClick={() => setDetail(s)}>
+                    <Button variant="ghost" size="sm" aria-label={`View details for shift ${s.id}`} onClick={() => setDetail(s)}>
                       <Icon name="eye" />
                       View details
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -341,13 +348,13 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
         </table>
       </div>
       {cov.isError && data && (
-        <div className="alert al-err adm-inline-alert" role="alert">
+        <Alert variant="destructive" role="alert" className="m-4 items-center">
           <Icon name="alert-circle" />
-          <div>Couldn&apos;t refresh the table. Showing the last loaded page.</div>
-          <button type="button" className="btn btn-danger btn-sm" onClick={() => void cov.refetch()}>
+          <div className="flex-1">Couldn&apos;t refresh the table. Showing the last loaded page.</div>
+          <Button variant="danger" size="sm" onClick={() => void cov.refetch()}>
             Retry
-          </button>
-        </div>
+          </Button>
+        </Alert>
       )}
       {data && (
         <div className="adm-foot">
@@ -356,17 +363,17 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
           </span>
           {pages > 1 && (
             <nav className="adm-pager" aria-label="Shift table pages">
-              <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous page">
+              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous page">
                 <Icon name="left" />
                 Prev
-              </button>
+              </Button>
               <span className="tnum">
                 Page {data.page} of {pages}
               </span>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Next page">
+              <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Next page">
                 Next
                 <Icon name="right" />
-              </button>
+              </Button>
             </nav>
           )}
         </div>

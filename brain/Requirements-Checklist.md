@@ -17,7 +17,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 |---|---|---|
 | 3 roles with real permissions | ☑ | Server-side `can()` policies + scoped repos (tested); 6b UI per role, X-Agency-Id switch clears the old agency cache (2026-11-07) |
 | Authentication | ☑ | §6 — API: login, refresh rotation, reuse detection, logout, `GET /api/me`. Web (2026-11-07): login page, Zustand session (token in memory), session restore, api-client single-flight refresh, logout, cross-tab sign-out; Vitest + Playwright |
-| Credential upload + expiry | ☑ | `POST/GET /api/nurses/me/credentials` (multipart, 10 MB 413, sniffed 415, private bucket, tx + audit); inline upload form with both test IDs (2026-11-07). Prod needs R2 env (503 until set) |
+| Credential upload + expiry | ☑ | `POST/GET /api/nurses/me/credentials` (multipart, 10 MB 413, sniffed 415, private bucket, tx + audit); dedicated `/nurse/credentials/new` form holds both test IDs (2026-11-08, overview has none). Prod needs R2 env (503 until set) |
 | Matching blocks lapsed credentials | ☑ | §5.3 — matchable filter + claim 403 (exact texts), `isEligible`/`ineligibility` unit-tested |
 | Cancellation + no-show | ☑ | API + emails; nurse one-click advance cancel, agency cancel with reason (no-show/advance), withdraw (2026-11-07) |
 | Email notifications | ☑ | §10 — outbox dispatcher (lease-based claim, backoff, max 5), `shift.cancelled` template, log/smtp(Mailpit)/resend transports; manual Mailpit smoke still to do |

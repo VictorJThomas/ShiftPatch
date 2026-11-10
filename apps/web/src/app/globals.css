@@ -1,5 +1,58 @@
+/* Tailwind v4 + Shadcn on top of the legacy hand-written CSS.
+   Layer order: theme < base < components < utilities (all Tailwind). Legacy CSS (tokens.css + the rules below) is UNLAYERED,
+   so it always beats Tailwind utilities on the same element: never put a legacy class and a Tailwind utility for the same
+   property on one element. Preflight is deliberately NOT imported: it would reset headings, lists and buttons that legacy
+   screens still rely on. Shadcn components do not need it (v4 utilities set their own border style). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 /* Design tokens + base components (generated from docs/design/tokens.css, re-scoped to :root). */
 @import "./tokens.css";
+
+/* Shadcn variables -> ShiftPatch tokens. `inline` keeps the var() reference live, so :root[data-theme="dark"] flips them for free.
+   No stock palette: only these colors exist as utilities (bg-primary, text-muted-foreground, border-input...). */
+@theme {
+  --color-*: initial;
+}
+@theme inline {
+  --color-background: var(--c-bg);
+  --color-foreground: var(--c-ink);
+  --color-card: var(--c-surface);
+  --color-card-foreground: var(--c-ink);
+  --color-popover: var(--c-surface);
+  --color-popover-foreground: var(--c-ink);
+  --color-primary: var(--c-brand);
+  --color-primary-hover: var(--c-brand-hover);
+  --color-primary-foreground: var(--c-on-brand);
+  --color-secondary: var(--c-surface);
+  --color-secondary-foreground: var(--c-ink);
+  --color-muted: var(--c-sunken);
+  --color-muted-foreground: var(--c-ink-3);
+  --color-accent: var(--c-brand-soft);
+  --color-accent-foreground: var(--c-brand-ink);
+  --color-destructive: var(--st-rejected-fg);
+  --color-destructive-soft: var(--st-rejected-bg);
+  --color-destructive-foreground: var(--c-surface);
+  --color-border: var(--c-line);
+  --color-input: var(--c-line-strong);
+  --color-ring: var(--c-focus);
+  --color-scrim: var(--c-scrim);
+  --color-transparent: transparent;
+  --color-white: #fff;
+  --color-st-open: var(--st-open-fg);
+  --color-st-filled: var(--st-filled-fg);
+  --color-st-pending: var(--st-pending-fg);
+  --color-st-rejected: var(--st-rejected-fg);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --shadow-sm: var(--e-1);
+  --shadow-md: var(--e-2);
+  --shadow-lg: var(--e-3);
+  --font-sans: var(--f-sans);
+}
 
 /* ===================== App layer (not in tokens.css) ===================== */
 html,body{margin:0;min-height:100%}
@@ -54,6 +107,8 @@ main[tabindex="-1"]:focus{outline:0}
 /* filter chips (ChipGroup): one row that scrolls sideways on phones; padding keeps the focus ring unclipped */
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:6px;margin:-6px;max-width:calc(100% + 12px)}
 .chips::-webkit-scrollbar{display:none}
+/* inside the filter panel chips wrap instead of scrolling sideways (QA-007) */
+.filter-panel .chips{flex-wrap:wrap;overflow:visible}
 .chip{flex:none}
 .chip-n{min-width:22px;padding:1px 7px;border-radius:var(--r-pill);background:var(--c-sunken);font-size:13px;font-weight:700;text-align:center}
 .chip.on .chip-n{background:var(--c-surface)}
@@ -263,8 +318,9 @@ button:disabled,[aria-disabled=true],select:disabled,input:disabled{cursor:not-a
 .dl-row .ic{grid-row:span 2;margin-top:2px}
 .dl-row:not(:has(.ic)){grid-template-columns:minmax(0,1fr)}
 .dl dt{font-size:12.5px;font-weight:650;color:var(--c-ink-3)}
-.dl dd{margin:0;font-weight:600;overflow-wrap:anywhere}
-@media (min-width:480px){.dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dl dd{margin:0;font-weight:600;overflow-wrap:break-word}
+/* columns only when each fits ~16rem, so an email stays on one line in a 520px dialog (QA-009) */
+@media (min-width:480px){.dl{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))}}
 
 /* StatTile */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--s-4)}
@@ -277,3 +333,13 @@ button:disabled,[aria-disabled=true],select:disabled,input:disabled{cursor:not-a
 .nd-creds li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--c-line)}
 .nd-creds li:last-child{border-bottom:0}
 .nd-creds li>div{display:flex;flex-direction:column;min-width:0}
+
+/* ===================== Shadcn / Tailwind layer (feature/11 foundation) ===================== */
+/* Programmatically focused containers (dialog box, menu) must not show the global :focus-visible ring. */
+[data-slot=dialog-content]:focus-visible,[data-slot=sheet-content]:focus-visible,[data-slot=popover-content]:focus-visible,[data-slot=dropdown-menu-content]:focus-visible{outline:0}
+/* AppDialog footer: on phones the actions stack full width and tall (legacy .btn is unlayered, so its min-height is set here too). */
+@media (max-width:719px){
+  .appdlg-foot{flex-direction:column-reverse}
+  .appdlg-foot>*{width:100%;min-height:52px;font-size:16px}
+}
+[role=menuitem]:focus-visible{outline-offset:-2px}
