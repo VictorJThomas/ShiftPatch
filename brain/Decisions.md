@@ -224,3 +224,12 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - **Option B, allow everything** (current): demo works; agencies can post nonsense dates; nurses may claim a shift that already happened.
 - **Option C, reject on create only (recommended):** `POST /api/shifts` returns 400 `{ "error": "Shift date is in the past" }` when `date < todayIn(timezone)`. Matchable and claim stay as they are, so the seed demo is untouched. Timezone: compare in the facility's timezone (same helper as eligibility); "today" is allowed. Contract: adds a 400 case to the required POST /api/shifts route (body/shape unchanged). Cost: ~10 lines + 3 tests.
 - **Decision needed:** A, B or C. Until then: B (unchanged).
+
+## Final MVP pass (2026-11-10, feature/16-final-mvp)
+- **License vs role on claim:** exact match on `nurse_profiles.license_type` (NULL = no filter, so the seed is unaffected). Checked after the credential check, so nurse-2 still gets the spec text. New 403 text "License type does not match shift role" (Victor chose it).
+- **`access.denied` audit rows:** for blocked claims (`credential_expired` / `no_valid_credential` / `license_role_mismatch`) and out-of-scope credential review/download (`out_of_scope`, only for existing credentials). They are written after the business tx returns, because a denial has no business write to share a tx with. Matrix: `docs/qa/AUDIT_COVERAGE.md`.
+- **Suspended-user refresh:** `auth.logout` with `{reason:"suspended"}`, in the revoke tx. No new catalog action.
+- **Redirected mail subject:** `[to: <original>] ` prefix only when `EMAIL_REDIRECT_TO` is set.
+- **CD migration smoke check: deferred.** The least-privilege role can't read the `drizzle` schema (by design). The check would need a new prod grant plus an endpoint, for a one-time incident.
+- **Open (product), found by tests:** agency document access is tied to a `filled` shift with no date bound, so a past filled shift keeps agency access open. Options: bound it by `shift_date + N days`, or by status `completed`. Not changed.
+- **Accepted:** oversize unknown multipart text fields are truncated and ignored, not rejected. A valid magic header with a garbage body is accepted (never parsed; always served as an attachment).
