@@ -935,10 +935,10 @@ sequenceDiagram
 ### 9.3 Download
 
 1. `GET /api/credentials/:id/download-url`.
-2. Check permission (owner nurse, admin of the network, or an agency where the nurse holds one of its shifts). Out of scope → 404.
-3. Generate a signed GET link with a **5-minute** expiry and `Content-Disposition: attachment`.
-4. Insert an audit entry (`credential.document_viewed`).
-5. Return `{ url, expiresAt }`.
+2. Check permission (owner nurse, admin of the network, or an owner/manager of an agency where the nurse holds one of its shifts with status `filled`). Out of scope, unknown, deleted or file-less → 404.
+3. Insert an audit entry (`credential.document_viewed`), **before** signing: no audit row, no link.
+4. Generate a query-signed GET link (`aws4fetch`, S3 endpoint, never a custom domain) with a **5-minute** expiry. `Content-Disposition: attachment; filename="credential.<ext>"` is stored on the object at upload (PUT header), not passed on the link: R2 support for `response-content-disposition` on presigned GETs is not documented. The name comes from the sniffed type, never the original file name.
+5. Return `{ url, expiresAt }` with `cache-control: no-store`. Rate limit 60/min per user. The web fetches the link on click and navigates to it (no CSP change).
 
 **Never logged:** object keys, original file names and signed links. The logger redacts `url`, `objectKey`, `authorization`, `cookie` and `password` fields.
 

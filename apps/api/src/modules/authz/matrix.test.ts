@@ -247,9 +247,10 @@ describe(`authorization matrix (${ACTORS_NOTE})`, () => {
     });
   });
 
-  it("credential resources: only the nurse's own routes exist (review/download surfaces not implemented yet)", () => {
+  it("credential resources: the nurse's own routes, per-credential review + download link, no collection or file routes", () => {
     expect(app.hasRoute({ method: "POST", url: "/api/nurses/me/credentials" })).toBe(true); // nurse-only, cells in credentials.test.ts
     expect(app.hasRoute({ method: "GET", url: "/api/nurses/me/credentials" })).toBe(true);
+    expect(app.hasRoute({ method: "GET", url: "/api/credentials/:id/download-url" })).toBe(true); // cells in credentials.test.ts
     for (const url of ["/api/credentials", "/api/files"]) {
       expect(app.hasRoute({ method: "POST", url })).toBe(false);
       expect(app.hasRoute({ method: "GET", url })).toBe(false);

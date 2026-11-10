@@ -58,5 +58,4 @@
 }
 
 /* Users screen: per-credential review actions inside the nurse dialog */
-.adm-cred{flex-wrap:wrap}
-.adm-cred-acts{display:flex;gap:8px;flex-basis:100%;justify-content:flex-end}
+/* .adm-cred / .adm-cred-acts moved to globals.css: NurseDetailDialog is shared with agency pages (Download button). */

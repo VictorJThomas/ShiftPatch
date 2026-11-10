@@ -209,3 +209,15 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 0 drift; added "Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA" (Done).
 - Skills copied: `shadcn-ui`.
 - Open: commit + PR; legacy CSS prune; popstate guard gap; QA-013 not re-measured.
+
+## 2026-11-09 (transcript export)
+- Exported 24 Claude Code sessions (raw JSONL, byte-for-byte, + 82 subagent/tool-result files, 125 MB) to `transcripts/` with `transcripts/INDEX.md`. Folder is git-ignored via `.git/info/exclude` (not committed). Secret scan: only local dev creds / placeholders. Re-run the export after the final session before submission.
+- Skill created: `export-transcripts` (`.claude/skills/export-transcripts`, script + SKILL.md; default paths, secret-scan step).
+
+## 2026-11-10 — R2 storage + credential download links
+- Task "R2 production storage + credential download links" added Active (Tasks.md + Notion, stage 7 Credentials).
+- Cloudflare (Brave, claude-in-chrome): created R2 bucket `private-credentials` (public access disabled). Token creation + Railway vars left to Victor (secrets).
+- Built plan steps 2-7 of `docs/r2-storage-plan.md` (see [[Status]], [[Decisions]] "R2 download links"). Test fix: credentials.test "own" query now filters `deletedAt` (new soft-delete test leaked into it). New `apps/api/src/lib/storage.test.ts`.
+- Checks: /verify GREEN, web 185, Playwright mocked 49/7 skipped, local MinIO smoke all PASS (9 MB). Uncommitted.
+- Skills used: using-agent-skills, ponytail, task, verify, postman-export (all already in `.claude/skills`).
+

@@ -94,6 +94,7 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   "shift.withdrawn": "Withdrew shift",
   "credential.uploaded": "Uploaded credential",
   "credential.reviewed": "Reviewed credential",
+  "credential.document_viewed": "Downloaded credential file",
   "auth.login": "Signed in",
   "auth.login_failed": "Failed sign-in",
   "auth.logout": "Signed out",

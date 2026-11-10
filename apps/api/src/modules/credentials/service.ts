@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { ErrorMessage, type CredentialType, type NurseCredential, type NurseDetail, type ShiftRole } from "@shiftpatch/contracts";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
-import { credentials, files, nurseProfiles, userProfiles, users } from "../../db/schema/index.js";
+import { credentials, files, nurseProfiles, shifts, userProfiles, users } from "../../db/schema/index.js";
 import { type ObjectStorage, StorageError } from "../../lib/storage.js";
 import { type RequestMeta, recordAudit } from "../audit/audit.js";
 import type { Actor } from "../authz/actor.js";
@@ -45,6 +45,8 @@ export async function listOwn(db: Db, actor: Actor, now = new Date()) {
   return { credentials: rows.map((r) => toNurseCredential(r, today)), licenseValid };
 }
 
+const FILE_EXT: Record<string, string> = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/heic": "heic" };
+
 export interface UploadInput {
   type: CredentialType;
   licenseType?: ShiftRole;
@@ -62,7 +64,9 @@ export interface UploadInput {
 export async function upload(db: Db, storage: ObjectStorage, actor: Actor, input: UploadInput, meta: RequestMeta, onCompensateError: (err: unknown) => void, now = new Date()) {
   const today = await nurseToday(db, actor, now); // before the upload: nothing after the commit may trigger the compensating delete
   const objectKey = `credentials/${randomUUID()}`;
-  await storage.putObject(objectKey, input.bytes, input.mimeType).catch((cause: unknown) => {
+  // The download name comes from the sniffed type, never the original file name (personal data).
+  const disposition = `attachment; filename="credential.${FILE_EXT[input.mimeType] ?? "bin"}"`;
+  await storage.putObject(objectKey, input.bytes, input.mimeType, disposition).catch((cause: unknown) => {
     throw cause instanceof StorageError ? cause : new StorageError("PUT", null, { cause }); // e.g. fetch could not connect
   });
   try {
@@ -149,4 +153,42 @@ export async function review(db: Db, actor: Actor, credentialId: string, status:
     });
     return { ok: true, value: toNurseCredential(updated!, todayIn(await networkDefaultTimezone(tx, row.networkId), now)) };
   });
+}
+
+export const DOWNLOAD_TTL_SECONDS = 300;
+export type DocumentUrlResult = { ok: true; value: { url: string; expiresAt: string } } | { ok: false; fail: { status: 404; error: string } };
+
+/**
+ * GET /api/credentials/:id/download-url (ARCHITECTURE §9.3): a 5-minute signed link to one credential file, for the owner nurse,
+ * admins of her network, and owners/managers of an agency she holds a filled shift with. Missing, out of scope, deleted or
+ * file-less: one 404 (no existence leak). Audited BEFORE signing: no audit row, no link. Keys and URLs never reach the audit.
+ */
+export async function documentUrl(db: Db, storage: ObjectStorage, actor: Actor, credentialId: string, meta: RequestMeta, now = new Date()): Promise<DocumentUrlResult> {
+  const notFound = { ok: false, fail: { status: 404, error: ErrorMessage.notFound } } as const;
+  const [row] = await db
+    .select({ nurseId: credentials.nurseId, networkId: nurseProfiles.networkId, objectKey: files.objectKey })
+    .from(credentials)
+    .innerJoin(nurseProfiles, eq(nurseProfiles.userId, credentials.nurseId))
+    .leftJoin(files, eq(files.id, credentials.fileId))
+    .where(and(eq(credentials.id, credentialId), isNull(credentials.deletedAt)));
+  if (!row) return notFound;
+  const holding = actor.role !== "agency" ? [] : await db
+    .selectDistinct({ agencyId: shifts.agencyId })
+    .from(shifts)
+    .where(and(eq(shifts.claimedBy, row.nurseId), eq(shifts.status, "filled"), isNull(shifts.deletedAt)));
+  const decision = can(actor, "credential:read-document", { nurseId: row.nurseId, nurseNetworkId: row.networkId, agencyIdsHoldingNurse: holding.map((h) => h.agencyId) });
+  if (!decision.allow || !row.objectKey) return notFound;
+  await recordAudit(db, {
+    ...meta,
+    actorUserId: actor.userId,
+    actorRole: actor.role,
+    networkId: row.networkId,
+    agencyId: actor.activeAgencyId ?? null,
+    action: "credential.document_viewed",
+    entityType: "credential",
+    entityId: credentialId,
+    changes: { nurseId: row.nurseId },
+  });
+  const url = await storage.signedGetUrl(row.objectKey, DOWNLOAD_TTL_SECONDS);
+  return { ok: true, value: { url, expiresAt: new Date(now.getTime() + DOWNLOAD_TTL_SECONDS * 1000).toISOString() } };
 }

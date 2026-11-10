@@ -621,6 +621,25 @@
           }
         },
         {
+          "name": "GET /api/credentials/:id/download-url",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials/:id/download-url",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "credentials",
+                ":id",
+                "download-url"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/health",
           "request": {
             "method": "GET",
