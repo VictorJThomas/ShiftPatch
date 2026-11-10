@@ -3,7 +3,7 @@
 - **Raised:** 2026-11-06
 - **Raised by:** Victor Jose (engineering)
 - **For:** Juan (founder, operations)
-- **Status:** Open. Awaiting founder decision. The feature is not being built as requested in the meantime.
+- **Status:** Decided 2026-11-10: **Option D** (Victor, for the founder). Built as the scoped inspection package: admin or agency owner only, selected nurses + period, 24-hour expiry, TB documents opt-in, every generation / view / document link / revoke audit-logged. The one-click bulk export is still not built. Legal and clinical review (step 4 below) remain before real nurse documents go in.
 - **Background:** see `docs/market-research.md` §6.
 
 ---
