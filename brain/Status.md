@@ -3,18 +3,20 @@
 **Last updated:** 2026-11-10 (founder requests pass)
 
 ## Where we are
-- **Founder requests (PR #19, branch `feature/18-founder-requests`)**: Option D inspection package, full timesheets, overlap rule on claim, reopen upcoming shifts when a license is rejected, cancel 403-before-400, Post-shift form refuses past dates (form only), canvas P3 fixes F6/F8-F12 (F4 not merged). Migration 0006 adds `timesheets` + `inspection_packages`. Decisions in [[Decisions]] "Founder requests pass".
-- Last `/verify` GREEN on the branch (typecheck, lint, test, contract). Postman regenerated (38 requests).
-- Prod (master `4bfc882`) was reseeded by Victor and the prod mail test passed (Victor received the E1 email, 2026-11-10).
-- Merging PR #19 deploys it; migration 0006 only adds tables, so the spec seed stays intact.
+- **Master `2c313ee` deployed (PR #19 merged, pipeline green, prod smoke OK):** Option D inspection package, full timesheets, overlap rule on claim, upcoming shifts reopened when a license is rejected, cancel 403-before-400, Post-shift form refuses past dates (form only), canvas P3 fixes F6/F8-F12. Migration 0006 (`timesheets`, `inspection_packages`) applied in prod.
+- Last `/verify` GREEN (typecheck, lint, test, contract). CI: checks, e2e, security green.
+- Prod data = spec seed (Victor reseeded before the deploy; 0006 only added tables). Prod mail test passed.
+- F4 (nurse cancel confirm sheet) deliberately not merged: one-click cancel decision ([[Decisions]]).
+- Notion MCP disconnected mid-session: 3 board rows exist only locally (see Blockers).
 
 ## Next step
-1. Merge PR #19 once CI (checks, e2e, security) is green; confirm deploy + `/api/health`.
-2. **Victor: record the Loom** with `docs/loom-script.md` (updated: timesheets, inspection package, past-date form, overlap).
-3. **Victor: reseed prod AGAIN after recording** (`docs/release/prod-reseed.md`): the recording changes shift-2 to completed and posts/claims shifts.
-4. Re-run `/export-transcripts` last; mark the board task Done.
+1. **Victor: record the Loom** with `docs/loom-script.md` (covers timesheets, inspection package, past-date form, overlap).
+2. **Victor: reseed prod again after recording** (`bash apps/api/scripts/railway-db-reseed.sh preflight`, then `reset`): the recording completes shift-2 and posts/claims shifts.
+3. Reconnect Notion (`/mcp` → claude.ai Notion), then `/wrap-session` again to create the 3 local-only rows and run `tasks_md.py diff` to 0 drift.
+4. Re-run `/export-transcripts` as the last step; mark "Export full unedited AI session transcripts" Done.
 
 ## Blockers / waiting
+- Notion rows to create (ONLY_LOCAL): "Cancel returns 403 before 400" (4 Shifts), "Reopen upcoming shifts when a license is rejected after claim" (7 Credentials), "Canvas QA P3 fixes (F6, F8-F12)" (6 Web UI), all Done. The 7 status changes were pushed to Notion.
 - Before real nurse documents: legal + clinical review of the inspection package ([[ESCALATION]] step 4).
 - Open product items: agency document access isn't time-bounded after a filled shift; PostHog deferred (wish list only).
 - Known test-date rot: `apps/web` agency unit test and e2e `flows.spec.ts`/`testids.spec.ts` post shifts dated 2026-12-01. After that day the new Post-shift form rule refuses them: bump to a later date if CI runs after 2026-12-01.

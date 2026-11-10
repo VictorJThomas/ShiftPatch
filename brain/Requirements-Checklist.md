@@ -8,7 +8,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 - ☑ Security pass (ARCHITECTURE §13–14) — 2026-11-07: helmet + web CSP/HSTS/XFO, pino redaction, authz matrix, IDOR/X-Agency-Id tampering, token tampering, 20-claim concurrency, DB least-privilege script verified, `pnpm audit` 0 high, gitleaks 0. 2026-11-10: upload abuse + signed-link tests (+24, log capture), `access.denied` audit, Playwright E2E (mocked + real API) in CI, all green on master
 - ◐ Agentic setup: CLAUDE.md ☑, second brain ☑ (this vault), custom skills ☑ (`/task`, `/verify`, `/wrap-session` committed `0f830e9`; used plugin skills copied)
 - ◐ 5-min Loom for founder — script `docs/loom-script.md` ready; Victor records
-- ◐ Full unedited AI transcripts — export every session (exported 2026-11-10: 26 sessions, scan clean; re-run before submission)
+- ◐ Full unedited AI transcripts — export every session (re-exported 2026-11-10 after PR #19: 29 sessions, 167 MB, scan clean; re-run once more before submission)
 - ☑ Scope-commitment email to recruiter (due day 1) — sent by Victor 2026-11-06
 - ☑ ESCALATION.md committed — in first commit `5292609` (2026-11-06 10:53 -0400).
 
@@ -21,10 +21,10 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⛔ escalated/not as a
 | Matching blocks lapsed credentials | ☑ | §5.3 — matchable filter + claim 403 (exact texts), `isEligible`/`ineligibility` unit-tested |
 | Cancellation + no-show | ☑ | API + emails; nurse one-click advance cancel, agency cancel with reason (no-show/advance), withdraw (2026-11-07) |
 | Email notifications | ☑ | §10 — outbox dispatcher (lease-based claim, backoff, max 5), log/smtp(Mailpit)/resend transports. v2 (2026-11-10, uncommitted): 11 templates, 6 event mails E1–E6 + reminder sweep S1–S5 (`docs/email-notifications-plan.md`); manual Mailpit smoke still to do. Branded email-safe layout + logo (2026-11-10, `5127fdf`) |
-| Timesheets | ☑ | Minimal view (spec only requires `timesheet-table`, verified in e2e flows 2026-11-10): `timesheet-table` with header + empty state / completed shifts; full clock-in/out is Extras |
+| Timesheets | ☑ | Full (2026-11-10, PR #19): nurse submits clock-in/out + break after shift start, agency/admin approve (shift -> completed) or dispute, resubmit; `timesheet-table` kept on the admin view |
 | Admin dashboard + reporting | ☑ | Coverage dashboard: stat tiles, by-agency fill rate, filters, pagination, 15 s polling, `admin-dashboard-shift-table` + badges (2026-11-07) |
 | Audit log | ☑ | API + `/admin/audit` (`audit-log-table`, filters incl. agencyId QA-005, Load more) (2026-11-07) |
-| One-click license/TB export | ⛔ | [[ESCALATION]] |
+| One-click license/TB export | ⛔ → ☑ Option D | One-click bulk export not built ([[ESCALATION]]); Option D scoped, expiring, audited inspection package built 2026-11-10 (PR #19) |
 | PostHog analytics | ☐ | no health data in events |
 | Deployed to real URL | ◐ | Vercel + Railway + Postgres live and seeded (2026-11-07), all 6 API routes work in prod; feature UIs pending |
 

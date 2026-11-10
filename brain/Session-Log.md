@@ -272,3 +272,11 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 7 tasks set Done, 3 added Done (Tasks.md; Notion was rate-limited at first).
 - Skills copied: none new.
 - Open: merge PR #19, Loom, reseed again after the Loom, final transcript export.
+
+## 2026-11-10 — Wrap: PR #19 merged and deployed
+- Done: PR #19 CI green (checks, e2e, security), merged to master `2c313ee` with git (Chrome extension disconnected), master pipeline deployed; prod smoke: health ok, /login 200, bad login exact 401, new routes 401 (live).
+- Decided: nothing new beyond "Founder requests pass" (see [[Decisions]]).
+- Board: 7 statuses pushed to Notion; 3 new rows pending (Notion MCP needs re-auth via /mcp). Full diff not run this wrap.
+- Skills copied: none (all used skills already in `.claude/skills`).
+- Open: Loom, reseed after Loom, Notion reconcile, final transcript export.
+- Transcripts re-exported (interim, after PR #19): 29 sessions incl. this one up to 22:28 UTC, 167 MB, 10 subagents in this session; secret scan clean (only the `.env.example` JWT placeholder). Re-run once more after the Loom/final session.
