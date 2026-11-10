@@ -13,6 +13,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/admin/users", label: "Users", icon: "user" },
   { href: "/admin/audit", label: "Audit log", icon: "file" },
   { href: "/admin/timesheets", label: "Timesheets", icon: "clock" },
+  { href: "/admin/inspection", label: "Inspection", icon: "shield" },
 ];
 
 /** Admin shell: 248px left sidebar at ≥960px; below that a top bar (logo + sign out, scrollable nav row). Content max 1440px. */

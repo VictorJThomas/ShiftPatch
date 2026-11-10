@@ -9,6 +9,7 @@ import { auditRoutes } from "./modules/audit/routes.js";
 import type { ObjectStorage } from "./lib/storage.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { credentialRoutes } from "./modules/credentials/routes.js";
+import { inspectionRoutes } from "./modules/inspection/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
 import { shiftRoutes } from "./modules/shifts/routes.js";
 import { authenticatePlugin, loadActorPlugin, requestIdPlugin } from "./modules/authz/plugin.js";
@@ -86,6 +87,7 @@ export function buildApp({ logger = false, storage }: { logger?: LoggerOption; s
   app.register(async (scope) => auditRoutes(scope, db));
   app.register(async (scope) => adminRoutes(scope, db));
   app.register(async (scope) => credentialRoutes(scope, db, storage));
+  app.register(async (scope) => inspectionRoutes(scope, db, storage));
 
   app.get("/api/health", () => ({ status: "ok" }));
 

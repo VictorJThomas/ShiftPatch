@@ -657,6 +657,59 @@
           }
         },
         {
+          "name": "GET /api/inspection-packages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inspection-packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inspection-packages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/inspection-packages/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inspection-packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inspection-packages",
+                ":id"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/inspection/nurses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inspection/nurses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inspection",
+                "nurses"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/me",
           "request": {
             "method": "GET",
@@ -781,6 +834,63 @@
                 "api",
                 "auth",
                 "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/inspection-packages",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inspection-packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inspection-packages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/inspection-packages/:id/documents/:credentialId/link",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inspection-packages/:id/documents/:credentialId/link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inspection-packages",
+                ":id",
+                "documents",
+                ":credentialId",
+                "link"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/inspection-packages/:id/revoke",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inspection-packages/:id/revoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inspection-packages",
+                ":id",
+                "revoke"
               ]
             }
           }

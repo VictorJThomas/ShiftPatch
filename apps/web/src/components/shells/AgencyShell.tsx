@@ -11,10 +11,12 @@ import { AgencySwitcher } from "@/features/agency/agency-switcher";
 import { agencyColor, initials } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
 
-const NAV: { href: string; label: string; short: string; icon: IconName }[] = [
+const BASE_NAV: { href: string; label: string; short: string; icon: IconName }[] = [
   { href: "/agency/shifts", label: "Shifts", short: "Shifts", icon: "brief" },
   { href: "/agency/profile", label: "Agency profile", short: "Agency profile", icon: "building" },
 ];
+const INSPECTION_NAV = { href: "/agency/inspection", label: "Inspection", short: "Inspection", icon: "shield" } as const; // owners only
+
 
 function AgencyBand() {
   const agencies = useSessionStore((s) => s.agencies);
@@ -50,6 +52,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
   const user = useSessionStore((s) => s.user);
   const activeId = useSessionStore((s) => s.activeAgencyId);
   const agencyCount = useSessionStore((s) => s.agencies.length);
+  const isOwner = useSessionStore((s) => s.agencies.find((a) => a.agencyId === s.activeAgencyId)?.role === "owner");
+  const NAV = isOwner ? [...BASE_NAV, INSPECTION_NAV] : BASE_NAV;
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>

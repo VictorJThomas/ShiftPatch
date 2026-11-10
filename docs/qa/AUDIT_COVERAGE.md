@@ -19,6 +19,12 @@ Every mutating route, the audit action(s) it writes, and whether the row commits
 | `PATCH /api/credentials/:id/review`, credential exists but is out of the admin's scope | `access.denied` with `{ reason: "out_of_scope" }` | No, by design | Response stays the uniform 404. Written after the tx. A nonexistent id writes nothing. |
 | `GET /api/credentials/:id/download-url` (`credentials/service.documentUrl`) | `credential.document_viewed` | n/a (read; no data change) | Written BEFORE the link is signed: no audit row, no link. No key or URL in `changes`. |
 | `GET /api/credentials/:id/download-url`, credential exists but the actor may not see it | `access.denied` with `{ reason: "out_of_scope" }` | n/a | Response stays the uniform 404. A nonexistent id or a file-less credential the actor may see writes nothing. |
+| `POST /api/inspection-packages` (`inspection/service.generate`) | `inspection_package.generated` | Yes | Same tx as the package insert. `changes`: nurse count + ids, period, document flags. No document content, keys or names. |
+| `POST /api/inspection-packages`, a nurse outside the caller's scope | `access.denied` with `{ reason: "out_of_scope", requested }` | No, by design | Response is a plain 403; which nurse is never said. Counts only, no ids. `entityId` = `new`. |
+| `GET /api/inspection-packages/:id` (`inspection/service.view`) | `inspection_package.viewed` | n/a (read) | One row per successful GET of a package. Expired / revoked (410) writes none. |
+| `GET /api/inspection-packages/:id`, package exists but is out of the caller's scope | `access.denied` with `{ reason: "out_of_scope" }` | n/a | Response stays the uniform 404. |
+| `POST /api/inspection-packages/:id/documents/:credentialId/link` (`inspection/service.documentLink`) | `inspection_package.document_downloaded` | n/a (read) | Written BEFORE signing: no audit row, no link. `changes`: credential id + nurse id; never the URL or key. Refused links (type not allowed by the flags, nurse not in the package, expired) write nothing. |
+| `POST /api/inspection-packages/:id/revoke` (`inspection/service.revoke`) | `inspection_package.revoked` | Yes | Same tx as the `revoked_at` update. Creator or a network admin. |
 
 ## Catalog actions with no route (N/A in the MVP)
 
