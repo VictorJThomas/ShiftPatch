@@ -74,6 +74,18 @@ const AGENCY_DETAILS: Record<string, { email: string; phone: string; city: strin
   "agency-b": { email: "admin@metrocare.example", phone: "555-0200", city: "Dallas", state: "TX", members: [{ userId: "agency-user-3", name: "Metro Admin", email: "admin@metrocare.example", role: "manager" }] },
 };
 
+export interface MockTimesheet {
+  id: string;
+  shiftId: string;
+  nurseId: string;
+  clockIn: string;
+  clockOut: string;
+  breakMinutes: number;
+  note: string | null;
+  status: "submitted" | "approved" | "disputed";
+  reviewNote: string | null;
+}
+
 export interface RecordedRequest {
   method: string;
   path: string;
@@ -114,6 +126,9 @@ export class MockApi {
   auditCount = 12;
   /** Uploaded credentials per nurse (pending). */
   uploads: Record<string, { id: string; expiresOn: string | null; uploadedAt: string }[]> = {};
+
+  /** Timesheets submitted via POST /api/shifts/:id/timesheet (seed shifts are in the past, so every filled one has started). */
+  timesheets: MockTimesheet[] = [];
 
   /** Review outcomes set by PATCH /api/credentials/:id/review (credential id -> status). */
   reviewed: Record<string, "verified" | "rejected"> = {};
@@ -416,6 +431,66 @@ export class MockApi {
       const { status } = req.postDataJSON() as { status: "verified" | "rejected" };
       this.reviewed[review[1]!] = status;
       return this.json(route, 200, { credential: this.credentialsOf(owner).credentials.find((c) => c.id === review[1]) });
+    }
+
+    // ---- Timesheets (apps/api modules/timesheets): same statuses and texts as the API. ----
+    const worked = (t: MockTimesheet) => {
+      const m = (v: string) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3, 5));
+      return ((((m(t.clockOut) - m(t.clockIn)) % 1440) + 1440) % 1440) - t.breakMinutes;
+    };
+    const shiftOf = (t: MockTimesheet) => this.shifts.find((x) => x.id === t.shiftId)!;
+    const tsRow = (t: MockTimesheet) => {
+      const sh = shiftOf(t);
+      return {
+        id: t.id, shiftId: t.shiftId, shiftDate: sh.date, role: sh.role, startTime: sh.startTime, endTime: sh.endTime, agencyId: sh.agencyId, agencyName: sh.agencyName,
+        nurseId: t.nurseId, nurseName: NURSES[t.nurseId]?.name ?? t.nurseId, clockIn: t.clockIn, clockOut: t.clockOut, breakMinutes: t.breakMinutes, workedMinutes: worked(t),
+        note: t.note, status: t.status, submittedAt: "2026-10-04T10:00:00.000Z", reviewedAt: t.status === "submitted" ? null : "2026-10-05T10:00:00.000Z", reviewNote: t.reviewNote,
+      };
+    };
+
+    const submitTs = path.match(/^\/api\/shifts\/([^/]+)\/timesheet$/);
+    if (submitTs && method === "POST") {
+      const shift = this.shifts.find((x) => x.id === submitTs[1]);
+      if (role !== "nurse") return this.json(route, 403, { error: ERR.forbidden });
+      if (!shift || shift.claimedBy !== user.user.id) return this.json(route, 404, { error: ERR.shiftNotFound });
+      const body = req.postDataJSON() as { clockIn: string; clockOut: string; breakMinutes?: number; note?: string };
+      const existing = this.timesheets.find((t) => t.shiftId === shift.id);
+      if (existing && existing.status !== "disputed") return this.json(route, 409, { error: "Timesheet already submitted" });
+      const next = { clockIn: body.clockIn, clockOut: body.clockOut, breakMinutes: body.breakMinutes ?? 0, note: body.note ?? null, status: "submitted" as const, reviewNote: null };
+      if (existing) Object.assign(existing, next);
+      else this.timesheets.push({ id: `ts_${++this.counter}`, shiftId: shift.id, nurseId: user.user.id, ...next });
+      return this.json(route, 201, tsRow(existing ?? this.timesheets.at(-1)!));
+    }
+
+    if (path === "/api/nurses/me/timesheets") {
+      if (role !== "nurse") return this.json(route, 403, { error: ERR.forbidden });
+      return this.json(route, 200, { timesheets: this.timesheets.filter((t) => t.nurseId === user.user.id).map(tsRow) });
+    }
+
+    if (path === "/api/timesheets" && method === "GET") {
+      if (role === "nurse") return this.json(route, 403, { error: ERR.forbidden });
+      if (role === "agency" && !active) return this.json(route, 400, { error: "Select an agency" });
+      const status = url.searchParams.get("status");
+      const rows = this.timesheets.filter((t) => (role === "admin" || shiftOf(t).agencyId === active) && (!status || t.status === status));
+      return this.json(route, 200, { timesheets: rows.map(tsRow) });
+    }
+
+    const reviewTs = path.match(/^\/api\/timesheets\/([^/]+)\/(approve|dispute)$/);
+    if (reviewTs && method === "POST") {
+      const t = this.timesheets.find((x) => x.id === reviewTs[1]);
+      if (role === "nurse") return this.json(route, 403, { error: ERR.forbidden });
+      if (!t || !(role === "admin" || active === shiftOf(t).agencyId)) return this.json(route, 404, { error: "Timesheet not found" });
+      if (t.status !== "submitted") return this.json(route, 409, { error: "Timesheet is not awaiting review" });
+      if (reviewTs[2] === "approve") {
+        t.status = "approved";
+        shiftOf(t).status = "completed";
+      } else {
+        const { reason } = req.postDataJSON() as { reason?: string };
+        if (!reason?.trim()) return this.json(route, 400, { error: "A reason is required" });
+        t.status = "disputed";
+        t.reviewNote = reason.trim();
+      }
+      return this.json(route, 200, tsRow(t));
     }
 
     if (path === "/api/audit-logs") {

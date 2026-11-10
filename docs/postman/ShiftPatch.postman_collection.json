@@ -765,6 +765,25 @@
           }
         },
         {
+          "name": "GET /api/nurses/me/timesheets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nurses/me/timesheets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "nurses",
+                "me",
+                "timesheets"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/shifts/:id/nurse",
           "request": {
             "method": "GET",
@@ -779,6 +798,23 @@
                 "shifts",
                 ":id",
                 "nurse"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/timesheets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/timesheets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "timesheets"
               ]
             }
           }
@@ -915,6 +951,25 @@
           }
         },
         {
+          "name": "POST /api/shifts/:id/timesheet",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/shifts/:id/timesheet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shifts",
+                ":id",
+                "timesheet"
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/shifts/:id/withdraw",
           "request": {
             "method": "POST",
@@ -929,6 +984,44 @@
                 "shifts",
                 ":id",
                 "withdraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/timesheets/:id/approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/timesheets/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "timesheets",
+                ":id",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/timesheets/:id/dispute",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/timesheets/:id/dispute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "timesheets",
+                ":id",
+                "dispute"
               ]
             }
           }

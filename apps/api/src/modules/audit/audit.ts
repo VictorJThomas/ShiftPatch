@@ -11,6 +11,7 @@ export type AuditAction =
   | "credential.uploaded" | "credential.reviewed" | "credential.document_viewed"
   | "inspection_package.generated" | "inspection_package.viewed" | "inspection_package.document_downloaded" | "inspection_package.revoked"
   | "agency.updated" | "membership.granted" | "membership.revoked"
+  | "timesheet.submitted" | "timesheet.approved" | "timesheet.disputed"
   | "access.denied";
 export type AuditEntry = Omit<typeof auditLog.$inferInsert, "action"> & { action: AuditAction };
 /** Request context copied onto every audit row (ARCHITECTURE §11: request ID links audit rows to logs). */

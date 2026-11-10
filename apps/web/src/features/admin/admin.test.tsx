@@ -1,10 +1,11 @@
 import "@/lib/zod-csp";
-import type { AuditLogEntry, CoverageRow, Shift } from "@shiftpatch/contracts";
+import type { AuditLogEntry, CoverageRow, Shift, TimesheetRow } from "@shiftpatch/contracts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "@/lib/api-client";
+import { useSessionStore } from "@/stores/session";
 import { useToastStore } from "@/stores/toasts";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminUsers } from "./AdminUsers";
@@ -50,6 +51,12 @@ const entry = (id: number, over: Partial<AuditLogEntry> = {}): AuditLogEntry => 
   agencyId: "agency-a", action: "shift.claimed", entityType: "shift", entityId: `shift-${id}`, changes: { status: ["open", "filled"] }, requestId: "r", ...over,
 });
 
+const TS: TimesheetRow = {
+  id: "ts_1", shiftId: "shift-2", shiftDate: "2026-10-03", role: "LPN", startTime: "07:00", endTime: "19:00", agencyId: "agency-a", agencyName: "Sunrise Health Staffing",
+  nurseId: "nurse-1", nurseName: "Nora Nurse", clockIn: "07:00", clockOut: "19:30", breakMinutes: 30, workedMinutes: 720, note: null, status: "submitted",
+  submittedAt: "2026-10-03T20:00:00.000Z", reviewedAt: null, reviewNote: null,
+};
+
 const NURSE = {
   id: "nurse-1", name: "Nora Nurse", email: "nora@example.com", licenseType: "LPN",
   credentials: [{ id: "c1", type: "license", licenseType: "LPN", status: "verified", expiresOn: "2027-01-01", screenedOn: null, uploadedAt: "2026-10-01T10:00:00.000Z", expired: false, hasFile: true }],
@@ -72,13 +79,16 @@ function coverage(path: string) {
 const coverageCalls = () => fetchMock.mock.calls.map(([p]) => p as string).filter((p) => p.startsWith("/api/admin/coverage"));
 
 let shifts: Shift[] = SEED;
+let timesheets: TimesheetRow[] = [];
 let auditPages: Record<string, { items: AuditLogEntry[]; nextCursor: string | null }> = {};
 
 beforeEach(() => {
   shifts = SEED;
+  timesheets = [];
   auditPages = {};
   fetchMock.mockImplementation(async (path: string) => {
     if (path === "/api/shifts") return { shifts };
+    if (path.startsWith("/api/timesheets")) return { timesheets };
     if (path.startsWith("/api/admin/coverage")) return coverage(path);
     if (path === "/api/shifts/shift-2/nurse") return NURSE;
     if (path.startsWith("/api/audit-logs")) {
@@ -410,20 +420,25 @@ describe("audit log", () => {
 });
 
 describe("timesheets", () => {
-  it("renders the timesheet table with its header and an empty row (no timesheet backend yet)", async () => {
+  beforeEach(() => useSessionStore.setState({ user: { id: "admin-1", name: "Alex Kim", role: "admin" } }));
+
+  it("renders the timesheet table with its header and an empty state when there are none", async () => {
     renderWith(<Timesheets />);
     const table = screen.getByTestId("timesheet-table");
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual([
-      "Nurse", "Shift", "Date", "Scheduled hours", "Clocked hours", "Status",
+      "Nurse", "Shift", "Clocked", "Break", "Worked", "Status", "Note", "Actions",
     ]);
     expect(await within(table).findByText("No timesheets yet")).toBeTruthy();
   });
 
-  it("lists completed shifts with scheduled hours and no invented clock times", async () => {
-    shifts = [...SEED, { ...SEED[1]!, id: "shift-9", status: "completed" }];
+  it("lists the network's real timesheets from GET /api/timesheets with clock times and worked time", async () => {
+    timesheets = [TS];
     renderWith(<Timesheets />);
     const table = screen.getByTestId("timesheet-table");
-    expect(await within(table).findByText("shift-9")).toBeTruthy();
+    expect(await within(table).findByText("Nora Nurse")).toBeTruthy();
+    expect(within(table).getByText("07:00 → 19:30")).toBeTruthy();
     expect(within(table).getByText("12 h")).toBeTruthy();
+    expect(within(table).getByText("Submitted")).toBeTruthy();
+    expect(within(table).getByRole("button", { name: /^Approve hours/ })).toBeTruthy();
   });
 });

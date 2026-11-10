@@ -4,11 +4,12 @@ import { type CredentialAction, type CredentialResources, credentialPolicy } fro
 import { type InspectionAction, type InspectionResources, inspectionPolicy } from "../inspection/policy.js";
 import { type MembershipAction, type MembershipResources, membershipPolicy } from "../memberships/policy.js";
 import { type ShiftAction, type ShiftResources, shiftPolicy } from "../shifts/policy.js";
+import { type TimesheetAction, type TimesheetResources, timesheetPolicy } from "../timesheets/policy.js";
 import type { Actor } from "./actor.js";
 import type { Decision } from "./decision.js";
 
-export type PolicyMap = ShiftResources & MembershipResources & AuditResources & CredentialResources & AdminResources & InspectionResources;
-export type Action = ShiftAction | MembershipAction | AuditAction | CredentialAction | AdminAction | InspectionAction;
+export type PolicyMap = ShiftResources & MembershipResources & AuditResources & CredentialResources & AdminResources & InspectionResources & TimesheetResources;
+export type Action = ShiftAction | MembershipAction | AuditAction | CredentialAction | AdminAction | InspectionAction | TimesheetAction;
 
 const policies: { [A in Action]: (actor: Actor, resource: PolicyMap[A]) => Decision } = {
   ...shiftPolicy,
@@ -17,6 +18,7 @@ const policies: { [A in Action]: (actor: Actor, resource: PolicyMap[A]) => Decis
   ...credentialPolicy,
   ...adminPolicy,
   ...inspectionPolicy,
+  ...timesheetPolicy,
 };
 
 /** `can(actor, action, resource) -> allow | deny(reason)`. Pure: no I/O, the actor already carries fresh DB state. */
