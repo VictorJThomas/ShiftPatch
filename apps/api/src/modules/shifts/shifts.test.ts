@@ -1,11 +1,11 @@
 // GET /api/shifts (+ ?matchable), GET /api/agencies/:id/shifts, POST /api/shifts against a real throwaway Postgres.
 import { AgencyShiftsResponse, CreateShiftResponse, ErrorBody, ErrorMessage, ListShiftsResponse } from "@shiftpatch/contracts";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../../app.js";
 import {
-  agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, networkMemberships, nurseProfiles, shifts, userProfiles, users,
+  agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, networkMemberships, notifications, nurseProfiles, shifts, userProfiles, users,
 } from "../../db/schema/index.js";
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
@@ -304,5 +304,35 @@ describe("POST /api/shifts", () => {
     const id = created(await call("POST", "/api/shifts", "agency-a", { body }));
     expect(ids(await call("GET", "/api/agencies/agency-a/shifts", "agency-a"))).toContain(id);
     expect(ids(await call("GET", "/api/shifts", "nurse-1"))).toContain(id);
+  });
+});
+
+describe("POST /api/shifts: shift.posted emails (E1)", () => {
+  const posted = async (date: string) => (await t.db.select().from(notifications).where(sql`${notifications.template} = 'shift.posted' and ${notifications.payload}->>'date' = ${date}`));
+
+  it("goes only to eligible nurses of the network: expired, rejected and role-mismatched licenses are skipped", async () => {
+    const r = await call("POST", "/api/shifts", "agency-a", { body: { role: "RN", date: "2098-12-01", startTime: "07:00", endTime: "19:00", facilityId: "fac-1" } });
+    expect(r.status).toBe(201);
+    const rows = await posted("2098-12-01");
+    // nurse-ok (valid), nurse-pend (pending counts). Not: nurse-old (expired), nurse-rej, nurse-lpn (LPN license vs RN shift), nurse-1/2 (license ends before 2099).
+    expect(rows.map((n) => n.recipientEmail).sort()).toEqual(["nurse-ok@example.com", "nurse-pend@example.com"]);
+    expect(rows[0]!.payload).toEqual({ shiftId: r.body.id, role: "RN", date: "2098-12-01", startTime: "07:00", endTime: "19:00", agencyName: "Sunrise Health Staffing", facilityName: "Bay Hospital" });
+  });
+
+  it("an LPN shift reaches the LPN nurse only among typed licenses; other network's nurses get nothing", async () => {
+    await call("POST", "/api/shifts", "agency-a", { body: { role: "LPN", date: "2098-12-02", startTime: "07:00", endTime: "19:00" } });
+    expect((await posted("2098-12-02")).map((n) => n.recipientEmail).sort()).toEqual(["nurse-lpn@example.com", "nurse-ok@example.com", "nurse-pend@example.com"]);
+  });
+
+  it("outbox insert fails -> 500 and no shift is created", async () => {
+    await t.sql.unsafe(`create or replace function fail_posted() returns trigger language plpgsql as $$ begin raise exception 'forced failure'; end $$`);
+    await t.sql.unsafe(`create trigger fail_posted before insert on notifications for each row when (new.template = 'shift.posted' and new.payload->>'date' = '2098-12-03') execute function fail_posted()`);
+    try {
+      const r = await call("POST", "/api/shifts", "agency-a", { body: { role: "RN", date: "2098-12-03", startTime: "07:00", endTime: "19:00" } });
+      expect(r.status).toBe(500);
+      expect(await t.db.select().from(shifts).where(eq(shifts.shiftDate, "2098-12-03"))).toHaveLength(0);
+    } finally {
+      await t.sql.unsafe(`drop trigger fail_posted on notifications`);
+    }
   });
 });

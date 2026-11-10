@@ -5,7 +5,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../../app.js";
-import { auditLog, credentials, files, nurseProfiles, userProfiles, users } from "../../db/schema/index.js";
+import { auditLog, credentials, files, hospitalNetworks, networkMemberships, notifications, nurseProfiles, userProfiles, users } from "../../db/schema/index.js";
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
 import type { ObjectStorage } from "../../lib/storage.js";
@@ -46,6 +46,11 @@ beforeAll(async () => {
   await t.db.insert(userProfiles).values({ userId: "nurse-dbfail", fullName: "Db Fail" });
   await t.db.insert(nurseProfiles).values({ userId: "nurse-dbfail", networkId: "network-default" });
   await t.db.execute(sql`ALTER TABLE credentials ADD CONSTRAINT test_block_dbfail CHECK (nurse_id <> 'nurse-dbfail')`);
+  // A second network with its own admin: must never hear about network-default's uploads.
+  await t.db.insert(hospitalNetworks).values({ id: "network-2", name: "Second Network" });
+  await t.db.insert(users).values({ id: "admin-2", email: "admin-2@example.com", role: "admin", passwordHash: "x" });
+  await t.db.insert(userProfiles).values({ userId: "admin-2", fullName: "Other Admin" });
+  await t.db.insert(networkMemberships).values({ id: "nwm-admin-2", userId: "admin-2", networkId: "network-2" });
   // Fixed "today" (facility-local): nurse-1's license (2027-01-01) valid, nurse-2's (2026-06-01) expired. Only Date is faked.
   vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-07T15:00:00Z") });
   app = buildApp({ storage });
@@ -329,5 +334,16 @@ describe("sniffCredentialMime (magic bytes only)", () => {
     ["truncated pdf", Buffer.from("%PD"), null],
   ])("%s", (_, bytes, mime) => {
     expect(sniffCredentialMime(bytes)).toBe(mime);
+  });
+});
+
+describe("credential.submitted email (E5)", () => {
+  it("an upload notifies the nurse's network admins only, with the nurse's name and nothing about the credential", async () => {
+    await t.db.delete(notifications);
+    const res = await upload("nurse-1", { type: "tb_screening", screenedOn: "2026-10-01" }, { bytes: PDF, name: "tb-result-secret.pdf", type: "application/pdf" });
+    expect(res.status).toBe(201);
+    const rows = await t.db.select().from(notifications);
+    expect(rows.map((n) => [n.template, n.recipientEmail, n.payload])).toEqual([["credential.submitted", "alex.kim@example.com", { nurseName: "Maria Lopez" }]]);
+    expect(JSON.stringify(rows)).not.toMatch(/tb|secret|credentials\//i);
   });
 });

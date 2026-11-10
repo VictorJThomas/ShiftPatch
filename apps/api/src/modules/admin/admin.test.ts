@@ -7,7 +7,7 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../../app.js";
 import {
-  agencies, agencyMemberships, auditLog, credentials, files, hospitalNetworks, networkAgencies, networkMemberships, nurseProfiles, shifts, userProfiles, users,
+  agencies, agencyMemberships, auditLog, credentials, files, hospitalNetworks, networkAgencies, networkMemberships, notifications, nurseProfiles, shifts, userProfiles, users,
 } from "../../db/schema/index.js";
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
@@ -314,6 +314,9 @@ describe("PATCH /api/credentials/:id/review", () => {
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({ actorUserId: "admin-1", actorRole: "admin", networkId: "network-default", agencyId: null });
     expect(audit[0]!.changes).toEqual({ status: ["pending", "verified"], nurseId: "nurse-1" });
+    // E6: exactly one mail, to the credential's nurse, outcome only (no type, no file)
+    const mail = await t.db.select().from(notifications).where(eq(notifications.template, "credential.reviewed"));
+    expect(mail.map((n) => [n.recipientEmail, n.payload])).toEqual([["maria.lopez@example.com", { outcome: "verified" }]]);
   });
 
   it("409 when the credential already has that status; a verified one can still be rejected (and the audit shows both steps)", async () => {
@@ -323,6 +326,8 @@ describe("PATCH /api/credentials/:id/review", () => {
     const audit = await t.db.select().from(auditLog).where(and(eq(auditLog.entityId, "cred-tb-1"), eq(auditLog.action, "credential.reviewed")));
     expect(audit.map((a) => a.changes)).toEqual(expect.arrayContaining([{ status: ["verified", "rejected"], nurseId: "nurse-1" }]));
     expect(audit).toHaveLength(2);
+    const mail = await t.db.select().from(notifications).where(eq(notifications.template, "credential.reviewed")); // the 409 added nothing
+    expect(mail.map((n) => n.payload).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))).toEqual([{ outcome: "rejected" }, { outcome: "verified" }]);
   });
 
   it("does not change the eligibility rule: rejecting the only license makes the claim 403, verifying it again restores the claim", async () => {

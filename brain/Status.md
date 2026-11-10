@@ -3,19 +3,21 @@
 **Last updated:** 2026-11-10
 
 ## Where we are
-- master `db78fdd` (PR #13 R2 download links, PR #14 CD pipeline) is **live**. CD run 42841550131: security + checks + deploy all success; Vercel prod `shiftpatch-893ajgzdm` aliased to `https://shiftpatch-web-orcin.vercel.app`. Per-deployment URLs are behind Vercel Authentication (302); test through the alias.
-- **Prod smoke 2026-11-10 (alias):** 5 seeded logins 200; 9 MB PDF upload 201 through the Vercel `/api` rewrite (no 413, so the plan's step-1 fallback is not needed); nurse-1 / admin-1 / agency-a get a signed link, bytes identical, `credential.pdf` attachment, unsigned R2 URL 400; nurse-2 / agency-b 404. Test credential `cred_6306b631-a753-48d7-a7a0-44c7ea94c735` soft-deleted via Railway SSH (nurse-1 back to the seed license only; its R2 object and audit rows stay). Last 400 API log lines: no `X-Amz-Signature`, no object keys.
-- Not checked: real-browser click on Download in prod; 375 px row with Verify + Reject + Download; link expiry after 5 minutes.
+- master `db78fdd` (R2 download links + CD pipeline) is **live** at `https://shiftpatch-web-orcin.vercel.app` (test through the alias; per-deployment URLs are behind Vercel Authentication).
+- Branch `feature/14-email-notifications`, **all uncommitted**: email v2 (migration 0005 `dedupe_key`, 6 event mails + reminder sweep S1-S5, see [[Decisions]]), Marketplace Start/End date filter, credential "View file" preview dialog with Download. `/verify` **GREEN** 2026-11-10 (typecheck, lint, test, contract) on the combined tree.
+- Not checked: Mailpit smoke of the new mails; preview on Safari/Firefox/real phones; preview against real R2 (needs CORS + env, below). Prod mail transport is still `log` until Resend is set up.
 
 ## Next step
-1. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
-2. Optional: required reviewers on GitHub env `production`; migrate `railway.json` before 2026-12-01 (config-as-code deprecation).
-3. Open from before: legacy CSS prune OK, past-date product rule, export escalation.
+1. Commit + PR the branch (review the diff; migration 0005 runs on deploy via Railway pre-deploy).
+2. Mailpit smoke: `docker compose up -d postgres mailpit`, `pnpm --filter api db:reset`, `MAIL_TRANSPORT=smtp REMINDER_INTERVAL_MS=10000 pnpm --filter api start:local` (background), run the flow, check http://localhost:8025 (plan "Verify" step 3).
+3. Board "Enable credential preview in prod": R2 CORS rule on `private-credentials` (AllowedOrigins = app origin, GET, no credentials) + Vercel env `CREDENTIAL_STORAGE_ORIGIN=https://<account>.r2.cloudflarestorage.com` (build-time). Until then the dialog shows "couldn't be reached"; Download works.
+4. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
+5. Optional: required reviewers on GitHub env `production`; migrate `railway.json` before 2026-12-01.
 
 ## Blockers / waiting
-- Victor: past-date product rule; R2 bucket + keys; legacy CSS prune OK.
+- Victor: R2 CORS + Vercel env for the preview (or choose an API stream instead, see [[Decisions]]); RESEND_API_KEY in Railway for real mail; past-date product rule; legacy CSS prune OK.
 - Founder decision on export (Option C vs D), see [[ESCALATION]]. PostHog escalated (not built).
-- Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; audit "All changes" dialog and Load more not exercised in QA (seed too small).
+- Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; duplicate Notion row "Production DB: Railway Postgres..." (both Done).
 
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
@@ -56,3 +58,5 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **Parallel `/verify` runs** (several agents at once) make API rollback tests time out; one run on a quiet machine is green. Run gates one at a time.
 - Docker Desktop and the dev servers can disappear mid-session: check `docker ps` and ports 3000/3001 before blaming code.
 
+- **Plan mode stops subagents:** toggling plan mode in the main session makes running subagents halt (they can't edit). Resume them with SendMessage after exiting plan mode.
+- **Credential preview locally** needs `CREDENTIAL_STORAGE_ORIGIN=http://localhost:9000` in the web env at build/dev start (CSP `connect-src`). Playwright's bundled Chromium has no PDF viewer: PDF preview is only verifiable in real Chrome.

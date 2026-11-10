@@ -7,7 +7,7 @@ Notion columns: `Task` (title) · `Status` (Pending / Active / Done) · `Scope` 
 - Match rows by **exact title**. Never rename a task in one place only.
 - Starting a task: set Status `Active` in BOTH places. Finishing: `Done` in both. New task: add to both, with Stage tag.
 - Edit here first (it is the diff-able record), then push to Notion (`notion-update-page` / `notion-create-pages`). If they disagree, read Notion (query rows), reconcile, note it in [[Session-Log]].
-- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-09.
+- Stage order follows [[docs/ARCHITECTURE]] §16.2 build order. Last synced: 2026-11-10.
 
 Legend: ☐ Pending · ◐ Active · ☑ Done
 
@@ -69,6 +69,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Email notifications
 - ☑ Audit read: indexes (network_id, id desc) and (agency_id, id desc) for keyset paging · Later
 - ☑ Audit: scope logout and refresh-reuse rows (network_id/agency_id) like login · Later
+- ☑ Email notifications v2: event + reminder emails
 
 ## 6 Web UI
 - ☑ Move tokens.css into Next.js, Schibsted Grotesk, route-group layouts
@@ -82,6 +83,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Timesheets
 - ☑ Notion design notes: screen UI/UX implementation
 - ☑ Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA · 2026-11-08; QA-007..013 in docs/qa/DEFECT_LOG.md
+- ☑ Date filter: start/end date pickers instead of date buttons
 
 ## 7 Credentials
 - ☑ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
@@ -92,6 +94,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Warn or unassign when a license is rejected after a claim · Later
 - ◐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
 - ☑ R2 production storage + credential download links
+- ☑ Credential document preview dialog with Download
 
 ## 8 Release
 - ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
@@ -101,6 +104,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Production DB: Railway Postgres (private), migrations, spec seed, least-privilege app role
 - ☑ QA: full workflow + UI/UX audit
 - ☑ CD pipeline: auto-deploy API + web on master after CI
+- ☐ Enable credential preview in prod: R2 CORS rule + CREDENTIAL_STORAGE_ORIGIN on Vercel
 
 ## 9 Delivery
 - ☑ Email recruiter scope commitment (day 1)

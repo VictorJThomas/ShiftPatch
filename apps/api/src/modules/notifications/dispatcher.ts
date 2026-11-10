@@ -28,6 +28,8 @@ export interface DispatcherOptions {
   backoffBaseMs?: number;
   /** How long a claim holds a row before it can be reclaimed. Must exceed batchSize x send timeout (10 s). Default 5 min. */
   leaseMs?: number;
+  /** Plain app URL for the mail footer (APP_ORIGIN). Never tokenized. */
+  appUrl?: string | undefined;
   now?: () => Date;
   onError?: (err: unknown) => void;
 }
@@ -70,7 +72,7 @@ export function createDispatcher(opts: DispatcherOptions) {
     for (const row of rows) {
       let outcome: Partial<typeof notifications.$inferInsert>;
       try {
-        await sender.send({ to: row.recipientEmail, ...renderTemplate(row.template, row.payload) });
+        await sender.send({ to: row.recipientEmail, ...renderTemplate(row.template, row.payload, { appUrl: opts.appUrl }) });
         outcome = { status: "sent", sentAt: at, lastError: null, lockedUntil: null };
       } catch (err) {
         const failed = err instanceof PermanentMailError || row.attempts >= MAX_ATTEMPTS;

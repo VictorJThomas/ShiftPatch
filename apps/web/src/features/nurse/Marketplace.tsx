@@ -2,25 +2,25 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Shift, ShiftRole } from "@shiftpatch/contracts";
 import { Alert } from "@/components/shadcn/alert";
 import { Button } from "@/components/shadcn/button";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DateRangeFilter } from "@/components/ui/DateRangeFilter";
 import { FilterGroup } from "@/components/ui/FilterBar";
 import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
-import { parseIsoDate } from "@/lib/format";
+import { EMPTY_RANGE, effectiveRange, inDateRange, singleDay, type DateRange } from "@/lib/date-range";
 import { newCredentialHref } from "./credential-upload";
 import { useClaimShift, useCredentials, useFilteredShifts, useMatchableShifts, useOpenShifts, type ShiftParams } from "./queries";
 import { ShiftCard, ShiftDetailsDialog } from "./ShiftCard";
 
 type RoleFilter = "all" | ShiftRole;
 const ROLES: ShiftRole[] = ["RN", "LPN", "CNA"];
-const chipDate = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /**
@@ -68,7 +68,7 @@ export function Marketplace() {
   const claim = useClaimShift();
   const online = useOnline();
 
-  const [date, setDate] = useState("all");
+  const [dates, setDates] = useState<DateRange>(EMPTY_RANGE);
   const [role, setRole] = useState<RoleFilter>("all");
   const [details, setDetails] = useState<Shift | null>(null);
 
@@ -76,31 +76,32 @@ export function Marketplace() {
   const failed = matchable.isError || open.isError;
   const { shifts: all, notice } = loading || failed ? { shifts: [], notice: null } : pickShiftSource(matchable.data, open.data, credentials.data?.licenseValid);
 
-  // A selection that no longer exists (e.g. its last shift was claimed) falls back to "all".
-  const dates = [...new Set(all.map((s) => s.date))].sort();
-  const activeDate = dates.includes(date) ? date : "all";
-  // Drop the stale selection for good, so the date reappearing later does not silently re-activate the filter.
-  useEffect(() => {
-    if (date !== "all" && !loading && !failed && date !== activeDate) setDate("all");
-  }, [date, activeDate, loading, failed]);
-  const activeCount = (activeDate !== "all" ? 1 : 0) + (role !== "all" ? 1 : 0);
+  // Date range (inclusive, either end optional). The API filters one exact `date`, so a one-day range goes to the server
+  // with the role; any wider range is applied here, on top of the same server-filtered (or unfiltered) list.
+  // A backwards range shows an inline error and filters nothing until fixed.
+  const range = effectiveRange(dates);
+  const day = singleDay(range);
+  const dateActive = Boolean(range.from || range.to);
+  const inRange = (s: Shift) => inDateRange(s.date, range);
+  const days = all.map((s) => s.date).sort(); // bounds for the pickers: the first and last day with an open shift
+  const activeCount = (dateActive ? 1 : 0) + (role !== "all" ? 1 : 0);
   const filtered = activeCount > 0;
-  // Chip counts: each group counts what the other group's selection leaves, from the unfiltered data.
-  const byDate = activeDate === "all" ? all : all.filter((s) => s.date === activeDate);
-  const byRole = role === "all" ? all : all.filter((s) => s.role === role);
+  // Role chip counts follow the date range, from the unfiltered data.
+  const byDate = dateActive ? all.filter(inRange) : all;
 
-  // The visible list is server-filtered (role/date params, same source as the unfiltered list).
+  // Server-filtered when the role (or one exact day) is set: same params and source as before.
   const useMatch = !loading && !failed && matchable.data.length > 0;
-  const params: ShiftParams = { matchable: useMatch || undefined, role: role === "all" ? undefined : role, date: activeDate === "all" ? undefined : activeDate };
-  const list = useFilteredShifts(params, filtered && !loading && !failed);
-  const listFailed = filtered && list.isError;
-  const listPending = filtered && list.isPending;
-  const visible = (filtered ? (list.data ?? []) : all).toSorted((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
+  const params: ShiftParams = { matchable: useMatch || undefined, role: role === "all" ? undefined : role, date: day };
+  const serverFiltered = role !== "all" || day !== undefined;
+  const list = useFilteredShifts(params, serverFiltered && !loading && !failed);
+  const listFailed = serverFiltered && list.isError;
+  const listPending = serverFiltered && list.isPending;
+  const visible = (serverFiltered ? (list.data ?? []) : all).filter(inRange).toSorted((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
   const clearFilters = () => {
-    setDate("all");
+    setDates(EMPTY_RANGE);
     setRole("all");
   };
-  const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch(), filtered ? list.refetch() : undefined]);
+  const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch(), serverFiltered ? list.refetch() : undefined]);
 
   // One click claims (spec: the test ID sits "on the element that performs the action"). Claiming is reversible
   // from My shifts, and the toast confirms the outcome, so no confirm step. The backend decides eligibility.
@@ -126,26 +127,20 @@ export function Marketplace() {
             {notice && <LicenseNotice kind={notice} />}
             {all.length > 0 && (
               <div className="flex">
-                {/* Server-side and immediate: every click changes the query params, so no Apply step. */}
+                {/* Immediate: every change re-filters (role and one-day ranges on the server), so no Apply step. */}
                 <FilterDropdown label="Filters" activeCount={activeCount} onReset={clearFilters}>
-                  <FilterGroup
-                    label="Date"
-                    value={activeDate}
-                    onChange={setDate}
-                    options={[
-                      { value: "all", label: "All dates", count: byRole.length },
-                      ...dates.map((d) => ({ value: d, label: chipDate.format(parseIsoDate(d)), count: byRole.filter((s) => s.date === d).length })),
-                    ]}
-                  />
-                  <FilterGroup<RoleFilter>
-                    label="Role"
-                    value={role}
-                    onChange={setRole}
-                    options={[
-                      { value: "all", label: "All roles", count: byDate.length },
-                      ...ROLES.map((r) => ({ value: r, label: r, count: byDate.filter((s) => s.role === r).length })),
-                    ]}
-                  />
+                  <div className="flex flex-col gap-4">
+                    <DateRangeFilter label="Date" value={dates} onChange={setDates} min={days[0]} max={days.at(-1)} />
+                    <FilterGroup<RoleFilter>
+                      label="Role"
+                      value={role}
+                      onChange={setRole}
+                      options={[
+                        { value: "all", label: "All roles", count: byDate.length },
+                        ...ROLES.map((r) => ({ value: r, label: r, count: byDate.filter((s) => s.role === r).length })),
+                      ]}
+                    />
+                  </div>
                 </FilterDropdown>
               </div>
             )}
@@ -196,7 +191,7 @@ export function Marketplace() {
                   </Button>
                 }
               >
-                Try another date or role. New shifts appear here as soon as agencies post them.
+                Try other dates or another role. New shifts appear here as soon as agencies post them.
               </EmptyState>
             ) : (
               <EmptyState icon="inbox" title="No open shifts right now">

@@ -952,7 +952,7 @@ sequenceDiagram
 
 - **MVP channels:**
   - in-app: the `notification-banner` after each action;
-  - email for **shift cancellations**: nurse- or agency-initiated, per your decision on C11.
+  - email: 6 event-driven mails (E1 to E6, C11 for cancellations) and 5 reminders (S1 to S5), catalog below.
 - **Pattern: transactional outbox.**
   - The notification row is inserted in the same transaction as the change, so an email is never sent for a change that rolled back, and never lost for one that committed.
   - An in-process dispatcher (10-second interval, `FOR UPDATE SKIP LOCKED`, exponential backoff, max 5 attempts) sends via Resend.
@@ -963,7 +963,31 @@ sequenceDiagram
   | Nurse | Active owners and managers of the owning agency |
   | Agency or admin | The previous nurse; other agency owners and managers |
 
-- **Email content:** shift date, time, role, agency and reason. **No credential or health data.**
+- **Event emails** (inserted in the business transaction; if the outbox insert fails the action rolls back):
+
+  | # | Trigger | Template | Recipients |
+  |---|---|---|---|
+  | E1 | `POST /api/shifts` | `shift.posted` | Eligible nurses of the network: license type matches the role and a license covers today and the shift day |
+  | E2 | claim | `shift.claimed.agency` | Active owners and managers of the owning agency (not viewers) |
+  | E3 | claim | `shift.claimed.nurse` | The claiming nurse (the only mail an actor gets about their own action) |
+  | E4 | cancel | `shift.cancelled` | As in the table above |
+  | E5 | credential upload | `credential.submitted` | Admins of the nurse's network |
+  | E6 | credential review | `credential.reviewed` | The credential's nurse (outcome only) |
+
+  Withdrawing an open shift sends nothing: it has no nurse. The actor never gets mail about their own action (except E3).
+- **Reminder sweep** (S1 to S5): a periodic tick in the same process (default 15 min, `REMINDER_INTERVAL_MS`; `REMINDERS=off` disables) finds due conditions and inserts outbox rows. `notifications.dedupe_key` has a partial unique index (`WHERE dedupe_key IS NOT NULL`) and the insert is `ON CONFLICT DO NOTHING`, so repeated ticks, restarts and replicas never duplicate a mail. A `pg_try_advisory_xact_lock` only saves wasted work across replicas. "Current credential" = non-deleted, not rejected, no newer one of the same type for that nurse.
+
+  | # | Condition | Template | Recipients | dedupe_key |
+  |---|---|---|---|---|
+  | S1 | current credential expires within 30 d / 7 d (nurse-local today) | `credential.expiring` | The nurse | `cred-exp:<credId>:30d` / `:7d` |
+  | S2 | current credential already expired | `credential.expired` | The nurse (with date) and network admins (name only) | `cred-expired:<credId>:<userId>` |
+  | S3 | current license ends before the date of a filled shift in the next 30 d | `shift.nurse_license_lapses` | Owners and managers of that shift's agency | `lapse:<shiftId>:<credId>:<userId>` |
+  | S4 | filled shift starts (facility-local) within 24 h | `shift.reminder` | The nurse | `remind:<shiftId>:<nurseId>` |
+  | S5 | open shift starts within 24 h | `shift.unfilled` | Owners and managers of the agency | `unfilled:<shiftId>:<userId>` |
+
+- **Recipients rule:** active, non-deleted users only; agency recipients are owners and managers with an active membership; admins have an active network membership.
+- **Email content:** shift date, time, role, agency, reason, names, and a plain `APP_ORIGIN` sign-in link. **No credential type, TB or health data, file names or keys, and no tokenized links.** Expiry dates go only to the owning nurse.
+- **Not built:** opt-out / preferences (`notification_preferences`), digests, SMS or push.
 - **Environments:**
   - **Locally:** Mailpit catches all emails.
   - **In production:** seed addresses use the reserved `.example` domain, which can't receive mail. An `EMAIL_ALLOWLIST` / `EMAIL_REDIRECT` setting routes demo emails to a real test inbox instead of bouncing.
