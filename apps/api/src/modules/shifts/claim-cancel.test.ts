@@ -10,6 +10,7 @@ import {
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
 import { signAccessToken } from "../auth/tokens.js";
+import { documentUrl, review } from "../credentials/service.js";
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
 const apps: FastifyInstance[] = [];
@@ -179,6 +180,61 @@ describe("claim: rules", () => {
     const row = await shiftRow(id);
     expect(row).toMatchObject({ status: "open", claimedBy: null, claimedAt: null });
     expect(await audits(id, "shift.claimed")).toHaveLength(0);
+  });
+
+  const denials = (id: string) => t.db.select().from(auditLog).where(and(eq(auditLog.entityId, id), eq(auditLog.action, "access.denied")));
+
+  it("denied claims write an access.denied row (reason only, scoped) and no shift.claimed row", async () => {
+    const id = await mkShift();
+    err(await claim(id, "n-exp"), 403, ErrorMessage.credentialExpired);
+    err(await claim(id, "n-none"), 403, ErrorMessage.noValidCredential);
+    const rows = await denials(id);
+    expect(rows.map((r) => r.changes).sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))).toEqual([{ reason: "credential_expired" }, { reason: "no_valid_credential" }]);
+    expect(rows[0]).toMatchObject({ entityType: "shift", actorRole: "nurse", agencyId: "agency-a", networkId: "network-default" });
+    expect(await audits(id, "shift.claimed")).toHaveLength(0);
+    expect((await shiftRow(id)).status).toBe("open");
+  });
+
+  it("license type vs shift role: LPN nurse on an RN shift -> 403, shift stays open, denial audited", async () => {
+    await makeNurse("n-lpn");
+    await t.db.update(nurseProfiles).set({ licenseType: "LPN" }).where(eq(nurseProfiles.userId, "n-lpn"));
+    const id = await mkShift(); // RN shift
+    err(await claim(id, "n-lpn"), 403, "License type does not match shift role");
+    expect(await shiftRow(id)).toMatchObject({ status: "open", claimedBy: null });
+    expect(await audits(id, "shift.claimed")).toHaveLength(0);
+    expect((await denials(id)).map((r) => r.changes)).toEqual([{ reason: "license_role_mismatch" }]);
+    // matchable and claim agree: the open RN shift is not matchable for her
+    const a = await newApp();
+    const res = await a.inject({ method: "GET", url: "/api/shifts?matchable=true", headers: { authorization: `Bearer ${await signAccessToken({ id: "n-lpn", role: "nurse" })}` } });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).not.toContain(`"${id}"`);
+  });
+
+  it("RN nurse on an RN shift -> 200; NULL license type -> 200; expired still wins over the role", async () => {
+    await makeNurse("n-rn");
+    await t.db.update(nurseProfiles).set({ licenseType: "RN" }).where(eq(nurseProfiles.userId, "n-rn"));
+    expect((await claim(await mkShift(), "n-rn")).status).toBe(200);
+    expect((await claim(await mkShift(), "cn05")).status).toBe(200); // license_type NULL
+    await t.db.update(nurseProfiles).set({ licenseType: "CNA" }).where(eq(nurseProfiles.userId, "n-exp"));
+    err(await claim(await mkShift(), "n-exp"), 403, ErrorMessage.credentialExpired);
+    await t.db.update(nurseProfiles).set({ licenseType: null }).where(eq(nurseProfiles.userId, "n-exp"));
+  });
+
+  it("credential access outside scope: review and download-url write access.denied; a missing id writes nothing", async () => {
+    const act = (userId: string, role: Role, over: object = {}) => ({ userId, role, status: "active" as const, agencies: [], networkIds: [], nurseNetworkId: null, activeAgencyId: null, ...over });
+    const before = (await t.db.select().from(auditLog).where(eq(auditLog.action, "access.denied"))).length;
+    // admin of network-default reviewing a network-2 nurse's credential
+    const r = await review(t.db, act("admin-1", "admin", { networkIds: ["network-default"] }), "cred-n-net2", "verified", { requestId: "r1", ip: null, userAgent: null });
+    expect(r).toMatchObject({ ok: false, fail: { status: 404 } });
+    // another nurse asking for a download link
+    const d = await documentUrl(t.db, {} as never, act("n-exp", "nurse", { nurseNetworkId: "network-default" }), "cred-cn01", { requestId: "r2", ip: null, userAgent: null });
+    expect(d).toMatchObject({ ok: false, fail: { status: 404 } });
+    const missing = await documentUrl(t.db, {} as never, act("n-exp", "nurse"), "cred-missing", { requestId: "r3", ip: null, userAgent: null });
+    expect(missing.ok).toBe(false);
+    const rows = await t.db.select().from(auditLog).where(eq(auditLog.action, "access.denied"));
+    expect(rows.length - before).toBe(2);
+    expect(rows.filter((x) => x.entityType === "credential").map((x) => [x.entityId, x.changes])).toEqual(expect.arrayContaining([["cred-n-net2", { reason: "out_of_scope" }], ["cred-cn01", { reason: "out_of_scope" }]]));
+    expect(rows.some((x) => x.entityId === "cred-missing")).toBe(false);
   });
 
   it("no license or only rejected -> the exact 'No valid credential' 403", async () => {

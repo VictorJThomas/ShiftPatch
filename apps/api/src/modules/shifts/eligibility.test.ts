@@ -55,4 +55,9 @@ describe("roleMatchesLicense", () => {
     expect(roleMatchesLicense("LPN", "LPN")).toBe(true);
     expect(roleMatchesLicense("LPN", "RN")).toBe(false);
   });
+  const ROLES = ["RN", "LPN", "CNA"];
+  for (const lic of ROLES) for (const role of ROLES) {
+    it(`${lic} license vs ${role} shift -> ${lic === role}`, () => expect(roleMatchesLicense(lic, role)).toBe(lic === role));
+  }
+  for (const role of ROLES) it(`null license vs ${role} shift -> true`, () => expect(roleMatchesLicense(null, role)).toBe(true));
 });
