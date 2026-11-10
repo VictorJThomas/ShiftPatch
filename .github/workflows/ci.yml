@@ -47,6 +47,78 @@ jobs:
       - run: pnpm test:contract # 6 required routes vs seeded Postgres (service above)
       - run: pnpm build # catches prod resolution of @shiftpatch/contracts (dist) before deploy
 
+  # Browser e2e: the mocked Playwright suite, then flows.spec.ts against the REAL API + Postgres (test-only .env, nothing from prod).
+  e2e:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shiftpatch
+          POSTGRES_PASSWORD: shiftpatch
+          POSTGRES_DB: shiftpatch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shiftpatch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://shiftpatch:shiftpatch@localhost:5432/shiftpatch
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Write test-only .env
+        run: |
+          {
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "COOKIE_SECURE=false"
+            echo "APP_ORIGIN=http://localhost:3100"
+            echo "MAIL_TRANSPORT=log"
+            echo "OUTBOX_DISPATCHER=off"
+            echo "REMINDERS=off"
+          } > .env
+      - run: pnpm --filter @shiftpatch/contracts build # the API runs from dist and imports the contracts package build
+      - run: pnpm --filter api db:reset
+      - name: Start API (3201)
+        run: |
+          PORT=3201 nohup pnpm --filter api start:local > api.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:3201/api/health && exit 0
+            sleep 2
+          done
+          cat api.log
+          echo "API did not become healthy" >&2
+          exit 1
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: Mocked e2e suite
+        run: pnpm --filter web test:e2e
+        env:
+          API_ORIGIN: http://localhost:3201
+      - name: Real-API flows
+        run: pnpm --filter web exec playwright test flows
+        env:
+          E2E_REAL_API: "1"
+          API_ORIGIN: http://localhost:3201
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-diagnostics
+          retention-days: 7
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            api.log
+
   security:
     runs-on: ubuntu-latest
     steps:
@@ -67,7 +139,7 @@ jobs:
   # Continuous deploy: every push to master (PR merge / rebase-merge) that passes checks + security ships API, then web.
   # ponytail: CLI deploys from Actions, not the Railway/Vercel Git integrations, so nothing ships while CI is red.
   deploy:
-    needs: [checks, security]
+    needs: [checks, e2e, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: production # GitHub environment: holds the secrets; add required reviewers there for a manual gate

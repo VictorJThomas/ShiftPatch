@@ -53,7 +53,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
 - ☑ Shift matching blocks nurses with expired credentials
 - ☑ Cancellation and no-show handling
-- ☐ Claim: enforce license type vs shift role (CNA nurse can't claim RN shift)
+- ◐ Claim: enforce license type vs shift role (CNA nurse can't claim RN shift)
 - ☑ Tolerate empty JSON body on POST claim (Fastify FST_ERR_CTP_EMPTY_JSON_BODY -> 400)
 - ☐ Cancel: authorize before body validation (403 before 400) · Later
 - ☐ Audit shift.claimed: record when a pending license was used · Later
@@ -88,7 +88,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 ## 7 Credentials
 - ☑ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
 - ☑ Admin credential review queue (verify/reject)
-- ☐ Signed 5-min document links, audited views, 404 out of scope
+- ◐ Signed 5-min document links, audited views, 404 out of scope
 - ☑ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
 - ☐ Warn or unassign when a license is rejected after a claim · Later
@@ -97,7 +97,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Credential document preview dialog with Download
 
 ## 8 Release
-- ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
+- ◐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
 - ☑ Security pass: headers/CSP, IDOR, token tampering, upload abuse, dep audit
 - ☐ Production reseed to exact spec data before submission
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
@@ -109,7 +109,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 
 ## 9 Delivery
 - ☑ Email recruiter scope commitment (day 1)
-- ☐ Export full unedited AI session transcripts
+- ◐ Export full unedited AI session transcripts
 - ☐ Record 5-min Loom for the founder (non-technical)
 - ☑ Agentic setup: custom skills/commands in .claude/ committed
 - ☐ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated

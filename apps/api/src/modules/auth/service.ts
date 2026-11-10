@@ -128,7 +128,12 @@ export function refresh(db: Db, rawToken: string, meta: RequestMeta): Promise<Re
 
     const [u] = await findUser(tx, eq(users.id, row.userId));
     if (!u || u.status !== "active") {
-      await revokeFamily(tx, row.familyId); // suspended or deleted since login
+      if ((await revokeFamily(tx, row.familyId)) > 0) { // suspended or deleted since login
+        await recordAudit(tx, {
+          action: "auth.logout", actorUserId: row.userId, ...(await actorAuditFields(tx, row.userId)),
+          entityType: "refresh_token_family", entityId: row.familyId, changes: { reason: "suspended" }, ...meta,
+        });
+      }
       return { kind: "invalid" };
     }
 

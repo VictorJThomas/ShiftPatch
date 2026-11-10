@@ -4,7 +4,14 @@ import { agencies, agencyMemberships, auditLog, hospitalNetworks, networkAgencie
 import { redactChanges } from "./redact.js";
 
 export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
-export type AuditEntry = typeof auditLog.$inferInsert;
+/** The audit action catalog (ARCHITECTURE §11). */
+export type AuditAction =
+  | "auth.login" | "auth.login_failed" | "auth.refresh_reuse_detected" | "auth.logout"
+  | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.deleted"
+  | "credential.uploaded" | "credential.reviewed" | "credential.document_viewed"
+  | "agency.updated" | "membership.granted" | "membership.revoked"
+  | "access.denied";
+export type AuditEntry = Omit<typeof auditLog.$inferInsert, "action"> & { action: AuditAction };
 /** Request context copied onto every audit row (ARCHITECTURE §11: request ID links audit rows to logs). */
 export type RequestMeta = Pick<AuditEntry, "requestId" | "ip" | "userAgent">;
 

@@ -126,6 +126,7 @@ describe("errors", () => {
     expect(ErrorMessage.invalidCredentials).toBe("Invalid email or password");
     expect(ErrorMessage.credentialExpired).toBe("Credential expired, cannot claim shift");
     expect(ErrorMessage.noValidCredential).toBe("No valid credential on file, cannot claim shift");
+    expect(ErrorMessage.licenseRoleMismatch).toBe("License type does not match shift role");
     expect(ErrorMessage.unauthorized).toBe("Unauthorized");
     expect(ErrorMessage.forbidden).toBe("Forbidden");
     expect(ErrorMessage.shiftNotFound).toBe("Shift not found");
@@ -335,6 +336,7 @@ describe("type inference", () => {
       | "Invalid email or password"
       | "Credential expired, cannot claim shift"
       | "No valid credential on file, cannot claim shift"
+      | "License type does not match shift role"
       | "Unauthorized"
       | "Forbidden"
       | "Agency not available"

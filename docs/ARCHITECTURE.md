@@ -998,7 +998,7 @@ sequenceDiagram
 ## 11. Audit logging
 
 **How it's written:**
-- `audit.record(tx, entry)` is called inside the same transaction as the change. If the transaction rolls back, the audit row rolls back too.
+- `recordAudit(tx, entry)` is called inside the same transaction as the change. If the transaction rolls back, the audit row rolls back too.
 - Failed authorization attempts on sensitive resources are also logged (`access.denied`), in their own small transaction.
 
 **Action catalog (MVP):**

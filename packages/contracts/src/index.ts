@@ -34,6 +34,7 @@ export const ErrorMessage = {
   invalidCredentials: "Invalid email or password", // [Spec] 401 login
   credentialExpired: "Credential expired, cannot claim shift", // [Spec] 403 claim
   noValidCredential: "No valid credential on file, cannot claim shift", // 403 claim
+  licenseRoleMismatch: "License type does not match shift role", // 403 claim: nurse license type (RN/LPN/CNA) differs from the shift role
   unauthorized: "Unauthorized", // 401 every route but login
   forbidden: "Forbidden", // 403 authorization
   agencyNotAllowed: "Agency not available", // 403 X-Agency-Id is stale, foreign or revoked (distinct from a permission denial)

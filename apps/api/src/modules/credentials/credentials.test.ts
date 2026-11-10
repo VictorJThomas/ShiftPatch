@@ -5,20 +5,20 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../../app.js";
-import { auditLog, credentials, files, hospitalNetworks, networkMemberships, notifications, nurseProfiles, userProfiles, users } from "../../db/schema/index.js";
+import { agencies, agencyMemberships, auditLog, credentials, files, hospitalNetworks, networkAgencies, networkMemberships, notifications, nurseProfiles, shifts, userProfiles, users } from "../../db/schema/index.js";
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
-import type { ObjectStorage } from "../../lib/storage.js";
+import { type ObjectStorage, StorageError } from "../../lib/storage.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { sniffCredentialMime } from "./file-type.js";
 
 type Role = "agency" | "nurse" | "admin";
-const roles = new Map<string, Role>([["agency-a", "agency"], ["nurse-1", "nurse"], ["nurse-2", "nurse"], ["admin-1", "admin"], ["nurse-dbfail", "nurse"]]);
+const roles = new Map<string, Role>([["agency-a", "agency"], ["nurse-1", "nurse"], ["nurse-2", "nurse"], ["admin-1", "admin"], ["nurse-dbfail", "nurse"], ["admin-2", "admin"]]);
 const URL = "/api/nurses/me/credentials";
 const KEY_RE = /^credentials\/[0-9a-f-]{36}$/;
 
 /** In-memory ObjectStorage: records puts and deletes; `failPut` simulates an unreachable bucket. */
-const fake = { objects: new Map<string, { bytes: Uint8Array; contentType: string; disposition: string }>(), deleted: [] as string[], failPut: false };
+const fake = { objects: new Map<string, { bytes: Uint8Array; contentType: string; disposition: string }>(), deleted: [] as string[], failPut: false, failDelete: false };
 const storage: ObjectStorage = {
   putObject: async (key, bytes, contentType, disposition) => {
     if (fake.failPut) throw new Error("connect ECONNREFUSED");
@@ -26,6 +26,7 @@ const storage: ObjectStorage = {
   },
   signedGetUrl: async (key, ttl) => `https://signed.example/${key}?X-Amz-Expires=${ttl}&X-Amz-Signature=sig`,
   deleteObject: async (key) => {
+    if (fake.failDelete) throw new StorageError("DELETE", 500);
     fake.deleted.push(key);
     fake.objects.delete(key);
   },
@@ -345,5 +346,263 @@ describe("credential.submitted email (E5)", () => {
     const rows = await t.db.select().from(notifications);
     expect(rows.map((n) => [n.template, n.recipientEmail, n.payload])).toEqual([["credential.submitted", "alex.kim@example.com", { nurseName: "Maria Lopez" }]]);
     expect(JSON.stringify(rows)).not.toMatch(/tb|secret|credentials\//i);
+  });
+});
+
+// ---- Hardening: multipart limits, compensation, rate limits, viewer/foreign-network/shift-lifecycle access, log hygiene ----
+// Synthetic bytes only: magic header + filler, never a real document.
+describe("credential hardening", () => {
+  const logLines: string[] = [];
+  let edgeApp: FastifyInstance; // fresh rate-limit budget: the main app's nurse-1 is near its 20 uploads/min after the earlier tests
+  let logApp: FastifyInstance; // real pino at trace level into memory (same approach as security.test.ts)
+  const PDF_FILE = { bytes: PDF, name: "x.pdf", type: "application/pdf" };
+  const storedCount = () => fake.objects.size;
+  const filesCount = async () => ((await t.db.execute(sql`SELECT count(*)::int AS n FROM files`)) as unknown as [{ n: number }])[0].n;
+  const tokenFor = async (id: string) => `Bearer ${await signAccessToken({ id, role: roles.get(id) ?? "agency" })}`;
+  const up = async (who: string, fields: Record<string, string>, file?: { bytes: Buffer; name: string; type: string }) => postOn(edgeApp, who, await multipart(fields, file));
+  const postOn = async (a: FastifyInstance, who: string, body: { payload: Buffer; contentType: string }) => {
+    const res = await a.inject({ method: "POST", url: URL, headers: { authorization: await tokenFor(who), "content-type": body.contentType }, payload: body.payload });
+    return { status: res.statusCode, body: res.json() as Record<string, unknown>, headers: res.headers };
+  };
+  const getOn = async (a: FastifyInstance, who: string, id: string) => {
+    const res = await a.inject({ method: "GET", url: `/api/credentials/${id}/download-url`, headers: { authorization: await tokenFor(who) } });
+    return { status: res.statusCode, body: res.json() as Record<string, unknown>, headers: res.headers };
+  };
+  /** Hand-built multipart body, for shapes FormData cannot produce (broken boundary, truncation, odd field names). */
+  const rawBody = (boundary: string, parts: string[], end = true) => Buffer.from(parts.map((p) => `--${boundary}\r\n${p}\r\n`).join("") + (end ? `--${boundary}--\r\n` : ""), "latin1");
+  const filePart = (field: string, name: string, content: Buffer | string) => `Content-Disposition: form-data; name="${field}"; filename="${name}"\r\nContent-Type: application/pdf\r\n\r\n${content.toString("latin1")}`;
+  const textPart = (field: string, value: string) => `Content-Disposition: form-data; name="${field}"\r\n\r\n${value}`;
+  const withBoundary = (b: string) => `multipart/form-data; boundary=${b}`;
+
+  beforeAll(async () => {
+    await t.db.insert(users).values({ id: "agency-viewer", email: "viewer@example.com", role: "agency", passwordHash: "x" });
+    await t.db.insert(userProfiles).values({ userId: "agency-viewer", fullName: "Viewer Only" });
+    await t.db.insert(agencyMemberships).values({ id: "agm-viewer", userId: "agency-viewer", agencyId: "agency-a", role: "viewer" });
+    roles.set("agency-viewer", "agency");
+    // agency-c: its own agency whose shift lifecycle drives the access-ends tests.
+    await t.db.insert(agencies).values({ id: "agency-c", name: "Lifecycle Staffing" });
+    await t.db.insert(networkAgencies).values({ networkId: "network-default", agencyId: "agency-c" });
+    await t.db.insert(users).values({ id: "agency-c", email: "agency-c@example.com", role: "agency", passwordHash: "x" });
+    await t.db.insert(userProfiles).values({ userId: "agency-c", fullName: "Lifecycle Owner" });
+    await t.db.insert(agencyMemberships).values({ id: "agm-agency-c", userId: "agency-c", agencyId: "agency-c", role: "owner" });
+    roles.set("agency-c", "agency");
+    await t.db.insert(shifts).values({
+      id: "shift-lifecycle", networkId: "network-default", agencyId: "agency-c", createdBy: "agency-c", role: "RN", shiftDate: "2026-12-01",
+      startTime: "07:00", endTime: "19:00", timezone: "America/New_York", status: "filled", claimedBy: "nurse-1", claimedAt: new Date("2026-11-01T12:00:00Z"),
+    });
+    edgeApp = buildApp({ storage });
+    await edgeApp.ready();
+    logApp = buildApp({ storage, logger: { level: "trace", stream: { write: (m: string) => void logLines.push(m) } } });
+    await logApp.ready();
+  });
+  afterAll(async () => {
+    await edgeApp?.close();
+    await logApp?.close();
+  });
+
+  describe("upload: multipart limits and malformed bodies", () => {
+    it("400 for more than one file part, nothing stored", async () => {
+      const before = [storedCount(), await filesCount()];
+      const fd = new FormData();
+      fd.append("type", "other");
+      for (const n of ["a.pdf", "b.pdf"]) fd.append("file", new Blob([new Uint8Array(PDF)], { type: "application/pdf" }), n);
+      const req = new Request("http://local/", { method: "POST", body: fd });
+      const res = await postOn(edgeApp, "nurse-1", { payload: Buffer.from(await req.arrayBuffer()), contentType: req.headers.get("content-type")! });
+      expect(res).toMatchObject({ status: 400, body: { error: "Upload exactly one file" } });
+      expect([storedCount(), await filesCount()]).toEqual(before);
+    });
+
+    it("400 for a file sent in a field other than `file`, nothing stored", async () => {
+      const before = storedCount();
+      const b = "XBOUNDARYX";
+      const res = await postOn(edgeApp, "nurse-1", { payload: rawBody(b, [textPart("type", "other"), filePart("document", "x.pdf", PDF)]), contentType: withBoundary(b) });
+      expect(res).toMatchObject({ status: 400, body: { error: "Upload exactly one file" } });
+      expect(storedCount()).toBe(before);
+    });
+
+    it("400 for a zero-byte file (the same 'file required' answer), nothing stored", async () => {
+      const before = [storedCount(), await filesCount()];
+      const res = await up("nurse-1", { type: "other" }, { bytes: Buffer.alloc(0), name: "empty.pdf", type: "application/pdf" });
+      expect(res).toMatchObject({ status: 400, body: { error: ErrorMessage.fileRequired } });
+      expect([storedCount(), await filesCount()]).toEqual(before);
+    });
+
+    it("400 for too many parts (11 text fields + a file), nothing stored", async () => {
+      const before = storedCount();
+      const fields = Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`f${i}`, "v"]));
+      const res = await up("nurse-1", { type: "other", ...fields }, PDF_FILE);
+      expect(res).toMatchObject({ status: 400, body: { error: "Too many form fields" } });
+      expect(storedCount()).toBe(before);
+    });
+
+    it("400 for an oversize value (> 256 bytes) in a field the API reads, nothing stored", async () => {
+      const before = storedCount();
+      const res = await up("nurse-1", { type: "other".padEnd(300, "x") }, PDF_FILE);
+      expect(res).toMatchObject({ status: 400, body: { error: "Invalid type" } }); // busboy truncates to 256 bytes, the enum then rejects it
+      expect(storedCount()).toBe(before);
+    });
+
+    it("201: an oversize value or name in an unknown field is silently truncated and ignored (harmless, documented)", async () => {
+      const res = await up("nurse-1", { type: "other", note: "n".repeat(300), ["k".repeat(64)]: "v" }, PDF_FILE);
+      expect(res.status).toBe(201);
+    });
+
+    it("400 for a body whose delimiters do not match the declared boundary, nothing stored", async () => {
+      const before = storedCount();
+      const res = await postOn(edgeApp, "nurse-1", { payload: rawBody("REALBOUNDARY", [textPart("type", "other"), filePart("file", "x.pdf", PDF)]), contentType: withBoundary("DECLAREDOTHER") });
+      expect(res.status).toBe(400);
+      expect(ErrorBody.parse(res.body).error).toEqual(expect.any(String));
+      expect(storedCount()).toBe(before);
+    });
+
+    it("400 for a truncated stream (body cut inside the file part), nothing stored", async () => {
+      const before = [storedCount(), await filesCount()];
+      const b = "TRUNCB";
+      const full = rawBody(b, [textPart("type", "other"), filePart("file", "x.pdf", PDF)], false);
+      const res = await postOn(edgeApp, "nurse-1", { payload: full.subarray(0, full.length - 10), contentType: withBoundary(b) });
+      expect(res.status).toBe(400);
+      expect([storedCount(), await filesCount()]).toEqual(before);
+    });
+
+    it("201: unknown extra text fields are ignored", async () => {
+      const res = await up("nurse-1", { type: "other", role: "admin", nurseId: "nurse-2", status: "verified", userId: "admin-1" }, PDF_FILE);
+      expect(res.status).toBe(201);
+      const { credential } = UploadCredentialResponse.parse(res.body);
+      const [row] = await t.db.select().from(credentials).where(eq(credentials.id, credential.id));
+      expect(row).toMatchObject({ nurseId: "nurse-1", status: "pending", uploadedBy: "nurse-1", reviewedAt: null }); // none of the extras took effect
+    });
+
+    it("KNOWN LIMIT: a valid magic header followed by garbage is accepted (never parsed), stored and served only as an attachment", async () => {
+      const junk = Buffer.concat([Buffer.from("%PDF-"), Buffer.from(Array.from({ length: 256 }, (_, i) => (i * 37) % 256))]);
+      const res = await up("nurse-1", { type: "other" }, { bytes: junk, name: "junk.pdf", type: "application/pdf" });
+      expect(res.status).toBe(201);
+      const obj = [...fake.objects.values()].at(-1)!;
+      expect(obj.contentType).toBe("application/pdf");
+      expect(obj.disposition).toBe('attachment; filename="credential.pdf"');
+      expect(Buffer.from(obj.bytes).equals(junk)).toBe(true);
+    });
+  });
+
+  describe("upload: compensation, roles, rate limit", () => {
+    it("compensating delete also fails: still a generic 500, logged WITHOUT the object key, no DB rows", async () => {
+      logLines.length = 0;
+      const before = await filesCount();
+      fake.failDelete = true;
+      let key: string;
+      try {
+        const b = await multipart({ type: "other" }, { bytes: PDF, name: "Compensation Secret.pdf", type: "application/pdf" });
+        const res = await postOn(logApp, "nurse-dbfail", b);
+        expect(res).toMatchObject({ status: 500, body: { error: "Internal server error" } });
+        key = [...fake.objects.keys()].at(-1)!; // the orphan the failed delete left behind
+        expect(key).toMatch(KEY_RE);
+      } finally {
+        fake.failDelete = false;
+      }
+      await storage.deleteObject(key); // tidy the fake
+      expect(await filesCount()).toBe(before);
+      expect(await t.db.select().from(credentials).where(eq(credentials.nurseId, "nurse-dbfail"))).toEqual([]);
+      const out = logLines.join("");
+      expect(out).toContain("compensating delete failed"); // the orphan is diagnosable
+      expect(out).not.toContain(key);
+      expect(out).not.toContain(key.replace("credentials/", ""));
+      expect(out).not.toContain("Compensation Secret");
+    });
+
+    it("403 for an agency user with the viewer role", async () => {
+      const before = storedCount();
+      expect(await up("agency-viewer", { type: "other" }, PDF_FILE)).toMatchObject({ status: 403, body: { error: ErrorMessage.forbidden } });
+      expect(storedCount()).toBe(before);
+    });
+
+    it("429 after 20 uploads a minute per user (fresh app so the other tests keep their budget), with Retry-After", async () => {
+      const limited = buildApp({ storage });
+      await limited.ready();
+      try {
+        const text = await multipart({ type: "other" }, { bytes: Buffer.from("not a document"), name: "a.pdf", type: "application/pdf" }); // 415: cheap, stores nothing
+        for (let i = 0; i < 20; i++) expect((await postOn(limited, "nurse-2", text)).status).toBe(415);
+        const res = await postOn(limited, "nurse-2", text);
+        expect(res).toMatchObject({ status: 429, body: { error: "Too many requests, try again later" } });
+        expect(Number(res.headers["retry-after"])).toBeGreaterThan(0);
+        expect((await postOn(limited, "nurse-1", text)).status).toBe(415); // another user is unaffected
+      } finally {
+        await limited.close();
+      }
+    });
+  });
+
+  describe("download-url: scope and lifecycle", () => {
+    let credId = "";
+    beforeAll(async () => {
+      credId = UploadCredentialResponse.parse((await up("nurse-1", { type: "other" }, PDF_FILE)).body).credential.id;
+    });
+
+    it("404 for an agency user with the viewer role even though the agency holds the nurse", async () => {
+      expect((await getOn(app, "agency-a", credId)).status).toBe(200); // control: the owner of the same agency is entitled
+      expect(await getOn(app, "agency-viewer", credId)).toMatchObject({ status: 404, body: { error: ErrorMessage.notFound } });
+    });
+
+    it("404 for an admin of a different network", async () => {
+      expect(await getOn(app, "admin-2", credId)).toMatchObject({ status: 404, body: { error: ErrorMessage.notFound } });
+    });
+
+    it("agency access ends when the nurse's filled shift is cancelled, withdrawn, completed or deleted, and returns if refilled", async () => {
+      const setShift = (v: Partial<typeof shifts.$inferInsert>) => t.db.update(shifts).set(v).where(eq(shifts.id, "shift-lifecycle"));
+      const filled = { status: "filled", claimedBy: "nurse-1", claimedAt: new Date("2026-11-01T12:00:00Z") } as const;
+      expect((await getOn(app, "agency-c", credId)).status).toBe(200);
+      await setShift({ status: "cancelled", claimedBy: null, claimedAt: null });
+      expect(await getOn(app, "agency-c", credId)).toMatchObject({ status: 404, body: { error: ErrorMessage.notFound } });
+      await setShift(filled);
+      expect((await getOn(app, "agency-c", credId)).status).toBe(200);
+      await setShift({ status: "open", claimedBy: null, claimedAt: null }); // the nurse withdrew
+      expect((await getOn(app, "agency-c", credId)).status).toBe(404);
+      await setShift(filled);
+      await setShift({ status: "completed" }); // completed keeps its nurse but is no longer "filled"
+      expect((await getOn(app, "agency-c", credId)).status).toBe(404);
+      await setShift({ ...filled, deletedAt: new Date() }); // a soft-deleted shift grants nothing
+      expect((await getOn(app, "agency-c", credId)).status).toBe(404);
+    });
+
+    it("FINDING (documented, not changed): agency access survives the filled shift's date passing", async () => {
+      // shift-2 (agency-a, nurse-1) is dated 2026-10-03 and "today" is faked to 2026-11-07, yet the agency still gets a link
+      // until the shift leaves `filled`. The query checks status + deletedAt only, never shift_date. Product question.
+      const [shift2] = await t.db.select({ d: shifts.shiftDate, s: shifts.status }).from(shifts).where(eq(shifts.id, "shift-2"));
+      expect(shift2).toEqual({ d: "2026-10-03", s: "filled" });
+      expect((await getOn(app, "agency-a", credId)).status).toBe(200);
+    });
+
+    it("429 after 60 download-url requests a minute per user (fresh app)", async () => {
+      const limited = buildApp({ storage });
+      await limited.ready();
+      try {
+        for (let i = 0; i < 60; i++) expect((await getOn(limited, "nurse-1", "cred-nope")).status).toBe(404);
+        const res = await getOn(limited, "nurse-1", "cred-nope");
+        expect(res).toMatchObject({ status: 429, body: { error: "Too many requests, try again later" } });
+        expect(Number(res.headers["retry-after"])).toBeGreaterThan(0);
+        expect((await getOn(limited, "admin-1", "cred-nope")).status).toBe(404); // another user is unaffected
+      } finally {
+        await limited.close();
+      }
+    });
+  });
+
+  describe("logs", () => {
+    it("an upload and a download-url request leak no signed URL, object key or original filename", async () => {
+      logLines.length = 0;
+      const up = await postOn(logApp, "nurse-1", await multipart({ type: "other" }, { bytes: PDF, name: "Maria Lopez TB Results.pdf", type: "application/pdf" }));
+      expect(up.status).toBe(201);
+      const id = UploadCredentialResponse.parse(up.body).credential.id;
+      const key = [...fake.objects.keys()].at(-1)!;
+      const dl = await getOn(logApp, "nurse-1", id);
+      expect(dl.status).toBe(200);
+      expect(CredentialDownloadResponse.parse(dl.body).url).toContain("X-Amz-Signature"); // the secret really was in play
+
+      const out = logLines.join("");
+      expect(out).toContain("/download-url"); // capture is live
+      expect(out).not.toContain("X-Amz-Signature");
+      expect(out).not.toContain("signed.example");
+      expect(out).not.toContain(key);
+      expect(out).not.toMatch(/credentials\/[0-9a-f]{8}-[0-9a-f]{4}-/); // no object key shape
+      for (const name of ["Maria Lopez TB Results", "TB Results"]) expect(out).not.toContain(name);
+    });
   });
 });
