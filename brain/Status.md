@@ -1,27 +1,23 @@
 # Status (overwrite each session — current truth only)
 
-**Last updated:** 2026-11-10
+**Last updated:** 2026-11-10 (founder requests pass)
 
 ## Where we are
-- **Final MVP is on master and deployed:** `0291eec` (PR #17), after PR #16 (branded email). The master pipeline (checks, e2e, security, deploy) is green. Prod smoke: `/api/health` ok, `/login` 200, bad login gives the exact 401 text. The logo URL returns 200 image/png. Prod mail transport: `resend` (log line after deploy).
-- PR #17 added: claim enforces license type vs shift role (403 "License type does not match shift role"; seed unaffected); `access.denied` audit rows plus a typed `AuditAction` (`docs/qa/AUDIT_COVERAGE.md`); +24 credential security tests; a **Playwright e2e job in CI** (mocked + real API/Postgres) that deploy now needs; the `[to: …]` subject prefix when redirecting.
-- Last `/verify` GREEN (typecheck, lint, test 580 api + 201 web, contract). Real-API flows 10/10.
-- Design-canvas visual QA done: `docs/qa/CANVAS_QA.md`, 0 P1, no code changes (triage inside).
-- Branch `feature/17-final-wrap`: brain + QA docs only (not merged yet).
-- Board: every MVP build task is Done. Open: prod reseed, Loom, transcript re-export, plus the decisions below.
+- **Founder requests (PR #19, branch `feature/18-founder-requests`)**: Option D inspection package, full timesheets, overlap rule on claim, reopen upcoming shifts when a license is rejected, cancel 403-before-400, Post-shift form refuses past dates (form only), canvas P3 fixes F6/F8-F12 (F4 not merged). Migration 0006 adds `timesheets` + `inspection_packages`. Decisions in [[Decisions]] "Founder requests pass".
+- Last `/verify` GREEN on the branch (typecheck, lint, test, contract). Postman regenerated (38 requests).
+- Prod (master `4bfc882`) was reseeded by Victor and the prod mail test passed (Victor received the E1 email, 2026-11-10).
+- Merging PR #19 deploys it; migration 0006 only adds tables, so the spec seed stays intact.
 
 ## Next step
-1. **Victor: prod mail test.** Log in at prod as admin@sunrisehealth.example and post an RN shift (future date). E1 goes to maria.lopez@example.com, redirected to the `EMAIL_REDIRECT_TO` inbox with subject `[to: maria.lopez@example.com] …`. Check the logo, facts card and CTA in Gmail. Record the result in Session-Log.
-2. **Victor: prod reseed (destructive gate).** `bash apps/api/scripts/railway-db-reseed.sh preflight`, review the output, then `... reset` (type the DB name). Follow `docs/release/prod-reseed.md` (verify: 5 users, 3 shifts, shift-1 open, 5 logins). Then set the board task Done.
-3. **Victor: record the Loom** with `docs/loom-script.md`, after the reseed. Paste the link here and mark the task Done.
-4. Re-run `/export-transcripts` as the very last step. Verify the session count includes this one and the secret scan is clean, then mark the task Done.
-5. Merge `feature/17-final-wrap` (docs only).
+1. Merge PR #19 once CI (checks, e2e, security) is green; confirm deploy + `/api/health`.
+2. **Victor: record the Loom** with `docs/loom-script.md` (updated: timesheets, inspection package, past-date form, overlap).
+3. **Victor: reseed prod AGAIN after recording** (`docs/release/prod-reseed.md`): the recording changes shift-2 to completed and posts/claims shifts.
+4. Re-run `/export-transcripts` last; mark the board task Done.
 
 ## Blockers / waiting
-- **Victor decides:** the past-date rule (A / B / C, recommended C = reject on create only; brief in [[Decisions]] "OPEN — Past-dated shifts").
-- **Founder (Juan):** export Option C vs D ([[ESCALATION]]). PostHog: wish list only (Trial-Brief:54, not in the spec) → deferred.
-- Open product finding: agency document access isn't time-bounded after a filled shift's date ([[Decisions]] "Final MVP pass").
-- Open minor: QA-010 (admin users License column shows type, not status), QA-015 (mobile tab bar over the credential form footer), and the P3s in `docs/qa/CANVAS_QA.md`. CD migration smoke check deferred (see Decisions).
+- Before real nurse documents: legal + clinical review of the inspection package ([[ESCALATION]] step 4).
+- Open product items: agency document access isn't time-bounded after a filled shift; PostHog deferred (wish list only).
+- Known test-date rot: `apps/web` agency unit test and e2e `flows.spec.ts`/`testids.spec.ts` post shifts dated 2026-12-01. After that day the new Post-shift form rule refuses them: bump to a later date if CI runs after 2026-12-01.
 
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
@@ -71,3 +67,6 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **No `gh` CLI:** PRs are created and merged through GitHub in Chrome (compare URL `.../compare/master...<branch>?expand=1`; the merge button is found and clicked via `javascript_tool`). Check status via the public API: `curl -s https://api.github.com/repos/VictorJThomas/ShiftPatch/commits/<ref>/check-runs`.
 - **Agents running `db:reset` on the shared local Postgres** can collide with `/verify` or another agent. Run one DB-heavy agent at a time, or accept a re-run.
 - **Sonnet subagents can hit a weekly usage limit** mid-task. Resume them with SendMessage; their work is saved.
+- **Overlap rule in tests:** a nurse can no longer claim two shifts with overlapping hours. Test fixtures that reuse one nurse must give each shift its own day (`claim-cancel.test.ts` `dayOf(seq)`, `matrix.test.ts`).
+- **Too many apps per test file:** each `newApp()` opens its own pool; ~100 in one file exhausts Postgres `max_connections` and the next DDL-using test times out (5 s). Reuse one app per describe block.
+- **Postman export needs** `NODE_OPTIONS=--conditions=development` or it skips route discovery.
