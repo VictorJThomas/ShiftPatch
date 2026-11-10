@@ -221,4 +221,5 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Checks: /verify GREEN, web 185, Playwright mocked 49/7 skipped, local MinIO smoke all PASS (9 MB). Uncommitted.
 - Skills used: using-agent-skills, ponytail, task, verify, postman-export (all already in `.claude/skills`).
 - CD: `deploy` job added to `ci.yml` (Railway CLI then Vercel CLI then health smoke, master only, after checks + security). GitHub env `production` created in browser, restricted to `master`. Token pages opened for Victor (Railway project tokens, Vercel tokens). Task "CD pipeline: auto-deploy API + web on master after CI" added Active (stage 8).
+- Victor merged PR #13 (R2) and #14 (CD), set the secrets. First CD run green (deploy job included). Prod smoke via alias: all PASS incl. 9 MB upload (no Vercel 413). Test credential soft-deleted with Victor's OK. Tasks "R2 production storage + credential download links" and "CD pipeline..." → Done (Tasks.md + Notion).
 

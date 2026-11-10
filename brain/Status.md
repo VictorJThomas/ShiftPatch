@@ -3,18 +3,14 @@
 **Last updated:** 2026-11-10
 
 ## Where we are
-- `feature/12-r2-integration` (from master after PR #12 merge): **R2 download links implemented, committed `53165f4` (Victor)** per `docs/r2-storage-plan.md` steps 2-7. `storage.ts` `signedGetUrl` + PUT `content-disposition`; `service.documentUrl`; route `GET /api/credentials/:id/download-url`; contract `CredentialDownloadResponse`; web `CredentialDownloadButton` in nurse `CredentialDetailDialog` + shared `NurseDetailDialog`; audit label; e2e mock; Postman regenerated; ARCHITECTURE §9.3 updated. Decision: [[Decisions]] "R2 download links".
-- Verified 2026-11-10: `/verify` GREEN 4/4 · web vitest 185 · mocked Playwright 49 passed / 7 skipped · Postman regenerated (27 requests) · real local API + MinIO smoke (scratch script): 9 MB PDF upload 201; nurse-1/admin-1/agency-a get link, bytes identical, `credential.pdf` attachment, unsigned URL 403; nurse-2/agency-b 404; 3 audit rows, no key/URL in audit or logs.
-- **Prod R2:** bucket `private-credentials` created in Cloudflare (public access disabled, automatic location). Token + Railway env NOT done (Victor: secrets).
-- **CD pipeline added, UNCOMMITTED:** `deploy` job in `ci.yml` (see [[Decisions]] "CD pipeline"); actionlint 1.7.7 clean (Docker). GitHub environment `production` created, deployment branches = `master`. Secrets NOT set yet (Victor).
-- Not checked: 375 px row with Verify + Reject + Download (admin), real-browser click of Download.
+- master `db78fdd` (PR #13 R2 download links, PR #14 CD pipeline) is **live**. CD run 42841550131: security + checks + deploy all success; Vercel prod `shiftpatch-893ajgzdm` aliased to `https://shiftpatch-web-orcin.vercel.app`. Per-deployment URLs are behind Vercel Authentication (302); test through the alias.
+- **Prod smoke 2026-11-10 (alias):** 5 seeded logins 200; 9 MB PDF upload 201 through the Vercel `/api` rewrite (no 413, so the plan's step-1 fallback is not needed); nurse-1 / admin-1 / agency-a get a signed link, bytes identical, `credential.pdf` attachment, unsigned R2 URL 400; nurse-2 / agency-b 404. Test credential `cred_6306b631-a753-48d7-a7a0-44c7ea94c735` soft-deleted via Railway SSH (nurse-1 back to the seed license only; its R2 object and audit rows stay). Last 400 API log lines: no `X-Amz-Signature`, no object keys.
+- Not checked: real-browser click on Download in prod; 375 px row with Verify + Reject + Download; link expiry after 5 minutes.
 
 ## Next step
-1. Victor: Cloudflare R2 → Manage API tokens → Account token, **Object Read & Write**, bucket `private-credentials` only. Railway `api` vars: `R2_ACCOUNT_ID` (1d3b1ddf066d2d3db6cf15b415c67bbc), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET=private-credentials`; `S3_ENDPOINT` unset/empty.
-2. Victor: GitHub env `production` → secrets `RAILWAY_TOKEN` (Railway project → Settings → Tokens, env production) and `VERCEL_TOKEN` (vercel.com/account/settings/tokens, scope victorjthomas' projects). Optional: required reviewers on the env for a manual gate.
-2b. Victor: review + commit, PR to master; merging deploys automatically (first real run of the `deploy` job: watch it).
-3. Prod gate (plan step 1): upload ~9 MB PDF via the Vercel domain. 413 → fallback in `docs/r2-storage-plan.md` step 1. Then prod verify list in the plan.
-4. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
+1. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
+2. Optional: required reviewers on GitHub env `production`; migrate `railway.json` before 2026-12-01 (config-as-code deprecation).
+3. Open from before: legacy CSS prune OK, past-date product rule, export escalation.
 
 ## Blockers / waiting
 - Victor: past-date product rule; R2 bucket + keys; legacy CSS prune OK.

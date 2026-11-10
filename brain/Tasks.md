@@ -91,7 +91,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
 - ☐ Warn or unassign when a license is rejected after a claim · Later
 - ◐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
-- ◐ R2 production storage + credential download links
+- ☑ R2 production storage + credential download links
 
 ## 8 Release
 - ☐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
@@ -100,7 +100,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
 - ☑ Production DB: Railway Postgres (private), migrations, spec seed, least-privilege app role
 - ☑ QA: full workflow + UI/UX audit
-- ◐ CD pipeline: auto-deploy API + web on master after CI
+- ☑ CD pipeline: auto-deploy API + web on master after CI
 
 ## 9 Delivery
 - ☑ Email recruiter scope commitment (day 1)
