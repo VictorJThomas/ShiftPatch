@@ -630,8 +630,20 @@ describe("Credentials list", () => {
     wrap(<Credentials />);
     fireEvent.click(await screen.findByRole("button", { name: "Nursing license (RN)" }));
     expect(await screen.findByText("Expired on")).toBeTruthy();
-    expect(screen.getByText("On file")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Download Nursing license (RN)" })).toBeTruthy();
     expect(screen.queryByText("c1")).toBeNull(); // no raw IDs
+  });
+
+  it("Download fetches the signed link only on click; an API error becomes a toast", async () => {
+    serve({ "GET /api/nurses/me/credentials": { licenseValid: false, credentials: [expiredLicense, { ...expiredLicense, id: "c9", hasFile: false, type: "other", licenseType: null }] } });
+    wrap(<Credentials />);
+    fireEvent.click(await screen.findByRole("button", { name: "Nursing license (RN)" }));
+    const download = await screen.findByRole("button", { name: "Download Nursing license (RN)" });
+    expect(api.mock.calls.some(([p]) => String(p).includes("download-url"))).toBe(false); // never in advance
+    serve({ "GET /api/credentials/c1/download-url": () => Promise.reject(new ApiError(404, ErrorMessage.notFound)) });
+    fireEvent.click(download);
+    await waitFor(() => expect(toasts().at(-1)?.title).toBe(ErrorMessage.notFound));
+    expect(api).toHaveBeenLastCalledWith("/api/credentials/c1/download-url", expect.objectContaining({ schema: expect.anything() }));
   });
 
   it("shows the empty state, and an error with retry", async () => {

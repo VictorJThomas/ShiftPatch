@@ -1,7 +1,7 @@
 // POST / GET /api/nurses/me/credentials (Stage 7, ARCHITECTURE §9.2) against a real throwaway Postgres, storage faked in memory.
 import { createHash } from "node:crypto";
-import { CREDENTIAL_MAX_BYTES, ErrorBody, ErrorMessage, NurseCredentialsResponse, UploadCredentialResponse } from "@shiftpatch/contracts";
-import { and, eq, sql } from "drizzle-orm";
+import { CREDENTIAL_MAX_BYTES, CredentialDownloadResponse, ErrorBody, ErrorMessage, NurseCredentialsResponse, UploadCredentialResponse } from "@shiftpatch/contracts";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../../app.js";
@@ -18,12 +18,13 @@ const URL = "/api/nurses/me/credentials";
 const KEY_RE = /^credentials\/[0-9a-f-]{36}$/;
 
 /** In-memory ObjectStorage: records puts and deletes; `failPut` simulates an unreachable bucket. */
-const fake = { objects: new Map<string, { bytes: Uint8Array; contentType: string }>(), deleted: [] as string[], failPut: false };
+const fake = { objects: new Map<string, { bytes: Uint8Array; contentType: string; disposition: string }>(), deleted: [] as string[], failPut: false };
 const storage: ObjectStorage = {
-  putObject: async (key, bytes, contentType) => {
+  putObject: async (key, bytes, contentType, disposition) => {
     if (fake.failPut) throw new Error("connect ECONNREFUSED");
-    fake.objects.set(key, { bytes, contentType });
+    fake.objects.set(key, { bytes, contentType, disposition });
   },
+  signedGetUrl: async (key, ttl) => `https://signed.example/${key}?X-Amz-Expires=${ttl}&X-Amz-Signature=sig`,
   deleteObject: async (key) => {
     fake.deleted.push(key);
     fake.objects.delete(key);
@@ -88,6 +89,7 @@ describe("POST /api/nurses/me/credentials", () => {
     const [key, obj] = [...fake.objects].at(-1)!;
     expect(key).toMatch(KEY_RE); // no email, name or id in the key
     expect(obj.contentType).toBe("application/pdf");
+    expect(obj.disposition).toBe('attachment; filename="credential.pdf"'); // never the original name
 
     const [row] = await t.db.select().from(credentials).where(eq(credentials.id, credential.id));
     expect(row).toMatchObject({ nurseId: "nurse-1", status: "pending", uploadedBy: "nurse-1", reviewedAt: null });
@@ -214,13 +216,83 @@ describe("POST /api/nurses/me/credentials", () => {
   });
 });
 
+describe("GET /api/credentials/:id/download-url", () => {
+  const as = async (who: string | null, id: string) => {
+    const headers: Record<string, string> = who ? { authorization: `Bearer ${await signAccessToken({ id: who, role: roles.get(who) ?? "agency" })}` } : {};
+    const res = await app.inject({ method: "GET", url: `/api/credentials/${id}/download-url`, headers });
+    return { status: res.statusCode, body: res.json() as Record<string, unknown>, cacheControl: res.headers["cache-control"] };
+  };
+  const viewAudits = (id: string) => t.db.select().from(auditLog).where(and(eq(auditLog.action, "credential.document_viewed"), eq(auditLog.entityId, id)));
+  let credId = "";
+  let key = "";
+  beforeAll(async () => {
+    roles.set("agency-b", "agency");
+    const res = await upload("nurse-1", { type: "other" }, { bytes: PDF, name: "Jane Doe.pdf", type: "application/pdf" });
+    credId = UploadCredentialResponse.parse(res.body).credential.id;
+    key = [...fake.objects.keys()].at(-1)!;
+  });
+
+  // agency-a holds nurse-1 through the seeded filled shift-2.
+  it.each(["nurse-1", "admin-1", "agency-a"])("200 for %s: signed link, 5-minute expiry, no-store, one audit row without key or URL", async (who) => {
+    const before = (await viewAudits(credId)).length;
+    const res = await as(who, credId);
+    expect(res.status).toBe(200);
+    expect(res.cacheControl).toBe("no-store");
+    const body = CredentialDownloadResponse.parse(res.body);
+    expect(body.url).toBe(`https://signed.example/${key}?X-Amz-Expires=300&X-Amz-Signature=sig`);
+    expect(body.expiresAt).toBe("2026-11-07T15:05:00.000Z");
+    const audits = await viewAudits(credId);
+    expect(audits).toHaveLength(before + 1);
+    const audit = audits.at(-1)!;
+    expect(audit).toMatchObject({ actorUserId: who, networkId: "network-default", changes: { nurseId: "nurse-1" } });
+    for (const leak of [key, "signed.example", "Jane Doe"]) expect(JSON.stringify(audit)).not.toContain(leak);
+  });
+
+  it.each([
+    ["nurse-2", "another nurse"], ["agency-b", "an agency without a filled shift"],
+  ])("404 for %s (%s), no audit row", async (who) => {
+    const before = (await viewAudits(credId)).length;
+    expect(await as(who, credId)).toMatchObject({ status: 404, body: { error: ErrorMessage.notFound } });
+    expect(await viewAudits(credId)).toHaveLength(before);
+  });
+
+  it("404 for an unknown id, a malformed id, and a credential with no file (seeded)", async () => {
+    for (const id of ["cred-nope", "bad%20id", "cred-nurse-1"]) expect(await as("admin-1", id)).toMatchObject({ status: 404, body: { error: ErrorMessage.notFound } });
+  });
+
+  it("404 once the credential is soft-deleted", async () => {
+    const res = await upload("nurse-1", { type: "other" }, { bytes: PDF, name: "x.pdf", type: "application/pdf" });
+    const id = UploadCredentialResponse.parse(res.body).credential.id;
+    await t.db.update(credentials).set({ deletedAt: new Date() }).where(eq(credentials.id, id));
+    expect((await as("nurse-1", id)).status).toBe(404);
+  });
+
+  it("401 without a token", async () => {
+    expect((await as(null, credId)).status).toBe(401);
+  });
+
+  it("503 when storage is not configured", async () => {
+    const saved = { ...process.env };
+    for (const k of ["S3_ENDPOINT", "R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_PRIVATE_BUCKET"]) delete process.env[k];
+    const bare = buildApp();
+    try {
+      await bare.ready();
+      const res = await bare.inject({ method: "GET", url: `/api/credentials/${credId}/download-url`, headers: { authorization: `Bearer ${await signAccessToken({ id: "nurse-1", role: "nurse" })}` } });
+      expect(res.statusCode).toBe(503);
+    } finally {
+      await bare.close();
+      process.env = saved;
+    }
+  });
+});
+
 describe("GET /api/nurses/me/credentials", () => {
   it("nurse-1: licenseValid true, own credentials only, newest first, contract shape", async () => {
     const res = await call("GET", "nurse-1");
     expect(res.status).toBe(200);
     const body = NurseCredentialsResponse.parse(res.body);
     expect(body.licenseValid).toBe(true);
-    const own = await t.db.select({ id: credentials.id }).from(credentials).where(eq(credentials.nurseId, "nurse-1"));
+    const own = await t.db.select({ id: credentials.id }).from(credentials).where(and(eq(credentials.nurseId, "nurse-1"), isNull(credentials.deletedAt)));
     expect(body.credentials.map((c) => c.id).sort()).toEqual(own.map((c) => c.id).sort());
     expect(body.credentials.at(-1)).toMatchObject({ id: "cred-nurse-1", status: "verified", expiresOn: "2027-01-01", expired: false, hasFile: false });
     const times = body.credentials.map((c) => c.uploadedAt);

@@ -1,6 +1,6 @@
 import multipart from "@fastify/multipart";
 import {
-  CREDENTIAL_MAX_BYTES, ErrorMessage, NurseCredentialsResponse, ReviewCredentialRequest, ReviewCredentialResponse, ShiftIdParams, UploadCredentialFields, UploadCredentialResponse,
+  CREDENTIAL_MAX_BYTES, CredentialDownloadResponse, ErrorMessage, NurseCredentialsResponse, ReviewCredentialRequest, ReviewCredentialResponse, ShiftIdParams, UploadCredentialFields, UploadCredentialResponse,
 } from "@shiftpatch/contracts";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Db } from "../../db/client.js";
@@ -50,6 +50,8 @@ export async function credentialRoutes(app: FastifyInstance, db: () => Db, stora
   // createRateLimit, not app.rateLimit (see auth routes). ponytail: in-memory per instance; Redis store if >1 replica.
   const uploadLimit = app.createRateLimit({ max: 20, timeWindow: 60_000, keyGenerator: (req) => `cred-upload:${req.actor?.userId}` });
 
+  const downloadLimit = app.createRateLimit({ max: 60, timeWindow: 60_000, keyGenerator: (req) => `cred-download:${req.actor?.userId}` });
+
   const pre = { onRequest: [app.authenticate, app.loadActor] };
   const nurseOnly = (req: FastifyRequest, reply: FastifyReply) => sendDenial(reply, can(req.actor!, "credential:manage-own", {}));
 
@@ -69,6 +71,24 @@ export async function credentialRoutes(app: FastifyInstance, db: () => Db, stora
     const r = await service.review(db(), req.actor!, params.data.id, body.data.status, meta(req));
     if (r.ok) return ReviewCredentialResponse.parse({ credential: r.value });
     return "denied" in r ? (sendDenial(reply, r.denied), reply) : reply.code(r.fail.status).send({ error: r.fail.error });
+  });
+
+  // 5-minute signed link to one file (ARCHITECTURE §9.3). 404 for anything outside the caller's scope; one audit row per link.
+  app.get("/api/credentials/:id/download-url", pre, async (req, reply) => {
+    const limit = await downloadLimit(req);
+    if (!limit.isAllowed && limit.isExceeded) {
+      return reply.header("retry-after", String(limit.ttlInSeconds)).code(429).send({ error: "Too many requests, try again later" });
+    }
+    const params = ShiftIdParams.safeParse(req.params); // same `Id` charset
+    if (!params.success) return reply.code(404).send({ error: ErrorMessage.notFound });
+    const storage = store();
+    if (!storage) {
+      req.log.error("credential download: object storage is not configured (S3_ENDPOINT / R2_* env)");
+      return reply.code(503).send({ error: STORAGE_DOWN });
+    }
+    const r = await service.documentUrl(db(), storage, req.actor!, params.data.id, meta(req));
+    if (!r.ok) return reply.code(r.fail.status).send({ error: r.fail.error });
+    return reply.header("cache-control", "no-store").send(CredentialDownloadResponse.parse(r.value));
   });
 
   app.post("/api/nurses/me/credentials", pre, async (req, reply) => {

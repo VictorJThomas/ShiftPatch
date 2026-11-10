@@ -333,6 +333,8 @@ button:disabled,[aria-disabled=true],select:disabled,input:disabled{cursor:not-a
 .nd-creds li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--c-line)}
 .nd-creds li:last-child{border-bottom:0}
 .nd-creds li>div{display:flex;flex-direction:column;min-width:0}
+.adm-cred{flex-wrap:wrap}
+.adm-cred-acts{display:flex;gap:8px;flex-basis:100%;justify-content:flex-end}
 
 /* ===================== Shadcn / Tailwind layer (feature/11 foundation) ===================== */
 /* Programmatically focused containers (dialog box, menu) must not show the global :focus-visible ring. */

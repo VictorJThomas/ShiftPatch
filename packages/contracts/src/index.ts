@@ -241,6 +241,8 @@ export const NurseCredential = z.strictObject({
 export const UploadCredentialResponse = z.strictObject({ credential: NurseCredential });
 /** `licenseValid` = the same rule the claim uses (`isEligible`: unexpired license, verified OR pending per ARCHITECTURE §5.3). Drives the lapsed-license warning. */
 export const NurseCredentialsResponse = z.strictObject({ credentials: z.array(NurseCredential), licenseValid: z.boolean() });
+/** GET /api/credentials/:id/download-url: a short-lived signed link to the file (an attachment). Fetch on click, never in advance. */
+export const CredentialDownloadResponse = z.strictObject({ url: z.url(), expiresAt: IsoInstant });
 
 // ---------- Nurse detail + admin users + credential review (additive, UI polish) ----------
 

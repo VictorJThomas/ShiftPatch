@@ -1,12 +1,15 @@
 // Private object storage (ARCHITECTURE §9): Cloudflare R2 in production, MinIO locally, both through the S3 API.
 // ponytail: aws4fetch (SigV4 over fetch, no deps) instead of @aws-sdk/client-s3: two calls don't need the full SDK.
-// Its `sign(..., { aws: { signQuery: true } })` also covers the 5-minute download links (§9.3) when that route lands.
+// Its `sign(..., { aws: { signQuery: true } })` also signs the 5-minute download links (§9.3).
 import { AwsClient } from "aws4fetch";
 
 /** The only storage operations the API needs. Tests inject an in-memory fake. */
 export interface ObjectStorage {
-  putObject(key: string, body: Uint8Array, contentType: string): Promise<void>;
+  /** `contentDisposition` is stored as object metadata, so a signed GET serves the file as that attachment. */
+  putObject(key: string, body: Uint8Array, contentType: string, contentDisposition: string): Promise<void>;
   deleteObject(key: string): Promise<void>;
+  /** Presigned GET on the S3 endpoint (never a custom domain), valid `expiresInSeconds`. Never log the result. */
+  signedGetUrl(key: string, expiresInSeconds: number): Promise<string>;
 }
 
 /** Storage unreachable or non-2xx. The message carries the method and status only: never the key, URL or response body. */
@@ -36,8 +39,16 @@ export function privateStorageFromEnv(env: NodeJS.ProcessEnv = process.env): Obj
     if (!res.ok && !(method === "DELETE" && res.status === 404)) throw new StorageError(method, res.status);
   };
   return {
-    putObject: (key, body, contentType) =>
-      send("PUT", key, { body: body as Uint8Array<ArrayBuffer> /* Buffers are never SharedArrayBuffer-backed here */, headers: { "content-type": contentType, "content-length": String(body.byteLength) } }),
+    putObject: (key, body, contentType, contentDisposition) =>
+      send("PUT", key, {
+        body: body as Uint8Array<ArrayBuffer> /* Buffers are never SharedArrayBuffer-backed here */,
+        headers: { "content-type": contentType, "content-length": String(body.byteLength), "content-disposition": contentDisposition },
+      }),
     deleteObject: (key) => send("DELETE", key),
+    signedGetUrl: async (key, expiresInSeconds) => {
+      const url = new URL(urlOf(key));
+      url.searchParams.set("X-Amz-Expires", String(expiresInSeconds));
+      return (await client.sign(url, { method: "GET", aws: { signQuery: true } })).url;
+    },
   };
 }

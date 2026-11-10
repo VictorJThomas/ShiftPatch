@@ -6,6 +6,7 @@ import { credentialLabel } from "@/lib/credential-label";
 import { formatDate } from "@/lib/format";
 import { DetailList } from "./DetailList";
 import { AppDialog } from "./AppDialog";
+import { CredentialDownloadButton } from "./CredentialDownloadButton";
 import { ErrorState, ListSkeleton } from "./States";
 import { StatusBadge } from "./StatusBadge";
 
@@ -49,13 +50,18 @@ export function NurseDetailDialog({ open, onClose, nurse, loading, error, onRetr
           ) : (
             <ul className="nd-creds">
               {nurse.credentials.map((c) => (
-                <li key={c.id} className={credentialActions ? "adm-cred" : undefined}>
+                <li key={c.id} className={credentialActions || c.hasFile ? "adm-cred" : undefined}>
                   <div>
                     <b>{credentialLabel(c)}</b>
                     <span className="muted">{c.expiresOn ? `${c.expired ? "Expired" : "Expires"} ${formatDate(c.expiresOn)}` : c.screenedOn ? `Screened ${formatDate(c.screenedOn)}` : "No expiry"}</span>
                   </div>
                   <StatusBadge status={c.status} />
-                  {credentialActions && <div className="adm-cred-acts">{credentialActions(c)}</div>}
+                  {(credentialActions || c.hasFile) && (
+                    <div className="adm-cred-acts">
+                      {c.hasFile && <CredentialDownloadButton credentialId={c.id} label={credentialLabel(c)} />}
+                      {credentialActions?.(c)}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

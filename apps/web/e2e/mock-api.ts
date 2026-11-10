@@ -400,6 +400,14 @@ export class MockApi {
       return d ? this.json(route, 200, d) : this.json(route, 404, { error: ERR.notFound });
     }
 
+    // Signed link: points back at the mock origin (a data: URL would be blocked by navigation rules). Scope check is the API's job.
+    const download = path.match(/^\/api\/credentials\/([^/]+)\/download-url$/);
+    if (download && method === "GET") {
+      const known = Object.keys(NURSES).some((n) => this.credentialsOf(n).credentials.some((c) => c.id === download[1] && c.hasFile));
+      if (!known) return this.json(route, 404, { error: ERR.notFound });
+      return this.json(route, 200, { url: `${url.origin}/mock-r2/${download[1]}?X-Amz-Expires=300`, expiresAt: new Date(Date.now() + 300_000).toISOString() });
+    }
+
     const review = path.match(/^\/api\/credentials\/([^/]+)\/review$/);
     if (review && method === "PATCH") {
       if (role !== "admin") return this.json(route, 403, { error: ERR.forbidden });

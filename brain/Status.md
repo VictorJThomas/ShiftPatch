@@ -1,18 +1,17 @@
 # Status (overwrite each session — current truth only)
 
-**Last updated:** 2026-11-09
+**Last updated:** 2026-11-10
 
 ## Where we are
-- `feature/11-ui-ux-polish`: checkpoint commit `8809cd3` (Notion design notes), then the **Shadcn/Tailwind migration UNCOMMITTED** on top (about 66 paths): AppDialog (sm 400 / md 520 / lg 720, mobile bottom sheet), FilterDropdown on nurse marketplace, agency shifts, admin dashboard and audit log, dedicated `/nurse/credentials/new` (overview has no form). Catalog: `docs/ui/COMPONENT_CONTRACTS.md`. Decisions: [[Decisions]] "Shadcn migration".
-- Verified 2026-11-09 on final code: `/verify` GREEN 4/4 · web vitest 184 · `pnpm build` OK · `pnpm audit --audit-level=high` 0 high (2 moderate dev tooling) · mocked Playwright 49 passed / 7 skipped · real-API `flows.spec.ts` 7/7.
-- Chrome QA (claude-in-chrome, Sonnet 5.5, 3 rounds): all seeded workflows PASS; QA-007/008/009/011 fixed, QA-010/012/014 not defects, QA-013 fixed but not re-measured, QA-015 info. Viewports 360-1920 verified in Playwright Chromium only (extension can't resize). Log: `docs/qa/DEFECT_LOG.md`.
-- Code review (independent): approve with fixes; both Important findings fixed (stacked-dialog duplicate banner, credential guard on shell links).
-- Local DB reset to exact seed. Prod untouched. No dev servers running.
+- `feature/12-r2-integration` (from master after PR #12 merge): **R2 download links implemented, UNCOMMITTED** per `docs/r2-storage-plan.md` steps 2-7. `storage.ts` `signedGetUrl` + PUT `content-disposition`; `service.documentUrl`; route `GET /api/credentials/:id/download-url`; contract `CredentialDownloadResponse`; web `CredentialDownloadButton` in nurse `CredentialDetailDialog` + shared `NurseDetailDialog`; audit label; e2e mock; Postman regenerated; ARCHITECTURE §9.3 updated. Decision: [[Decisions]] "R2 download links".
+- Verified 2026-11-10: `/verify` GREEN 4/4 · web vitest 185 · mocked Playwright 49 passed / 7 skipped · Postman regenerated (27 requests) · real local API + MinIO smoke (scratch script): 9 MB PDF upload 201; nurse-1/admin-1/agency-a get link, bytes identical, `credential.pdf` attachment, unsigned URL 403; nurse-2/agency-b 404; 3 audit rows, no key/URL in audit or logs.
+- **Prod R2:** bucket `private-credentials` created in Cloudflare (public access disabled, automatic location). Token + Railway env NOT done (Victor: secrets).
+- Not checked: 375 px row with Verify + Reject + Download (admin), real-browser click of Download.
 
 ## Next step
-1. Victor: review the uncommitted diff, then commit and open the PR to `master`; CI must be green.
-2. Victor: prune dead legacy CSS (`.dlg*`, `.acct-menu`, unused `.ag-*`/`.adm-*`) and unused `shadcn/table.tsx`, `shadcn/textarea.tsx`? Not done: needs his OK.
-3. Victor (prod): private R2 bucket + `R2_*` on Railway `api`, deploy API + web, smoke the 5 seeded users.
+1. Victor: Cloudflare R2 → Manage API tokens → Account token, **Object Read & Write**, bucket `private-credentials` only. Railway `api` vars: `R2_ACCOUNT_ID` (1d3b1ddf066d2d3db6cf15b415c67bbc), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET=private-credentials`; `S3_ENDPOINT` unset/empty.
+2. Victor: review + commit the diff, PR to master, deploy API + web.
+3. Prod gate (plan step 1): upload ~9 MB PDF via the Vercel domain. 413 → fallback in `docs/r2-storage-plan.md` step 1. Then prod verify list in the plan.
 4. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
 
 ## Blockers / waiting
