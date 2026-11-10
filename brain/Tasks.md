@@ -17,7 +17,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ ESCALATION.md written (bulk license/TB export) · Escalated
 - ☑ Brand + 25 screens design canvas and tokens.css
 - ☑ Second brain (Obsidian) + CLAUDE.md rules · also 9 Delivery
-- ☐ Visual QA of design canvas
+- ☑ Visual QA of design canvas
 
 ## 1 Foundation
 - ☑ First git commit (include ESCALATION.md, timestamp is graded)
@@ -53,7 +53,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Contract, authorization and concurrency tests (20 parallel claims) · also 8 Release
 - ☑ Shift matching blocks nurses with expired credentials
 - ☑ Cancellation and no-show handling
-- ◐ Claim: enforce license type vs shift role (CNA nurse can't claim RN shift)
+- ☑ Claim: enforce license type vs shift role (CNA nurse can't claim RN shift)
 - ☑ Tolerate empty JSON body on POST claim (Fastify FST_ERR_CTP_EMPTY_JSON_BODY -> 400)
 - ☐ Cancel: authorize before body validation (403 before 400) · Later
 - ☐ Audit shift.claimed: record when a pending license was used · Later
@@ -62,7 +62,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Decide: reject past-dated shifts on create/claim/matchable?
 
 ## 5 Audit+Notify
-- ◐ Audit module wired into every write (same transaction)
+- ☑ Audit module wired into every write (same transaction)
 - ☑ GET /api/audit-logs (admin network scope, agency own rows)
 - ☑ Outbox table + in-process dispatcher + Resend/Mailpit cancellation emails
 - ☑ Audit log
@@ -80,7 +80,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Audit log page + minimal timesheets view
 - ☑ All 15 required data-testid attributes + notification-banner
 - ☑ Admin dashboard and reporting
-- ☐ Timesheets
+- ☑ Timesheets
 - ☑ Notion design notes: screen UI/UX implementation
 - ☑ Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA · 2026-11-08; QA-007..013 in docs/qa/DEFECT_LOG.md
 - ☑ Date filter: start/end date pickers instead of date buttons
@@ -88,16 +88,16 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 ## 7 Credentials
 - ☑ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
 - ☑ Admin credential review queue (verify/reject)
-- ◐ Signed 5-min document links, audited views, 404 out of scope
+- ☑ Signed 5-min document links, audited views, 404 out of scope
 - ☑ Credential uploads with expiry dates
 - ☐ One-click export of nurses’ license documents and TB test results for state inspectors · Escalated (see [[ESCALATION]])
 - ☐ Warn or unassign when a license is rejected after a claim · Later
-- ◐ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
+- ☑ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
 - ☑ R2 production storage + credential download links
 - ☑ Credential document preview dialog with Download
 
 ## 8 Release
-- ◐ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
+- ☑ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
 - ☑ Security pass: headers/CSP, IDOR, token tampering, upload abuse, dep audit
 - ☐ Production reseed to exact spec data before submission
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
