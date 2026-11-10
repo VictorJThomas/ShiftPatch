@@ -3,23 +3,25 @@
 **Last updated:** 2026-11-10
 
 ## Where we are
-- master `fefaf33` (PR #15: email v2, Marketplace date range, credential preview) is deployed at `https://shiftpatch-web-orcin.vercel.app`. Credential "View file" preview works in prod (R2 CORS fixed: origin without trailing slash).
-- Migration `0005_notification_dedupe` applied in prod by Victor 2026-11-10 (manual `db:migrate` via Railway SSH); credential upload works again. Root cause of the skipped pre-deploy migrate not investigated.
-- Prod mail: Railway `api` has `MAIL_TRANSPORT=resend`, `MAIL_FROM=ShiftPatch <onboarding@resend.dev>`, `EMAIL_REDIRECT_TO=victorjthomas01@gmail.com`, `REMINDER_INTERVAL_MS=60000` (set with `--skip-deploys`). `RESEND_API_KEY` is Victor's to set (Resend account has no verified domain; `onboarding@resend.dev` only delivers to the account email).
-- Branch `feature/15-email-templates`: commit `5127fdf` branded email layout (all 11 templates, logo `apps/web/public/brand/logo-horizontal-light-h32@2x.png`). `/verify` GREEN 2026-11-10. Not pushed / no PR yet. Logo URL 404s in prod until this merges (Vercel serves `/brand/*`).
-- Last `/verify` GREEN on the PR #15 tree. Transcripts exported (26 sessions, 136 MB, secret scan clean).
+- **Final MVP is on master and deployed:** `0291eec` (PR #17), after PR #16 (branded email). The master pipeline (checks, e2e, security, deploy) is green. Prod smoke: `/api/health` ok, `/login` 200, bad login gives the exact 401 text. The logo URL returns 200 image/png. Prod mail transport: `resend` (log line after deploy).
+- PR #17 added: claim enforces license type vs shift role (403 "License type does not match shift role"; seed unaffected); `access.denied` audit rows plus a typed `AuditAction` (`docs/qa/AUDIT_COVERAGE.md`); +24 credential security tests; a **Playwright e2e job in CI** (mocked + real API/Postgres) that deploy now needs; the `[to: …]` subject prefix when redirecting.
+- Last `/verify` GREEN (typecheck, lint, test 580 api + 201 web, contract). Real-API flows 10/10.
+- Design-canvas visual QA done: `docs/qa/CANVAS_QA.md`, 0 P1, no code changes (triage inside).
+- Branch `feature/17-final-wrap`: brain + QA docs only (not merged yet).
+- Board: every MVP build task is Done. Open: prod reseed, Loom, transcript re-export, plus the decisions below.
 
 ## Next step
-1. Push `feature/15-email-templates` + PR. After deploy: `curl -I https://shiftpatch-web-orcin.vercel.app/brand/logo-horizontal-light-h32@2x.png` must be 200 image/png; confirm Railway `api` `APP_ORIGIN` = web origin (logo + CTA use it). Then send one real mail (Resend) and check Gmail/Outlook rendering.
-2. Add `RESEND_API_KEY` (Sending access key) on Railway `api`; check log `mail transport: resend`; run the prod mail test (table in Session-Log 2026-11-10 (d)); afterwards remove `REMINDER_INTERVAL_MS` and decide whether prod stays on Resend.
-3. Prevent a repeat (offered, not built): CD health smoke checks a schema marker (e.g. an `/api/health` field with the latest applied migration) so a skipped migration fails the deploy.
-4. Optional: subject prefix `[to: <original>]` when `EMAIL_REDIRECT_TO` is set (offered, not built).
-5. Board "Playwright E2E in CI"; "Production reseed to exact spec data before submission" (prod now holds test data).
+1. **Victor: prod mail test.** Log in at prod as admin@sunrisehealth.example and post an RN shift (future date). E1 goes to maria.lopez@example.com, redirected to the `EMAIL_REDIRECT_TO` inbox with subject `[to: maria.lopez@example.com] …`. Check the logo, facts card and CTA in Gmail. Record the result in Session-Log.
+2. **Victor: prod reseed (destructive gate).** `bash apps/api/scripts/railway-db-reseed.sh preflight`, review the output, then `... reset` (type the DB name). Follow `docs/release/prod-reseed.md` (verify: 5 users, 3 shifts, shift-1 open, 5 logins). Then set the board task Done.
+3. **Victor: record the Loom** with `docs/loom-script.md`, after the reseed. Paste the link here and mark the task Done.
+4. Re-run `/export-transcripts` as the very last step. Verify the session count includes this one and the secret scan is clean, then mark the task Done.
+5. Merge `feature/17-final-wrap` (docs only).
 
 ## Blockers / waiting
-- Victor: set `RESEND_API_KEY`; past-date product rule; legacy CSS prune OK.
-- Founder decision on export (Option C vs D), see [[ESCALATION]]. PostHog escalated (not built).
-- Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; duplicate Notion row "Production DB: Railway Postgres..." (both Done).
+- **Victor decides:** the past-date rule (A / B / C, recommended C = reject on create only; brief in [[Decisions]] "OPEN — Past-dated shifts").
+- **Founder (Juan):** export Option C vs D ([[ESCALATION]]). PostHog: wish list only (Trial-Brief:54, not in the spec) → deferred.
+- Open product finding: agency document access isn't time-bounded after a filled shift's date ([[Decisions]] "Final MVP pass").
+- Open minor: QA-010 (admin users License column shows type, not status), QA-015 (mobile tab bar over the credential form footer), and the P3s in `docs/qa/CANVAS_QA.md`. CD migration smoke check deferred (see Decisions).
 
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
@@ -66,3 +68,6 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **Auto-mode classifier blocks prod reads too:** `railway variables` (prints secrets) and `railway ssh ... psql` against prod were denied. Victor runs them (`! <command>`) or adds an allow rule.
 - **R2 CORS AllowedOrigins must not end with `/`:** the browser's Origin has no trailing slash and R2 compares exactly.
 - **Email HTML:** one `layout()` in `notifications/templates.ts` renders every mail. Preview: render with `tsx` + screenshot with web's Playwright (`createRequire(apps/web/package.json)`); Mailpit `GET /api/v1/message/<id>/html-check` gives caniemail scores (2026-11-10: 88.9% supported). Git Bash heredocs turn `\n` inside Python strings into real newlines: edit TS escapes with the Edit tool.
+- **No `gh` CLI:** PRs are created and merged through GitHub in Chrome (compare URL `.../compare/master...<branch>?expand=1`; the merge button is found and clicked via `javascript_tool`). Check status via the public API: `curl -s https://api.github.com/repos/VictorJThomas/ShiftPatch/commits/<ref>/check-runs`.
+- **Agents running `db:reset` on the shared local Postgres** can collide with `/verify` or another agent. Run one DB-heavy agent at a time, or accept a re-run.
+- **Sonnet subagents can hit a weekly usage limit** mid-task. Resume them with SendMessage; their work is saved.
