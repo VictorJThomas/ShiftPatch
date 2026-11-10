@@ -264,3 +264,4 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 7 tasks → Done (license/role, audit, signed links, upload abuse, Playwright CI, Timesheets, Visual QA); transcripts → Active. Manual diff, 0 drift.
 - Skills copied: none new (task, verify, wrap-session, ponytail, using-agent-skills, export-transcripts already in `.claude/skills`).
 - Open: Victor runs the prod mail test, the reseed (gate) and the Loom; past-date decision; founder C/D; transcripts re-export last.
+- Transcripts re-exported 2026-11-10 (interim): 29 sessions incl. this one, secret scan clean (only the .env.example placeholder). Final re-export still due right before submission.
