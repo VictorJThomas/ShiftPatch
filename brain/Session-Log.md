@@ -256,3 +256,11 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: added "Branded transactional email templates" (Extras) -> Done; 0 drift.
 - Skills used: ponytail, using-agent-skills, task, verify, wrap-session (all already in `.claude/skills`); copied: none.
 - Open: push + PR; logo 404 in prod until deploy; CTA labels ("Claim this shift", "Review credential") link to the app root, not the item (no deep links by design); no dark-mode logo; Outlook shows square corners.
+
+## 2026-11-10 — Final MVP completion (orchestrated, 4 Sonnet agents)
+- Done: PR #16 (branded email) merged and deployed, logo 200 in prod. PR #17 merged and deployed (`0291eec`): license-vs-role claim rule (W1), audit gaps + `access.denied` + `AUDIT_COVERAGE.md` (W1), +24 credential security tests incl. log capture (W2), Playwright e2e CI job + agency-B/admin flows (W3), `[to:]` subject prefix, Loom script, prod reseed script + doc, past-date brief. Canvas visual QA (W4): 0 P1, documented. Fixed 1 integration break: an admin test fixture LPN nurse claimed an RN shift (test changed to an LPN shift, plus a date fix).
+- Verified: `/verify` GREEN; PR #17 CI checks + e2e + security green; master deploy green; prod smoke (health, login page, 401 text); prod log `mail transport: resend`.
+- Decided: see [[Decisions]] "Final MVP pass (2026-11-10)". CD migration smoke check deferred. Canvas F1/F3 kept, F2 is an adaptation.
+- Board: 7 tasks → Done (license/role, audit, signed links, upload abuse, Playwright CI, Timesheets, Visual QA); transcripts → Active. Manual diff, 0 drift.
+- Skills copied: none new (task, verify, wrap-session, ponytail, using-agent-skills, export-transcripts already in `.claude/skills`).
+- Open: Victor runs the prod mail test, the reseed (gate) and the Loom; past-date decision; founder C/D; transcripts re-export last.
