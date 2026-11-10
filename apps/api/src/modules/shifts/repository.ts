@@ -264,6 +264,24 @@ export async function claimRow(tx: Tx, f: { id: string; nurseId: string; network
   return rows.length === 1;
 }
 
+/**
+ * True when the nurse already holds a filled shift whose working hours overlap the candidate's. Intervals are built from the
+ * wall-clock date + times in each shift's own timezone (end <= start = next day) and are half-open, so back-to-back shifts
+ * (one ends 07:00, the next starts 07:00) are allowed. Takes a per-nurse transaction lock first, so concurrent claims serialize.
+ */
+export async function overlapsHeldShift(tx: Tx, nurseId: string, candidateId: string): Promise<boolean> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"claim:" + nurseId}))`);
+  const span = (t: SQL) => sql`tstzrange(
+    (${t}.shift_date + ${t}.start_time) at time zone ${t}.timezone,
+    (${t}.shift_date + ${t}.end_time + case when ${t}.end_time <= ${t}.start_time then interval '1 day' else interval '0' end) at time zone ${t}.timezone)`;
+  const rows = await tx.execute(sql`
+    select 1 from shifts held, shifts cand
+    where cand.id = ${candidateId} and held.claimed_by = ${nurseId} and held.status = 'filled' and held.deleted_at is null
+      and held.id <> cand.id and ${span(sql.raw("held"))} && ${span(sql.raw("cand"))}
+    limit 1`);
+  return rows.length > 0;
+}
+
 /** open -> cancelled (agency withdrawal). One statement: false = no longer open (claimed, withdrawn or deleted meanwhile). */
 export async function withdrawRow(tx: Tx, id: string, now: Date): Promise<boolean> {
   const rows = await tx

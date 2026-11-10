@@ -7,7 +7,7 @@ export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 /** The audit action catalog (ARCHITECTURE §11). */
 export type AuditAction =
   | "auth.login" | "auth.login_failed" | "auth.refresh_reuse_detected" | "auth.logout"
-  | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.deleted"
+  | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.unassigned" | "shift.deleted"
   | "credential.uploaded" | "credential.reviewed" | "credential.document_viewed"
   | "agency.updated" | "membership.granted" | "membership.revoked"
   | "access.denied";

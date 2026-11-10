@@ -21,7 +21,7 @@ async function commitSession(): Promise<void> {
   const me = await fetchMe();
   const { accessToken, activeAgencyId } = useSessionStore.getState();
   if (!accessToken) throw new Error("No access token"); // cleared meanwhile (logout / expiry)
-  const agencies = me.agencies.map(({ agencyId, name, role }) => ({ agencyId, name, role }));
+  const agencies = me.agencies.map(({ agencyId, name, role, timezone }) => ({ agencyId, name, role, timezone }));
   useSessionStore.getState().setSession({
     user: me.user,
     accessToken,

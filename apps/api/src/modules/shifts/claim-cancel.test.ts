@@ -18,6 +18,8 @@ type Role = "agency" | "nurse" | "admin";
 const roles = new Map<string, Role>([["agency-a", "agency"], ["agency-b", "agency"], ["nurse-1", "nurse"], ["nurse-2", "nurse"], ["admin-1", "admin"]]);
 
 const FUTURE = "2099-02-01";
+/** Default shift day: a different 2098 day per shift, so the overlap rule (one nurse, overlapping hours) never couples tests. */
+const dayOf = (n: number) => new Date(Date.UTC(2098, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 const NURSES_20 = Array.from({ length: 20 }, (_, i) => `cn${String(i + 1).padStart(2, "0")}`);
 
 async function makeUser(id: string, role: Role) {
@@ -40,12 +42,12 @@ const member = (userId: string, agencyId: string, role: "owner" | "manager" | "v
 
 let seq = 0;
 /** A fresh open (or filled) shift, so no test depends on another's state. */
-async function mkShift(over: { id?: string; agencyId?: string; networkId?: string; status?: "open" | "filled"; claimedBy?: string; deleted?: boolean } = {}) {
+async function mkShift(over: { id?: string; agencyId?: string; networkId?: string; status?: "open" | "filled"; claimedBy?: string; deleted?: boolean; date?: string; start?: string; end?: string; timezone?: string } = {}) {
   const id = over.id ?? `shift-${8000 + ++seq}`;
   const filled = over.status === "filled";
   await t.db.insert(shifts).values({
-    id, networkId: over.networkId ?? "network-default", agencyId: over.agencyId ?? "agency-a", role: "RN", shiftDate: FUTURE, startTime: "07:00", endTime: "19:00",
-    timezone: "America/New_York", status: over.status ?? "open", createdBy: "admin-1",
+    id, networkId: over.networkId ?? "network-default", agencyId: over.agencyId ?? "agency-a", role: "RN", shiftDate: over.date ?? dayOf(seq), startTime: over.start ?? "07:00", endTime: over.end ?? "19:00",
+    timezone: over.timezone ?? "America/New_York", status: over.status ?? "open", createdBy: "admin-1",
     ...(filled ? { claimedBy: over.claimedBy ?? "cn01", claimedAt: new Date() } : {}),
     ...(over.deleted ? { deletedAt: new Date() } : {}),
   });
@@ -246,7 +248,7 @@ describe("claim: rules", () => {
 
   it("a license that lapses before the shift day (valid today) is refused", async () => {
     await t.db.update(credentials).set({ expiresOn: "2098-12-31" }).where(eq(credentials.id, "cred-cn04"));
-    err(await claim(await mkShift(), "cn04"), 403, ErrorMessage.credentialExpired);
+    err(await claim(await mkShift({ date: FUTURE }), "cn04"), 403, ErrorMessage.credentialExpired);
     await t.db.update(credentials).set({ expiresOn: "2099-12-31" }).where(eq(credentials.id, "cred-cn04"));
   });
 
@@ -262,6 +264,86 @@ describe("claim: rules", () => {
     expect(ClaimShiftResponse.parse(r.body)).toEqual({
       id: "shift-1", agencyId: "agency-a", agencyName: "Sunrise Health Staffing", role: "RN", date: "2026-10-02", startTime: "19:00", endTime: "07:00", status: "filled", claimedBy: "nurse-1",
     });
+  });
+});
+
+describe("claim: overlapping shifts (Decisions 2026-11-10)", () => {
+  const D = "2099-03-10";
+  let app: FastifyInstance; // one app (one pool) for the whole block: a new app per call would exhaust max_connections
+  beforeAll(async () => { app = await newApp(); for (const n of ["ov1", "ov2", "ov3", "ov4", "ov5", "ov6"]) await makeNurse(n); });
+  it("a nurse can't claim a shift that overlaps one she holds: 409, shift stays open, denial audited", async () => {
+    await mkShift({ status: "filled", claimedBy: "ov1", date: D, start: "07:00", end: "19:00" });
+    const id = await mkShift({ date: D, start: "15:00", end: "23:00" });
+    err(await claim(id, "ov1", app), 409, ErrorMessage.shiftOverlap);
+    expect(await shiftRow(id)).toMatchObject({ status: "open", claimedBy: null });
+    expect((await audits(id, "access.denied")).map((a) => a.changes)).toEqual([{ reason: "shift_overlap" }]);
+    expect(await audits(id, "shift.claimed")).toHaveLength(0);
+  });
+  it("overnight shifts overlap into the next day; back-to-back shifts are allowed", async () => {
+    await mkShift({ status: "filled", claimedBy: "ov2", date: "2099-03-11", start: "19:00", end: "07:00" }); // ends 03-12 07:00
+    err(await claim(await mkShift({ date: "2099-03-12", start: "06:00", end: "10:00" }), "ov2", app), 409, ErrorMessage.shiftOverlap);
+    expect((await claim(await mkShift({ date: "2099-03-12", start: "07:00", end: "19:00" }), "ov2", app)).status).toBe(200); // starts as the night ends
+    expect((await claim(await mkShift({ date: "2099-03-11", start: "07:00", end: "19:00" }), "ov2", app)).status).toBe(200); // ends as the night starts
+  });
+  it("timezones are compared as real instants", async () => {
+    // 07:00-15:00 New York = 04:00-12:00 Los Angeles: a 12:00-20:00 LA shift only touches it; a 11:00 LA start overlaps.
+    await mkShift({ status: "filled", claimedBy: "ov3", date: "2099-03-13", start: "07:00", end: "15:00" });
+    expect((await claim(await mkShift({ date: "2099-03-13", start: "12:00", end: "20:00", timezone: "America/Los_Angeles" }), "ov3", app)).status).toBe(200);
+    err(await claim(await mkShift({ date: "2099-03-13", start: "11:00", end: "11:30", timezone: "America/Los_Angeles" }), "ov3", app), 409, ErrorMessage.shiftOverlap);
+  });
+  it("a cancelled hold doesn't block, and other nurses are unaffected", async () => {
+    const held = await mkShift({ status: "filled", claimedBy: "ov4", date: "2099-03-15" });
+    expect((await claim(await mkShift({ date: "2099-03-15", start: "08:00", end: "12:00" }), "ov5", app)).status).toBe(200); // cn19 holds nothing that day
+    expect((await cancel(held, "ov4", "advance", app)).status).toBe(200);
+    expect((await claim(await mkShift({ date: "2099-03-15", start: "09:00", end: "11:00" }), "ov4", app)).status).toBe(200);
+  });
+  it("two overlapping shifts claimed at once by the same nurse: exactly one wins", async () => {
+    const a = await mkShift({ date: "2099-03-16", start: "07:00", end: "19:00" });
+    const b = await mkShift({ date: "2099-03-16", start: "08:00", end: "20:00" });
+    const [ra, rb] = await Promise.all([claim(a, "ov6", app), claim(b, "ov6", app)]);
+    expect([ra.status, rb.status].sort()).toEqual([200, 409]);
+    const rows = await t.db.select().from(shifts).where(and(eq(shifts.claimedBy, "ov6"), eq(shifts.shiftDate, "2099-03-16")));
+    expect(rows).toHaveLength(1);
+  });
+});
+
+describe("credential rejected after a claim (Decisions 2026-11-10)", () => {
+  const act = { userId: "admin-1", role: "admin" as const, status: "active" as const, agencies: [], networkIds: ["network-default"], nurseNetworkId: null, activeAgencyId: null };
+  const m = { requestId: "rev", ip: null, userAgent: null };
+  it("rejecting the only license reopens upcoming shifts (not past ones), audits and emails nurse + agency", async () => {
+    await makeNurse("rj1");
+    const upcoming = await mkShift({ status: "filled", claimedBy: "rj1", date: "2099-04-01" });
+    const past = await mkShift({ status: "filled", claimedBy: "rj1", date: "2020-04-01" });
+    const r = await review(t.db, act as never, "cred-rj1", "rejected", m);
+    expect(r).toMatchObject({ ok: true, unassignedShifts: 1 });
+    expect(await shiftRow(upcoming)).toMatchObject({ status: "open", claimedBy: null });
+    expect(await shiftRow(past)).toMatchObject({ status: "filled", claimedBy: "rj1" });
+    expect((await audits(upcoming, "shift.unassigned")).map((a) => a.changes)).toEqual([{ status: ["filled", "open"], claimedBy: ["rj1", null], reason: "license_rejected" }]);
+    const mail = await t.db.select().from(notifications).where(sql`${notifications.payload}->>'shiftId' = ${upcoming}`);
+    expect(mail.map((n) => n.template)).toContain("shift.unassigned");
+    expect(mail.map((n) => n.recipientEmail)).toContain("rj1@example.com");
+    expect(JSON.stringify(mail.map((n) => n.payload))).not.toMatch(/reject|credential|license/i);
+  });
+  it("another valid license keeps the shifts; verifying never unassigns; a TB rejection never unassigns", async () => {
+    await makeNurse("rj2");
+    await t.db.insert(credentials).values({ id: "cred-rj2-b", nurseId: "rj2", type: "license", expiresOn: "2099-12-31", status: "verified", reviewedBy: "admin-1", reviewedAt: new Date() });
+    await t.db.insert(credentials).values({ id: "cred-rj2-tb", nurseId: "rj2", type: "tb_screening", screenedOn: "2026-01-01", status: "verified", reviewedBy: "admin-1", reviewedAt: new Date() });
+    const s = await mkShift({ status: "filled", claimedBy: "rj2", date: "2099-04-02" });
+    expect(await review(t.db, act as never, "cred-rj2", "rejected", m)).toMatchObject({ ok: true, unassignedShifts: 0 });
+    expect(await review(t.db, act as never, "cred-rj2-tb", "rejected", m)).toMatchObject({ ok: true, unassignedShifts: 0 });
+    expect(await review(t.db, act as never, "cred-rj2", "verified", m)).toMatchObject({ ok: true, unassignedShifts: 0 });
+    expect(await shiftRow(s)).toMatchObject({ status: "filled", claimedBy: "rj2" });
+  });
+  it("the review route returns unassignedShifts", async () => {
+    await makeNurse("rj3");
+    await mkShift({ status: "filled", claimedBy: "rj3", date: "2099-04-03" });
+    const a = await newApp();
+    const res = await a.inject({
+      method: "PATCH", url: "/api/credentials/cred-rj3/review", payload: { status: "rejected" }, remoteAddress: "10.9.9.9",
+      headers: { authorization: `Bearer ${await signAccessToken({ id: "admin-1", role: "admin" })}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ credential: { id: "cred-rj3", status: "rejected" }, unassignedShifts: 1 });
   });
 });
 
@@ -292,7 +374,7 @@ describe("claim: credential change racing the claim", () => {
   });
 
   it("a claim that commits first is not undone by a later license change", async () => {
-    const id = await mkShift();
+    const id = await mkShift({ date: "2099-05-02" }); // own day: cn06 may already hold a FUTURE shift (overlap rule)
     expect((await claim(id, "cn06")).status).toBe(200);
     await t.db.update(credentials).set({ expiresOn: "2020-01-01" }).where(eq(credentials.id, "cred-cn06"));
     expect((await shiftRow(id)).claimedBy).toBe("cn06"); // §5.3: no automatic unassign
@@ -318,7 +400,7 @@ describe("cancel", () => {
   });
 
   it("the nurse can claim the reopened shift again", async () => {
-    const id = await mkShift({ status: "filled", claimedBy: "cn08" });
+    const id = await mkShift({ status: "filled", claimedBy: "cn08", date: "2099-05-01" }); // own day: cn09 already holds a FUTURE shift (overlap rule)
     expect((await cancel(id, "cn08", "advance")).status).toBe(200);
     expect((await claim(id, "cn09")).status).toBe(200);
   });
@@ -350,6 +432,10 @@ describe("cancel", () => {
     err(await cancel(id, "agency-b", "advance"), 403, ErrorMessage.forbidden); // another agency
     err(await cancel(id, "owner-c", "advance"), 403, ErrorMessage.forbidden); // another network's agency
     err(await cancel(id, "n-net2", "advance"), 403, ErrorMessage.forbidden); // another network's nurse
+    // 403 before 400: no rights + an invalid or missing body is still 403, so the caller learns nothing about the body
+    err(await cancel(id, "cn12", "sick"), 403, ErrorMessage.forbidden);
+    err(await call(`/api/shifts/${id}/cancel`, "agency-b"), 403, ErrorMessage.forbidden);
+    err(await cancel(id, "viewer-a", undefined), 403, ErrorMessage.forbidden);
     expect(await shiftRow(id)).toMatchObject({ status: "filled", claimedBy: "cn11" });
     expect(await cancellations(id)).toHaveLength(0);
     expect(await audits(id, "shift.cancelled")).toHaveLength(0);

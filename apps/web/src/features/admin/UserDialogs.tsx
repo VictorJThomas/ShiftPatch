@@ -78,7 +78,7 @@ export function NurseReviewDialog({ nurseId, onClose }: { nurseId: string | null
           if (rejecting) review.mutate({ id: rejecting.id, status: "rejected", label: rejecting.label }, { onSettled: () => setRejecting(null) });
         }}
       >
-        <p>The nurse will see this credential as rejected and may lose eligibility to claim shifts. You can verify it again later.</p>
+        <p>The nurse will see this credential as rejected and may lose eligibility to claim shifts. If this leaves them without a valid license, their upcoming shifts are reopened and the nurse and agency are notified. You can verify it again later.</p>
       </ConfirmDialog>
     </>
   );
