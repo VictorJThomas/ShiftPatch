@@ -94,7 +94,8 @@ export function smtpSender(opts: { host: string; port: number; from: string }): 
 
 /** Wraps a sender so every mail goes to one inbox (demo/prod: seed addresses are on the undeliverable .example domain). */
 export function redirectSender(inner: MailSender, redirectTo: string): MailSender {
-  return { name: inner.name, send: (m) => inner.send({ ...m, to: redirectTo }) };
+  // Demo redirect: keep the intended recipient visible in the subject. Only active when EMAIL_REDIRECT_TO is set.
+  return { name: inner.name, send: (m) => inner.send({ ...m, to: redirectTo, subject: `[to: ${m.to}] ${m.subject}` }) };
 }
 
 /** MAIL_TRANSPORT = smtp | resend | log (default log). Missing or invalid mail config degrades to `log` with a warning; boot never fails. */

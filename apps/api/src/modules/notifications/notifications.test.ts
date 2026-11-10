@@ -248,6 +248,17 @@ describe("mail transports", () => {
       await createMailSender({ EMAIL_REDIRECT_TO: "inbox@example.org" }, noWarn).send({ to: "a@example.com", subject: "s", text: "t", html: "h" });
     } finally { console.log = orig; }
     expect(seen[0]).toContain("to=inbox@example.org");
+    expect(seen[0]).toContain("[to: a@example.com] s");
+  });
+
+  it("without EMAIL_REDIRECT_TO the subject is unchanged", async () => {
+    const seen: string[] = [];
+    const orig = console.log;
+    console.log = (l: string) => seen.push(l);
+    try {
+      await createMailSender({}, noWarn).send({ to: "a@example.com", subject: "s", text: "t", html: "h" });
+    } finally { console.log = orig; }
+    expect(seen[0]).not.toContain("[to:");
   });
 
   it("resend: POSTs JSON with a bearer key; an error response throws without leaking the key", async () => {
