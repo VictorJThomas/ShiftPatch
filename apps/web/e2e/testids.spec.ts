@@ -48,13 +48,15 @@ test("nurse: one shift-list-item per open shift, each with exactly one claim but
   await expect(items).toHaveCount(1);
 });
 
-test("nurse: shift-cancel-button cancels a claimed shift in one click", async ({ page }) => {
+test("nurse: shift-cancel-button opens the confirm sheet; confirming cancels the claimed shift", async ({ page }) => {
   await signIn(page, "nurse");
   await nav(page, "/nurse/my-shifts");
   const cancel = page.getByTestId("shift-cancel-button");
   await expect(cancel).toHaveCount(1); // seed: shift-2 is filled by nurse-1
   expect(await tagOf(cancel)).toBe("button");
   await cancel.click();
+  expect(api.calls("/api/shifts/shift-2/cancel", "POST")).toHaveLength(0); // nothing is sent before the confirm
+  await page.getByRole("dialog", { name: "Cancel this shift?" }).getByTestId("shift-cancel-confirm-button").click();
   await expect(page.getByTestId("notification-banner")).toContainText("Shift cancelled");
   expect(api.calls("/api/shifts/shift-2/cancel", "POST")).toHaveLength(1);
   await expect(cancel).toHaveCount(0);

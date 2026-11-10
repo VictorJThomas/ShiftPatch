@@ -288,7 +288,7 @@ describe("Marketplace filters (FilterDropdown, immediate)", () => {
 });
 
 describe("My shifts cancel", () => {
-  it("posts an advance cancellation in one click; the policy notice is outside the cards grid", async () => {
+  it("posts an advance cancellation after the confirm sheet; the policy notice is outside the cards grid", async () => {
     serve({
       "GET /api/nurses/me/shifts": { shifts: [shift2] },
       "POST /api/shifts/shift-2/cancel": { ...shift2, status: "open", claimedBy: null },
@@ -300,6 +300,8 @@ describe("My shifts cancel", () => {
     expect(screen.getByRole("heading", { name: /Upcoming\s*1/ })).toBeTruthy();
     expect(screen.queryByText(/Requested|Confirmed by/)).toBeNull();
     fireEvent.click(cancel);
+    expect(api).not.toHaveBeenCalledWith("/api/shifts/shift-2/cancel", expect.anything());
+    fireEvent.click(await screen.findByTestId("shift-cancel-confirm-button"));
     await waitFor(() => expect(toasts()[0]?.title).toBe("Shift cancelled"));
     expect(api).toHaveBeenCalledWith("/api/shifts/shift-2/cancel", expect.objectContaining({ method: "POST", body: { reason: "advance" } }));
   });

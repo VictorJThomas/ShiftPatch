@@ -127,7 +127,7 @@ test("nurse-2 (expired license) gets the exact 403 text and the shift stays open
   await expect(await adminBadge("shift-1")).toHaveText("Open");
 });
 
-test("nurse-1 cancels from My shifts in one click -> 'Shift cancelled', shift reopens", async () => {
+test("nurse-1 cancels from My shifts (confirm sheet) -> 'Shift cancelled', shift reopens", async () => {
   const page = pages.nurse1!;
   await nav(page, "/nurse/my-shifts");
   await expect(page.getByRole("heading", { name: /^Upcoming\s*2$/ })).toBeVisible(); // seed shift-2 + the one claimed above
@@ -135,6 +135,7 @@ test("nurse-1 cancels from My shifts in one click -> 'Shift cancelled', shift re
   await expect(mine.getByText("Claimed by you")).toBeVisible();
   await adminRow(postedId); // table filtered to it before the cancel: the reopen must come from the poll
   await mine.getByTestId("shift-cancel-button").click();
+  await page.getByTestId("shift-cancel-confirm-button").click(); // confirm sheet "Cancel this shift?"
   await expect(banner(page)).toContainText("Shift cancelled");
   await expect(mine).toHaveCount(0);
   await nav(page, "/nurse/shifts");

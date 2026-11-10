@@ -8,6 +8,7 @@ import { Alert } from "@/components/shadcn/alert";
 import { Badge } from "@/components/shadcn/badge";
 import { Button } from "@/components/shadcn/button";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
@@ -22,7 +23,8 @@ export function MyShifts() {
   const cancel = useCancelShift();
   const online = useOnline();
   const [details, setDetails] = useState<Shift | null>(null);
-  // One click cancels (spec: the test ID is on the element that performs the action); the note above explains the effect.
+  // Cancel opens a confirm sheet (canvas: "Cancel this shift?"); the spec test ID stays on the card's Cancel button, the sheet's confirm performs the POST.
+  const [confirming, setConfirming] = useState<Shift | null>(null);
   const cancellingId = cancel.isPending ? cancel.variables?.id : undefined;
 
   const shifts = mine.data ?? [];
@@ -77,7 +79,7 @@ export function MyShifts() {
                               loading={cancellingId === shift.id}
                               aria-describedby="my-cancel-note"
                               aria-label={`Cancel shift: ${shift.agencyName}, ${shift.role}`}
-                              onClick={() => cancel.mutate(shift)}
+                              onClick={() => setConfirming(shift)}
                             >
                               Cancel shift
                             </Button>
@@ -122,6 +124,25 @@ export function MyShifts() {
         )}
       </div>
 
+      <ConfirmDialog
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) cancel.mutate(confirming, { onSettled: () => setConfirming(null) });
+        }}
+        pending={cancel.isPending}
+        title="Cancel this shift?"
+        confirmLabel="Cancel shift"
+        cancelLabel="Keep shift"
+        tone="danger"
+        confirmTestId="shift-cancel-confirm-button"
+      >
+        {confirming && (
+          <p className="nurse-confirm-note">
+            {confirming.agencyName}, {confirming.role}, {confirming.date}. This is an advance cancellation: the agency is notified right away and the shift reopens for other nurses.
+          </p>
+        )}
+      </ConfirmDialog>
       <ShiftDetailsDialog shift={details} onClose={() => setDetails(null)} />
     </>
   );
