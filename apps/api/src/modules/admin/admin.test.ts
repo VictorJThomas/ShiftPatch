@@ -332,14 +332,17 @@ describe("PATCH /api/credentials/:id/review", () => {
 
   it("does not change the eligibility rule: rejecting the only license makes the claim 403, verifying it again restores the claim", async () => {
     // nurse-2's license is expired (spec); use nurse-pct instead: give her a pending license, then drive the claim of an open shift.
+    // nurse-pct is LPN, so the shift must be LPN too (claim also enforces license type vs role).
     await t.db.insert(credentials).values({ id: "cred-pct", nurseId: "nurse-pct", type: "license", expiresOn: "2099-01-01", status: "pending" });
+    await t.db.insert(shifts).values({ id: "shift-920", networkId: "network-default", agencyId: "agency-a", role: "LPN", shiftDate: "2098-06-01", startTime: "07:00", endTime: "19:00", timezone: "America/New_York", status: "open", createdBy: "admin-1" });
     const claim = (id: string) => app.inject({ method: "POST", url: `/api/shifts/${id}/claim`, headers: { authorization: `Bearer ${tokenOf.pct}` } });
     const tokenOf = { pct: await signAccessToken({ id: "nurse-pct", role: "nurse" }) };
     expect((await review("cred-pct", "admin-1", { status: "rejected" })).status).toBe(200);
-    const denied = await claim("shift-1");
+    const denied = await claim("shift-920");
     expect(denied.statusCode).toBe(403);
     expect(denied.json()).toEqual({ error: "No valid credential on file, cannot claim shift" });
     expect((await review("cred-pct", "admin-1", { status: "verified" })).status).toBe(200);
-    expect((await claim("shift-1")).statusCode).toBe(200);
+    const ok = await claim("shift-920");
+    expect(ok.statusCode).toBe(200);
   });
 });
