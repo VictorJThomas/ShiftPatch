@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Dialog, type DialogProps } from "./Dialog";
+import { Button } from "@/components/shadcn/button";
+import { AppDialog, type AppDialogSize } from "./AppDialog";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -13,55 +14,36 @@ export interface ConfirmDialogProps {
   /** Defaults to "Go back" (design: Nurse-Detail-Claim). */
   cancelLabel?: string;
   tone?: "primary" | "danger";
-  /** Request in flight: spinner, both buttons disabled, Esc/backdrop ignored. */
+  /** Request in flight: spinner, both buttons disabled, Esc/overlay/X ignored. */
   pending?: boolean;
   confirmTestId?: string;
-  variant?: DialogProps["variant"];
+  /** Default "sm". */
+  size?: AppDialogSize;
+  /** @deprecated Ignored; use `size`. */
+  variant?: "sheet" | "modal" | "panel";
 }
 
-/** Yes/no confirmation on top of `Dialog`. Confirm is the primary (or danger) action; cancel never mutates. */
-export function ConfirmDialog({
-  open,
-  onClose,
-  onConfirm,
-  title,
-  children,
-  confirmLabel,
-  cancelLabel = "Go back",
-  tone = "primary",
-  pending = false,
-  confirmTestId,
-  variant = "sheet",
-}: ConfirmDialogProps) {
-  const close = () => {
-    if (!pending) onClose();
-  };
+/** Yes/no confirmation on top of `AppDialog`. Confirm is the primary (or danger) action; cancel never mutates. */
+export function ConfirmDialog({ open, onClose, onConfirm, title, children, confirmLabel, cancelLabel = "Go back", tone = "primary", pending = false, confirmTestId, size = "sm" }: ConfirmDialogProps) {
   return (
-    <Dialog
+    <AppDialog
       open={open}
-      onClose={close}
+      onClose={onClose}
+      blockClose={pending}
       title={title}
-      variant={variant}
+      size={size}
       footer={
         <>
-          <button type="button" className="btn btn-secondary" onClick={close} disabled={pending}>
+          <Button variant="secondary" onClick={onClose} disabled={pending}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={`btn ${tone === "danger" ? "btn-danger-solid" : "btn-primary"}`}
-            onClick={onConfirm}
-            disabled={pending}
-            aria-busy={pending || undefined}
-            data-testid={confirmTestId}
-          >
-            {pending && <span className="spin" aria-hidden="true" />}
+          </Button>
+          <Button variant={tone === "danger" ? "destructive" : "default"} onClick={onConfirm} loading={pending} data-testid={confirmTestId}>
             {confirmLabel}
-          </button>
+          </Button>
         </>
       }
     >
       {children}
-    </Dialog>
+    </AppDialog>
   );
 }

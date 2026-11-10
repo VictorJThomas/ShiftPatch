@@ -1,3 +1,4 @@
+import { Badge } from "@/components/shadcn/badge";
 import { Icon, type IconName } from "./Icon";
 
 export type Status = "open" | "filled" | "cancelled" | "completed" | "pending" | "verified" | "rejected" | "expired";
@@ -17,9 +18,9 @@ const ICONS: Record<Status, IconName> = {
 export function StatusBadge({ status, testId }: { status: Status; testId?: string }) {
   const label = status[0]!.toUpperCase() + status.slice(1);
   return (
-    <span className={`badge b-${status}`} data-testid={testId}>
+    <Badge variant={status} data-testid={testId}>
       <Icon name={ICONS[status]} />
-      {status === "cancelled" ? <span className="lbl-s">{label}</span> : label}
-    </span>
+      {status === "cancelled" ? <span className="line-through decoration-1">{label}</span> : label}
+    </Badge>
   );
 }

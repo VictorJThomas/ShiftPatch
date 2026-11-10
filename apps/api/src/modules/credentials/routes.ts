@@ -1,6 +1,6 @@
 import multipart from "@fastify/multipart";
 import {
-  CREDENTIAL_MAX_BYTES, ErrorMessage, NurseCredentialsResponse, UploadCredentialFields, UploadCredentialResponse,
+  CREDENTIAL_MAX_BYTES, ErrorMessage, NurseCredentialsResponse, ReviewCredentialRequest, ReviewCredentialResponse, ShiftIdParams, UploadCredentialFields, UploadCredentialResponse,
 } from "@shiftpatch/contracts";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Db } from "../../db/client.js";
@@ -56,6 +56,19 @@ export async function credentialRoutes(app: FastifyInstance, db: () => Db, stora
   app.get("/api/nurses/me/credentials", pre, async (req, reply) => {
     if (nurseOnly(req, reply)) return reply;
     return NurseCredentialsResponse.parse(await service.listOwn(db(), req.actor!));
+  });
+
+  // Admin review: verified | rejected, audited. 403 non-admin, 404 outside the admin's networks, 409 already that status.
+  app.patch("/api/credentials/:id/review", pre, async (req, reply) => {
+    const params = ShiftIdParams.safeParse(req.params); // same `Id` charset
+    const gate = can(req.actor!, "admin:network", { networkId: "" });
+    if (!gate.allow && gate.reason === "role_not_permitted") return (sendDenial(reply, gate), reply); // authorization before validation
+    if (!params.success) return reply.code(404).send({ error: ErrorMessage.notFound });
+    const body = ReviewCredentialRequest.safeParse(req.body ?? {});
+    if (!body.success) return reply.code(400).send({ error: "Invalid status: use verified or rejected" });
+    const r = await service.review(db(), req.actor!, params.data.id, body.data.status, meta(req));
+    if (r.ok) return ReviewCredentialResponse.parse({ credential: r.value });
+    return "denied" in r ? (sendDenial(reply, r.denied), reply) : reply.code(r.fail.status).send({ error: r.fail.error });
   });
 
   app.post("/api/nurses/me/credentials", pre, async (req, reply) => {

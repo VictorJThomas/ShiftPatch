@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
+import { Alert } from "@/components/shadcn/alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -19,10 +20,10 @@ export function Timesheets() {
   return (
     <>
       <PageHeader title="Timesheets" description="Clock in and out for filled shifts. Facility-local, 24-hour." />
-      <p className="alert al-info">
+      <Alert variant="info" role="status" className="mb-4">
         <Icon name="info" />
         <span>Timesheets arrive with clock-in/out. Completed shifts will appear here with their scheduled hours.</span>
-      </p>
+      </Alert>
       {/* The table (and its test ID) always renders; a failed shift fetch is reported above it, not instead of it. */}
       {q.isError && !q.data && <ErrorState title="Couldn't load shifts" message={q.error.message} onRetry={() => void q.refetch()} />}
       <section className="card" aria-label="Timesheets">

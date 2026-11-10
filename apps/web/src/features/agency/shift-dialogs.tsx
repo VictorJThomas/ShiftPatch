@@ -2,12 +2,16 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { useId, useState } from "react";
-import type { CancelShiftRequest, Shift } from "@shiftpatch/contracts";
+import type { CancelShiftRequest, CoverageRow } from "@shiftpatch/contracts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Dialog } from "@/components/ui/Dialog";
+import { DetailList } from "@/components/ui/DetailList";
+import { Button } from "@/components/shadcn/button";
+import { AppDialog } from "@/components/ui/AppDialog";
 import { Icon } from "@/components/ui/Icon";
+import { NurseDetailDialog } from "@/components/ui/NurseDetailDialog";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatShiftWhen, isOvernight, shiftHours } from "@/lib/format";
+import { useShiftNurse } from "@/lib/shift-nurse";
 import { useCancelShift, useWithdrawShift } from "./queries";
 
 type Reason = CancelShiftRequest["reason"];
@@ -18,9 +22,9 @@ const REASONS: { value: Reason; label: string; help: string }[] = [
 ];
 
 /** "RN · Fri, Oct 2 · 19:00 → Sat 07:00" */
-export const shiftSummary = (s: Shift) => `${s.role} · ${formatShiftWhen(s)}`;
+export const shiftSummary = (s: Pick<CoverageRow, "role" | "date" | "startTime" | "endTime">) => `${s.role} · ${formatShiftWhen(s)}`;
 
-export function WithdrawDialog({ shift, onClose }: { shift: Shift | null; onClose: () => void }) {
+export function WithdrawDialog({ shift, onClose }: { shift: CoverageRow | null; onClose: () => void }) {
   const withdraw = useWithdrawShift();
   return (
     <ConfirmDialog
@@ -43,7 +47,7 @@ export function WithdrawDialog({ shift, onClose }: { shift: Shift | null; onClos
 }
 
 /** Filled shift → reopened. The agency picks the reason; the API records it and emails the nurse. */
-export function CancelDialog({ shift, onClose }: { shift: Shift | null; onClose: () => void }) {
+export function CancelDialog({ shift, onClose }: { shift: CoverageRow | null; onClose: () => void }) {
   const cancel = useCancelShift();
   const [reason, setReason] = useState<Reason | null>(null);
   const [missing, setMissing] = useState(false);
@@ -67,21 +71,21 @@ export function CancelDialog({ shift, onClose }: { shift: Shift | null; onClose:
   };
 
   return (
-    <Dialog
+    <AppDialog
       open={!!shift}
       onClose={close}
-      variant="sheet"
+      size="md"
+      blockClose={pending}
       title="Cancel this filled shift?"
-      description={shift ? `${shiftSummary(shift)} · Filled by nurse ${shift.claimedBy ?? "—"}. The shift reopens for other nurses.` : undefined}
+      description={shift ? `${shiftSummary(shift)} · Filled by ${shift.claimedByName ?? "the nurse"}. The shift reopens for other nurses.` : undefined}
       footer={
         <>
-          <button type="button" className="btn btn-secondary" onClick={close} disabled={pending}>
+          <Button variant="secondary" onClick={close} disabled={pending}>
             Keep shift
-          </button>
-          <button type="submit" form={formId} className="btn btn-danger-solid" disabled={pending} aria-busy={pending || undefined}>
-            {pending && <span className="spin" aria-hidden="true" />}
+          </Button>
+          <Button type="submit" form={formId} variant="destructive" loading={pending}>
             Cancel shift
-          </button>
+          </Button>
         </>
       }
     >
@@ -123,7 +127,7 @@ export function CancelDialog({ shift, onClose }: { shift: Shift | null; onClose:
           )}
         </fieldset>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }
 
@@ -134,59 +138,79 @@ export function ShiftDetailsDialog({
   onClose,
   onWithdraw,
   onCancel,
+  onViewNurse,
 }: {
-  shift: Shift | null;
+  shift: CoverageRow | null;
   canWrite: boolean;
+  onViewNurse: (s: CoverageRow) => void;
   onClose: () => void;
-  onWithdraw: (s: Shift) => void;
-  onCancel: (s: Shift) => void;
+  onWithdraw: (s: CoverageRow) => void;
+  onCancel: (s: CoverageRow) => void;
 }) {
   const showActions = !!shift && canWrite && (shift.status === "open" || shift.status === "filled");
   return (
-    <Dialog
+    <AppDialog
       open={!!shift}
       onClose={onClose}
-      variant="sheet"
+      size="md"
       title={shift ? `${shift.role} shift` : "Shift"}
       description={shift ? formatShiftWhen(shift) : undefined}
       footer={
         showActions && shift ? (
           shift.status === "open" ? (
-            <button type="button" className="btn btn-danger" onClick={() => onWithdraw(shift)}>
+            <Button variant="danger" onClick={() => onWithdraw(shift)}>
               Withdraw shift
-            </button>
+            </Button>
           ) : (
-            <button type="button" className="btn btn-danger" onClick={() => onCancel(shift)}>
+            <Button variant="danger" onClick={() => onCancel(shift)}>
               Cancel shift
-            </button>
+            </Button>
           )
         ) : undefined
       }
     >
       {shift && (
-        <dl className="ag-dl">
-          <dt>Status</dt>
-          <dd>
-            <StatusBadge status={shift.status} />
-          </dd>
-          <dt>Shift ID</dt>
-          <dd className="tnum">{shift.id}</dd>
-          <dt>Role</dt>
-          <dd>
-            <span className="role">{shift.role}</span>
-          </dd>
-          <dt>Date</dt>
-          <dd>{formatDate(shift.date)}</dd>
-          <dt>Time</dt>
-          <dd className="tnum">
-            {shift.startTime} → {shift.endTime} · {shiftHours(shift)} h{isOvernight(shift) ? " · Overnight" : ""}
-          </dd>
-          <dt>Agency</dt>
-          <dd>{shift.agencyName}</dd>
-          <dt>Claimed by (Nurse ID)</dt>
-          <dd className="tnum">{shift.claimedBy ?? "—"}</dd>
-        </dl>
+        <DetailList
+          items={[
+            { label: "Status", value: <StatusBadge status={shift.status} /> },
+            { label: "Role", value: <span className="role">{shift.role}</span> },
+            { label: "Date", value: formatDate(shift.date) },
+            { label: "Time", value: `${shift.startTime} → ${shift.endTime} · ${shiftHours(shift)} h${isOvernight(shift) ? " · Overnight" : ""}` },
+            { label: "Agency", value: shift.agencyName },
+            {
+              label: "Claimed by",
+              value: shift.claimedByName ? (
+                <span className="ag-claimant">
+                  {shift.claimedByName}
+                  {canWrite && (
+                    <Button variant="secondary" size="sm" onClick={() => onViewNurse(shift)}>
+                      <Icon name="user" />
+                      View nurse details
+                    </Button>
+                  )}
+                </span>
+              ) : (
+                <span className="muted">Not claimed yet</span>
+              ),
+            },
+          ]}
+        />
       )}
-    </Dialog>
+    </AppDialog>
+  );
+}
+
+/** Fetches the claiming nurse when opened (owner/manager only: the caller never offers this to viewers). */
+export function ShiftNurseDialog({ shift, onClose }: { shift: CoverageRow | null; onClose: () => void }) {
+  const q = useShiftNurse(shift?.id ?? null);
+  return (
+    <NurseDetailDialog
+      open={!!shift}
+      onClose={onClose}
+      loading={q.isPending && !!shift}
+      error={q.isError ? q.error.message : undefined}
+      onRetry={() => void q.refetch()}
+      nurse={q.data}
+    />
   );
 }

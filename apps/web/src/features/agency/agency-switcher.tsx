@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { Badge } from "@/components/shadcn/badge";
+import { Button } from "@/components/shadcn/button";
 import { Icon } from "@/components/ui/Icon";
 import { agencyColor, initials } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
@@ -65,10 +67,9 @@ export function AgencySwitcher() {
 
   return (
     <div className="ag-switch" ref={rootRef}>
-      <button
+      <Button
         ref={triggerRef}
-        type="button"
-        className="btn btn-band"
+        variant="band"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
@@ -83,7 +84,7 @@ export function AgencySwitcher() {
         <Icon name="swap" />
         Switch agency
         <Icon name="down" className={open ? "flip" : ""} />
-      </button>
+      </Button>
       {open && (
         <div className="card ag-menu">
           <div className="cap" id={`${listId}-label`}>
@@ -112,14 +113,12 @@ export function AgencySwitcher() {
                     <span className="ag-opt-role">{agency.role}</span>
                   </span>
                   {selected ? (
-                    <span className="badge b-verified">
+                    <Badge variant="verified">
                       <Icon name="check" />
                       Current
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="btn btn-secondary btn-sm" aria-hidden="true">
-                      Switch
-                    </span>
+                    <Badge aria-hidden="true">Switch</Badge>
                   )}
                 </button>
               );

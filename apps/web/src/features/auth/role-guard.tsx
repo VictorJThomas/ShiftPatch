@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { Button } from "@/components/shadcn/button";
 import { HOME_BY_ROLE, LOGIN_PATH, type Role } from "@/lib/routes";
 import { useSessionStore } from "@/stores/session";
 import { retrySession } from "./session-flow";
@@ -11,9 +12,9 @@ export function SessionUnavailable() {
   return (
     <div className="page-loading" role="alert">
       <span>We couldn&apos;t reach your session. You are still signed in.</span>
-      <button type="button" className="btn btn-secondary" onClick={() => void retrySession()}>
+      <Button variant="secondary" onClick={() => void retrySession()}>
         Try again
-      </button>
+      </Button>
       <a href={LOGIN_PATH}>Sign in again</a>
     </div>
   );

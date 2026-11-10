@@ -41,9 +41,12 @@
 *,*::before,*::after{box-sizing:border-box}
 h1,h2,h3,h4,p,ul,ol,figure{margin:0;padding:0}
 ul,ol{list-style:none}
-a{color:var(--c-brand);text-underline-offset:3px;font-weight:600}
+/* feature/11: [data-slot] marks Shadcn components. Their utilities live in a Tailwind @layer, and unlayered rules always win, so the
+   global element rules below must not touch them (:where keeps the old specificity for legacy elements). */
+a:where(:not([data-slot])){color:var(--c-brand);text-underline-offset:3px;font-weight:600}
 :focus-visible,.is-focus{outline:3px solid var(--c-focus);outline-offset:2px}
-button,input,select,textarea{font:inherit;color:inherit}
+button,input,select,textarea{font-family:inherit}
+:where(button,input,select,textarea):where(:not([data-slot])){font:inherit;color:inherit}
 .tnum{font-variant-numeric:tabular-nums}
 .row{display:flex;align-items:center;gap:var(--s-2)}
 .between{justify-content:space-between}

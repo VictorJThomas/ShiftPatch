@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AccountMenu } from "@/components/ui/AccountMenu";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
-import { useLogout } from "@/features/auth/use-logout";
-import { initials } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "grid" },
+  { href: "/admin/users", label: "Users", icon: "user" },
   { href: "/admin/audit", label: "Audit log", icon: "file" },
   { href: "/admin/timesheets", label: "Timesheets", icon: "clock" },
 ];
@@ -19,7 +19,6 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const user = useSessionStore((s) => s.user);
-  const { signOut, pending } = useLogout();
   return (
     <div className="adm">
       <a className="skip" href="#main">
@@ -43,16 +42,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="rail-user">
-          <span className="avatar" aria-hidden="true">
-            {initials(user?.name ?? "")}
-          </span>
-          <div className="who">
-            <b>{user?.name}</b>
-            <span>Hospital admin</span>
-          </div>
-          <button type="button" className="iconbtn" aria-label="Sign out" onClick={() => void signOut()} disabled={pending}>
-            <Icon name="logout" />
-          </button>
+          <AccountMenu placement="above" detail={{ name: user?.name ?? "", caption: "Hospital admin" }} />
         </div>
       </aside>
       <main id="main" tabIndex={-1} className="adm-main">

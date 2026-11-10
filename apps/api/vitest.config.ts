@@ -5,5 +5,7 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, "**/*.contract.test.ts"],
     env: { JWT_SECRET: "test-only-secret-0123456789abcdef0123456789" }, // not a real secret
+    // Files share one Postgres server; in parallel the rollback tests' DDL traps exceed the 5 s timeout (23/23 alone in 7 s).
+    fileParallelism: false,
   },
 });

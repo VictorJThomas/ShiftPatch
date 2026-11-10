@@ -1,25 +1,25 @@
 # Status (overwrite each session — current truth only)
 
-**Last updated:** 2026-11-08
+**Last updated:** 2026-11-09
 
 ## Where we are
-- **Stage 6b + Stage 7 credentials BUILT** on branch `feature/6b-feature-ui` (cut from `qa/10-full-audit`; pushed, last commit `695022e`; no PR yet). Multi-agent build: shared interfaces first, then foundation / credentials API / QA-006, then nurse / agency / admin, then independent QA + fresh-context review (plan "Execution" table in `docs/stage-6b-feature-ui-plan.md`).
-- Every role is wired to the real API: nurse marketplace + lapsed-license fallback + one-click claim/cancel + credentials (inline upload form) + profile; agency shift board (stats, filters, table/cards, post panel, withdraw, cancel with reason, switcher) + profile; admin coverage dashboard (15 s polling) + audit log (filters incl. agencyId, Load more) + minimal timesheets.
-- All 15 spec test IDs present on the acting element; `notification-banner` only on the newest toast; toasts render inside open modal dialogs.
-- QA-003/004/005/006 fixed (DEFECT_LOG). Stage-6b QA defects D1–D3, D6 fixed; D4/D5 accepted (`docs/qa/STAGE6B_VERIFICATION.md` §9).
-- Verified: last `/verify` (2026-11-08) **RED 3/4**: typecheck, lint, contract pass; `test` fails intermittently on ONE timeout (see gotcha "Rollback test timeout"). Same suite 469/469 serially and with a 30 s timeout. Web build ✓ · mocked Playwright 44 passed / 6 skipped · real-API `flows.spec.ts` 6/6 · 5-user matrix 25/25 (before the last two fix commits) · `pnpm audit --audit-level=high` passes (2 moderates in dev tooling). Local DB reset to the exact seed 2026-11-08. Prod untouched (still the pre-6b deploy).
+- `feature/11-ui-ux-polish`: checkpoint commit `8809cd3` (Notion design notes), then the **Shadcn/Tailwind migration UNCOMMITTED** on top (about 66 paths): AppDialog (sm 400 / md 520 / lg 720, mobile bottom sheet), FilterDropdown on nurse marketplace, agency shifts, admin dashboard and audit log, dedicated `/nurse/credentials/new` (overview has no form). Catalog: `docs/ui/COMPONENT_CONTRACTS.md`. Decisions: [[Decisions]] "Shadcn migration".
+- Verified 2026-11-09 on final code: `/verify` GREEN 4/4 · web vitest 184 · `pnpm build` OK · `pnpm audit --audit-level=high` 0 high (2 moderate dev tooling) · mocked Playwright 49 passed / 7 skipped · real-API `flows.spec.ts` 7/7.
+- Chrome QA (claude-in-chrome, Sonnet 5.5, 3 rounds): all seeded workflows PASS; QA-007/008/009/011 fixed, QA-010/012/014 not defects, QA-013 fixed but not re-measured, QA-015 info. Viewports 360-1920 verified in Playwright Chromium only (extension can't resize). Log: `docs/qa/DEFECT_LOG.md`.
+- Code review (independent): approve with fixes; both Important findings fixed (stacked-dialog duplicate banner, credential guard on shell links).
+- Local DB reset to exact seed. Prod untouched. No dev servers running.
 
 ## Next step
-1. Fix the flaky rollback timeout before relying on CI (see gotcha), then Victor: open the PR(s) to `master` (`qa/10-full-audit` is the base); CI must be green.
-2. Victor (prod): create the private R2 bucket `private-credentials` + scoped key; set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET` on Railway `api` (leave `S3_ENDPOINT` empty). Until then uploads answer 503.
-3. Deploy (Railway API + Vercel web), then smoke the 5 seeded users on prod; check prod still holds the exact seed (shift-1 open) before submission.
-4. Board "Playwright E2E in CI": add a Postgres service job running `flows.spec.ts` (`E2E_REAL_API=1`, API on 3201 with `APP_ORIGIN=http://localhost:3100`).
-5. P1 leftovers: admin credential review queue + signed 5-min links (board), `GET /api/admin/coverage` for nurse names, shared helpers dedupe (review M4: two ShiftDetailsDialogs, two showError/useCancelShift).
+1. Victor: review the uncommitted diff, then commit and open the PR to `master`; CI must be green.
+2. Victor: prune dead legacy CSS (`.dlg*`, `.acct-menu`, unused `.ag-*`/`.adm-*`) and unused `shadcn/table.tsx`, `shadcn/textarea.tsx`? Not done: needs his OK.
+3. Victor (prod): private R2 bucket + `R2_*` on Railway `api`, deploy API + web, smoke the 5 seeded users.
+4. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
 
 ## Blockers / waiting
-- Victor: past-date product rule; visual QA of the design canvas; R2 bucket + keys.
+- Victor: past-date product rule; R2 bucket + keys; legacy CSS prune OK.
 - Founder decision on export (Option C vs D), see [[ESCALATION]]. PostHog escalated (not built).
-- Optional: `CONSTRAINTS.md` via `/constraints` (needs a 4-question interview with Victor).
+- Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; audit "All changes" dialog and Load more not exercised in QA (seed too small).
+
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
 - GitHub repo renamed to `VictorJThomas/ShiftPatch`; local `origin` still points at old `ShiftPatc` (redirect works; repoint blocked by permission classifier — Victor: `git remote set-url origin https://github.com/VictorJThomas/ShiftPatch.git`).
@@ -49,6 +49,13 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **QA in Chrome (claude-in-chrome):** the extension's network monitor shows bodiless 204s (logout) as **503**; trust `performance.getEntriesByType('resource')[].responseStatus`. `resize_window` doesn't work on Victor's window (second monitor, `screenX -1709`); for viewports use `apps/web/scripts/qa-responsive.mjs` (Playwright, real app, one login per role). The Grammarly extension causes a dev hydration warning.
 - **Refresh limits (QA-006 fixed 2026-11-07):** 10 refreshes/min per session family, 300/min per IP, 30 invalid-cookie/min per IP. A scripted run that reloads one session >10×/min gets 429 → the app retries (≤3, ≤10 s waits) then shows "Try again" (status `unavailable`), never `/login`. Use separate logins per parallel worker; tabs of one browser share a token (Web Lock + BroadcastChannel).
 - **Real-API E2E:** `pnpm --filter api db:reset`; start the API with `PORT=3201 APP_ORIGIN=http://localhost:3100 pnpm --filter api start:local` (background); then `E2E_REAL_API=1 API_ORIGIN=http://localhost:3201 pnpm --filter web exec playwright test flows`. Mocked suite: `pnpm --filter web test:e2e`.
-- **Rollback test timeout (OPEN, CI risk):** in `claim-cancel.test.ts` the `trap` tests ("claim: audit insert fails", "cancel: outbox insert fails"; which one varies) can exceed 5 s when test files run in parallel: 8.7 s parallel vs 79 ms with `vitest run --no-file-parallelism`, on an otherwise idle machine, so it is NOT outside load. Root cause not found (Postgres checkpoints were fast, no deadlocks logged). They run DDL (`create trigger`) against a per-file throwaway DB on the shared server. Options: per-test timeout on the trap tests, or `fileParallelism: false` (suite 40 s instead of 15 s).
+- **QA script:** `QA_DELAY_MS=7000` on `scripts/qa-responsive.mjs`, or reloads exceed 10 refreshes/min and captures stick on "Loading your session".
+- **Rollback test timeout (OPEN, CI risk; did not trip in today's runs):** in `claim-cancel.test.ts` the `trap` tests ("claim: audit insert fails", "cancel: outbox insert fails"; which one varies) can exceed 5 s when test files run in parallel: 8.7 s parallel vs 79 ms with `vitest run --no-file-parallelism`, on an otherwise idle machine, so it is NOT outside load. Root cause not found (Postgres checkpoints were fast, no deadlocks logged). They run DDL (`create trigger`) against a per-file throwaway DB on the shared server. Options: per-test timeout on the trap tests, or `fileParallelism: false` (suite 40 s instead of 15 s).
 - **Port 3001 squatter:** a leftover `node dist/server.js` (no `.env` → login 500) can hold 3001; check `Get-NetTCPConnection -LocalPort 3001` before starting the API. The API listens on 127.0.0.1, so PowerShell `Invoke-WebRequest http://localhost:...` may try ::1 and fail — use 127.0.0.1.
-- **Modal dialogs + toasts:** `showModal()` makes the page inert; `Dialog` renders `<Toaster inline />` and the page toaster yields (`stores/dialogs.ts`). Keep new modals on the shared `Dialog`.
+- **Modal dialogs + toasts:** use `AppDialog` (Radix). Only the top dialog of `stores/dialogs.ts` `stack` renders the active inline Toaster; the page toaster yields while any dialog is open. Footer buttons are portalled outside `<form>`: give submit buttons `form=`.
+- **Tailwind + legacy CSS:** legacy CSS is unlayered and beats Tailwind utilities; migrate whole elements, never mix a legacy class and a utility for one property. No preflight. Shadcn files are in `src/components/shadcn/` (lowercase; `ui/Dialog.tsx` would collide on Windows).
+- **Radix in tests:** stub `ResizeObserver` for popovers and menus; Radix menus open on `pointerdown` (`fireEvent.pointerDown`); query content behind a modal with `{hidden:true}`.
+- **Chrome extension cannot resize** Victor's window (stays 1699 wide; popups blocked; framing denied). Verify viewports with Playwright Chromium against the dev server and label it as such.
+- **Parallel `/verify` runs** (several agents at once) make API rollback tests time out; one run on a quiet machine is green. Run gates one at a time.
+- Docker Desktop and the dev servers can disappear mid-session: check `docker ps` and ports 3000/3001 before blaming code.
+

@@ -45,6 +45,9 @@ export const ErrorMessage = {
   fileRequired: "Attach a file to upload", // 400 credential upload without a file part
   fileTooLarge: "File is larger than 10 MB", // 413 credential upload
   unsupportedFileType: "Unsupported file type. Upload a PDF, JPEG, PNG or HEIC file", // 415 credential upload (sniffed bytes)
+  notFound: "Not found", // 404 admin lookups / credential review outside the caller's network (no existence leak)
+  shiftHasNoNurse: "No nurse has claimed this shift", // 404 GET /api/shifts/:id/nurse on an open shift
+  credentialAlreadyReviewed: "Credential already has this status", // 409 review to the status it already has
 } as const;
 
 // ---------- Shift shape (shared by routes 2-6) ----------
@@ -75,8 +78,17 @@ export const LoginResponse = z.strictObject({
 // ---------- 2. GET /api/shifts ----------
 
 export const ListShiftsResponse = z.strictObject({ shifts: z.array(Shift) });
-/** Additive nurse view (ARCHITECTURE §8.3): `?matchable=true`. Absent or `false` = the full marketplace. */
-export const ListShiftsQuery = z.object({ matchable: z.enum(["true", "false"]).optional() });
+/**
+ * Additive nurse view (ARCHITECTURE §8.3): `?matchable=true`. Absent or `false` = the full marketplace.
+ * Optional AND filters (UI polish): no params = the exact spec behaviour. Unknown values are a 400.
+ */
+export const ListShiftsQuery = z.object({
+  matchable: z.enum(["true", "false"]).optional(),
+  status: ShiftStatus.optional(),
+  role: ShiftRole.optional(),
+  date: IsoDate.optional(),
+  agencyId: Id.optional(),
+});
 
 // ---------- 3. POST /api/shifts ----------
 
@@ -132,6 +144,36 @@ export const MeResponse = z.strictObject({
 // ---------- 6. GET /api/agencies/:agencyId/shifts ----------
 
 export const AgencyShiftsResponse = z.strictObject({ agencyId: Id, shifts: z.array(Shift) });
+
+// ---------- Coverage (additive): shifts + the claiming nurse's name, for the agency and admin tables ----------
+
+/** Free-text search: trimmed, case-insensitive on the server. Capped so a request can't ship a huge pattern. */
+const SearchText = z.string().trim().min(1).max(100);
+/** The Shift shape plus the claimer's display name (null while open). Strict like every response. */
+export const CoverageRow = Shift.extend({ claimedByName: z.string().min(1).nullable() });
+export const StatusCounts = z.strictObject({ open: z.number().int(), filled: z.number().int(), cancelled: z.number().int(), completed: z.number().int() });
+
+/** GET /api/agencies/:agencyId/coverage. `q` matches the nurse name or the shift id. */
+export const AgencyCoverageQuery = z.object({ status: ShiftStatus.optional(), role: ShiftRole.optional(), date: IsoDate.optional(), q: SearchText.optional() });
+export const AgencyCoverageResponse = z.strictObject({ agencyId: Id, shifts: z.array(CoverageRow) });
+
+export const ADMIN_PAGE_SIZE_MAX = 100;
+/** GET /api/admin/coverage. `q` matches the agency name, the nurse name or the shift id. `statusCounts` ignore `status` (chip counts). */
+export const AdminCoverageQuery = z.object({
+  status: ShiftStatus.optional(),
+  agencyId: Id.optional(),
+  q: SearchText.optional(),
+  sort: z.enum(["asc", "desc"]).default("asc"), // by date, then start time; ties by shift id
+  page: z.coerce.number().int().min(1).max(100_000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(ADMIN_PAGE_SIZE_MAX).default(25),
+});
+export const AdminCoverageResponse = z.strictObject({
+  shifts: z.array(CoverageRow),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+  total: z.number().int(), // rows matching every filter incl. status
+  statusCounts: StatusCounts, // rows matching agencyId + q only, per status
+});
 
 // ---------- GET /api/audit-logs (additive, not one of the 6 required routes; ARCHITECTURE §11) ----------
 
@@ -200,6 +242,52 @@ export const UploadCredentialResponse = z.strictObject({ credential: NurseCreden
 /** `licenseValid` = the same rule the claim uses (`isEligible`: unexpired license, verified OR pending per ARCHITECTURE §5.3). Drives the lapsed-license warning. */
 export const NurseCredentialsResponse = z.strictObject({ credentials: z.array(NurseCredential), licenseValid: z.boolean() });
 
+// ---------- Nurse detail + admin users + credential review (additive, UI polish) ----------
+
+/** Who a nurse is and what is on file. Credentials never carry object keys or URLs (hasFile is a boolean). */
+export const NurseDetail = z.strictObject({
+  id: Id,
+  name: z.string().min(1),
+  email: z.email(),
+  licenseType: ShiftRole.nullable(),
+  credentials: z.array(NurseCredential),
+});
+export const ShiftNurseResponse = NurseDetail;
+export const AdminNurseResponse = NurseDetail;
+
+export const AdminUserType = z.enum(["nurse", "agency"]);
+export const AdminUsersQuery = z.object({
+  type: AdminUserType,
+  q: SearchText.optional(), // name or email
+  cursor: z.string().min(1).max(64).optional(), // opaque: the `nextCursor` of the previous page
+  limit: z.coerce.number().int().min(1).max(ADMIN_PAGE_SIZE_MAX).default(25),
+});
+/** List rows are minimal: open the detail for the rest. `licenseType` is null for agencies. */
+export const AdminUserRow = z.strictObject({
+  id: Id,
+  type: AdminUserType,
+  name: z.string().min(1),
+  email: z.string().nullable(),
+  licenseType: ShiftRole.nullable(),
+});
+export const AdminUsersResponse = z.strictObject({ items: z.array(AdminUserRow), nextCursor: z.string().nullable() });
+
+export const AdminAgencyResponse = z.strictObject({
+  id: Id,
+  name: z.string().min(1),
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  status: z.enum(["active", "suspended"]),
+  members: z.array(z.strictObject({ userId: Id, name: z.string().min(1), email: z.string(), role: AgencyMembershipRole })),
+  shiftCounts: StatusCounts,
+});
+
+/** PATCH /api/credentials/:id/review. Only the two outcomes: a credential never returns to `pending`. */
+export const ReviewCredentialRequest = z.object({ status: z.enum(["verified", "rejected"]) });
+export const ReviewCredentialResponse = z.strictObject({ credential: NurseCredential });
+
 // ---------- Inferred types ----------
 // Requests use z.input (what a client sends), responses z.output (what the API returns).
 
@@ -237,3 +325,19 @@ export type UploadCredentialFields = z.input<typeof UploadCredentialFields>;
 export type NurseCredential = z.infer<typeof NurseCredential>;
 export type UploadCredentialResponse = z.infer<typeof UploadCredentialResponse>;
 export type NurseCredentialsResponse = z.infer<typeof NurseCredentialsResponse>;
+export type CoverageRow = z.infer<typeof CoverageRow>;
+export type StatusCounts = z.infer<typeof StatusCounts>;
+export type AgencyCoverageQuery = z.infer<typeof AgencyCoverageQuery>;
+export type AgencyCoverageResponse = z.infer<typeof AgencyCoverageResponse>;
+export type AdminCoverageQuery = z.infer<typeof AdminCoverageQuery>;
+export type AdminCoverageResponse = z.infer<typeof AdminCoverageResponse>;
+export type NurseDetail = z.infer<typeof NurseDetail>;
+export type ShiftNurseResponse = z.infer<typeof ShiftNurseResponse>;
+export type AdminNurseResponse = z.infer<typeof AdminNurseResponse>;
+export type AdminUserType = z.infer<typeof AdminUserType>;
+export type AdminUsersQuery = z.infer<typeof AdminUsersQuery>;
+export type AdminUserRow = z.infer<typeof AdminUserRow>;
+export type AdminUsersResponse = z.infer<typeof AdminUsersResponse>;
+export type AdminAgencyResponse = z.infer<typeof AdminAgencyResponse>;
+export type ReviewCredentialRequest = z.input<typeof ReviewCredentialRequest>;
+export type ReviewCredentialResponse = z.infer<typeof ReviewCredentialResponse>;

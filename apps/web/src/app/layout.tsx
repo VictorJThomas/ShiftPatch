@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Shift marketplace for nursing staffing: agencies post, nurses claim, hospitals see it all.",
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, interactiveWidget: "resizes-content" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

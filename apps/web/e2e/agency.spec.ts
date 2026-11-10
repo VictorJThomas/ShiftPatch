@@ -7,7 +7,8 @@ test.beforeEach(async ({ page }) => {
   api = await MockApi.install(page);
 });
 
-const shiftCalls = (id: string) => api.calls(`/api/agencies/${id}/shifts`);
+// The board reads the coverage endpoint (shifts + claimant names), unfiltered for the stat tiles and counts.
+const shiftCalls = (id: string) => api.calls(`/api/agencies/${id}/coverage`);
 
 test("single-agency users get X-Agency-Id and no switcher", async ({ page }) => {
   await signIn(page, "agency");
@@ -82,12 +83,15 @@ test("a 403 for the selected agency drops the selection and shows the server err
   await expect(page).toHaveURL(/\/agency\/shifts$/); // a 403 is not a session problem: no logout
 });
 
-test("mobile layout: tab bar instead of header, switcher button spans the band", async ({ page }) => {
+test("mobile layout: no header and no tab bar, the band carries the switcher and the account menu", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page, "multi");
   await expect(page.locator(".ag-header")).toBeHidden();
-  await expect(page.getByRole("navigation", { name: "Agency" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Agency" })).toBeHidden(); // the desktop nav is gone and no tab bar replaces it
   await expect(page.getByRole("button", { name: /switch agency/i })).toBeVisible();
+  await page.getByRole("button", { name: "Account menu" }).click(); // the only visible menu: in the band
+  await expect(page.getByRole("menuitem", { name: "Profile" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
 });
 
 test("cross-agency isolation: agency-b sees only its own seed shift; a foreign agency list is a 403 Forbidden", async ({ page }) => {

@@ -20,17 +20,24 @@ import { NotificationBanner } from "./NotificationBanner";
  * Only the NEWEST banner carries `data-testid="notification-banner"`: older ones may still be visible
  * (success lasts 5 s, errors until dismissed), and a test ID on two nodes breaks strict locators.
  */
-export function Toaster({ inline = false }: { inline?: boolean }) {
+export function Toaster({ inline = false, dialogId }: { inline?: boolean; dialogId?: string }) {
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
   const dialogOpen = useOpenDialogs((s) => s.count > 0);
-  const active = inline || !dialogOpen;
+  // Inline: only the top dialog of a stack is active (a lower one is inert behind it); without a dialogId (tests) always.
+  const isTop = useOpenDialogs((s) => dialogId === undefined || s.stack.at(-1) === dialogId);
+  const active = inline ? isTop : !dialogOpen;
 
   // Latest success ever pushed (ids only grow). Adjusted during render, so dismissing a newer toast
   // never brings an older message back into the region (no re-announcement).
+  // `seen` also advances while inactive (a dialog announced it), so closing the dialogs never re-announces it here.
   const [announced, setAnnounced] = useState<Toast>();
+  const [seen, setSeen] = useState(0);
   const latest = toasts.findLast((t) => t.kind === "success");
-  if (active && latest && latest.id > (announced?.id ?? 0)) setAnnounced(latest);
+  if (latest && latest.id > seen) {
+    setSeen(latest.id);
+    if (active) setAnnounced(latest);
+  }
 
   const newestId = toasts.at(-1)?.id;
   return (

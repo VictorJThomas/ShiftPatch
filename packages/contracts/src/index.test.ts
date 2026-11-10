@@ -346,6 +346,9 @@ describe("type inference", () => {
       | "Attach a file to upload"
       | "File is larger than 10 MB"
       | "Unsupported file type. Upload a PDF, JPEG, PNG or HEIC file"
+      | "Not found"
+      | "No nurse has claimed this shift"
+      | "Credential already has this status"
     >();
   });
   it("specialised responses are assignable to the base Shift", () => {

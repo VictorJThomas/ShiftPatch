@@ -14,4 +14,10 @@ export async function signIn(page: Page, key: UserKey) {
 
 export const roleCookie = async (page: Page) => (await page.context().cookies()).find((c) => c.name === "sp_role");
 
+/** Sign out lives in the account menu (avatar button) of every shell; exactly one menu is visible per viewport. */
+export async function signOutViaMenu(page: Page) {
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+}
+
 export const banner = (page: Page) => page.getByTestId("notification-banner");

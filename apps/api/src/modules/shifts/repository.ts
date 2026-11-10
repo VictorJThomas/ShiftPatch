@@ -1,7 +1,7 @@
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import {
-  agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, notifications, nurseProfiles, shiftCancellations, shifts, users,
+  agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, notifications, nurseProfiles, shiftCancellations, shifts, userProfiles, users,
 } from "../../db/schema/index.js";
 import type { Tx } from "../audit/audit.js";
 import {
@@ -51,8 +51,24 @@ export async function listByNetwork(db: Db, scope: NetworkScope) {
     .orderBy(...byNumericId);
 }
 
-/** Marketplace: all non-deleted shifts (open + filled...), optionally one network and/or open only. */
-export async function listMarketplace(db: Db, scope: MarketplaceScope, opts: { openOnly: boolean }) {
+export interface ShiftFilters {
+  status?: "open" | "filled" | "cancelled" | "completed" | undefined;
+  role?: "RN" | "LPN" | "CNA" | undefined;
+  date?: string | undefined;
+  agencyId?: string | undefined;
+}
+const filterConds = (f: ShiftFilters) => [
+  f.status ? eq(shifts.status, f.status) : undefined,
+  f.role ? eq(shifts.role, f.role) : undefined,
+  f.date ? eq(shifts.shiftDate, f.date) : undefined,
+  f.agencyId ? eq(shifts.agencyId, f.agencyId) : undefined,
+];
+
+/** `%`, `_` and the backslash in user text are literals, not wildcards (Postgres LIKE escapes with a backslash by default). */
+export const likePattern = (q: string) => `%${q.replace(/[\\%_]/g, "\\$&")}%`;
+
+/** Marketplace: all non-deleted shifts (open + filled...), optionally one network and/or open only, plus optional AND filters. */
+export async function listMarketplace(db: Db, scope: MarketplaceScope, opts: { openOnly: boolean; filters?: ShiftFilters }) {
   assertMarketplaceScope(scope);
   return db
     .select(shiftColumns)
@@ -63,9 +79,61 @@ export async function listMarketplace(db: Db, scope: MarketplaceScope, opts: { o
         isNull(shifts.deletedAt),
         scope.networkId === null ? undefined : eq(shifts.networkId, scope.networkId),
         opts.openOnly ? eq(shifts.status, "open") : undefined,
+        ...filterConds(opts.filters ?? {}),
       ),
     )
     .orderBy(...byNumericId);
+}
+
+// ---- Coverage: shifts + the claiming nurse's name (agency and admin tables). One column list, one mapper. ----
+
+const coverageColumns = { ...shiftColumns, claimedByName: userProfiles.fullName };
+
+/** Case-insensitive search over the nurse name and the shift id, plus the agency name for the admin table. */
+const searchCond = (q: string | undefined, withAgency: boolean): SQL | undefined => {
+  if (!q) return undefined;
+  const p = likePattern(q);
+  return or(sql`${userProfiles.fullName} ILIKE ${p}`, sql`${shifts.id} ILIKE ${p}`, withAgency ? sql`${agencies.name} ILIKE ${p}` : undefined);
+};
+
+const coverageBase = (db: Db) =>
+  db
+    .select(coverageColumns)
+    .from(shifts)
+    .innerJoin(agencies, eq(agencies.id, shifts.agencyId))
+    .leftJoin(userProfiles, eq(userProfiles.userId, shifts.claimedBy));
+
+/** One agency's shifts with nurse names. Filters AND together. */
+export async function coverageByAgency(db: Db, scope: AgencyScope, f: Omit<ShiftFilters, "agencyId"> & { q?: string | undefined }) {
+  assertAgencyScope(scope);
+  return coverageBase(db)
+    .where(and(inArray(shifts.agencyId, [...scope.agencyIds]), isNull(shifts.deletedAt), ...filterConds(f), searchCond(f.q, false)))
+    .orderBy(...byNumericId);
+}
+
+/** One page of a network's shifts + per-status counts for the (agencyId, q) base. Scope = every network the admin administers. */
+export async function coverageByNetworks(
+  db: Db,
+  scopes: NetworkScope[],
+  f: { status?: ShiftFilters["status"]; agencyId?: string | undefined; q?: string | undefined; sort?: "asc" | "desc"; limit: number; offset: number },
+) {
+  for (const s of scopes) assertNetworkScope(s);
+  const base = [inArray(shifts.networkId, scopes.map((s) => s.networkId)), isNull(shifts.deletedAt), ...filterConds({ agencyId: f.agencyId }), searchCond(f.q, true)];
+  const [rows, counts] = await Promise.all([
+    coverageBase(db)
+      .where(and(...base, ...filterConds({ status: f.status })))
+      .orderBy(...(f.sort === "desc" ? [desc(shifts.shiftDate), desc(shifts.startTime), desc(sql`length(${shifts.id})`), desc(shifts.id)] : [asc(shifts.shiftDate), asc(shifts.startTime), ...byNumericId]))
+      .limit(f.limit)
+      .offset(f.offset),
+    db
+      .select({ status: shifts.status, n: sql<number>`count(*)::int` })
+      .from(shifts)
+      .innerJoin(agencies, eq(agencies.id, shifts.agencyId))
+      .leftJoin(userProfiles, eq(userProfiles.userId, shifts.claimedBy))
+      .where(and(...base))
+      .groupBy(shifts.status),
+  ]);
+  return { rows, counts };
 }
 
 export interface NewShift {
@@ -128,7 +196,7 @@ export async function facilityTimezone(db: Db, facilityId: string, networkId: st
   return row?.timezone ?? null;
 }
 
-export async function networkDefaultTimezone(db: Db, networkId: string): Promise<string> {
+export async function networkDefaultTimezone(db: Db | Tx, networkId: string): Promise<string> {
   const [row] = await db.select({ tz: hospitalNetworks.defaultTimezone }).from(hospitalNetworks).where(eq(hospitalNetworks.id, networkId));
   return row?.tz ?? "America/New_York";
 }

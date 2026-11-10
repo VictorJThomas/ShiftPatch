@@ -1,4 +1,4 @@
-import type { Shift } from "@shiftpatch/contracts";
+import type { CoverageRow, Shift } from "@shiftpatch/contracts";
 
 export interface ShiftRow {
   id: string;
@@ -24,3 +24,8 @@ export const toShift = (r: ShiftRow): Shift => ({
   status: r.status as Shift["status"],
   claimedBy: r.claimedBy,
 });
+
+export interface CoverageRowInput extends ShiftRow { claimedByName: string | null }
+
+/** Shared by the agency and admin coverage tables: the Shift shape plus the claimer's name. */
+export const toCoverageRow = (r: CoverageRowInput): CoverageRow => ({ ...toShift(r), claimedByName: r.claimedByName });

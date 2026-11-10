@@ -1,21 +1,12 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChipGroup } from "./ChipGroup";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Dialog } from "./Dialog";
 import { Field, Select } from "./Field";
 import { StatusBadge } from "./StatusBadge";
 
-// jsdom has no showModal/close; the browser provides them (plus focus trap and Esc).
-beforeAll(() => {
-  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-    this.setAttribute("open", "");
-  };
-  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
-    this.removeAttribute("open");
-  };
-});
 afterEach(cleanup);
 
 function Harness() {
@@ -30,33 +21,24 @@ function Harness() {
   );
 }
 
-describe("Dialog", () => {
-  it("opens modal, is labelled by its title, and returns focus on close", () => {
+// Dialog is a thin wrapper over AppDialog (Radix); AppDialog.test.tsx covers sizes, close paths and focus.
+describe("Dialog (compat wrapper)", () => {
+  it("opens modal, is labelled by its title, and returns focus on close", async () => {
     render(<Harness />);
     const trigger = screen.getByRole("button", { name: "Open" });
     trigger.focus();
     fireEvent.click(trigger);
-    const dialog = screen.getByRole("dialog", { name: "Claim this shift?" });
-    expect(dialog.hasAttribute("open")).toBe(true);
+    const dialog = await screen.findByRole("dialog", { name: "Claim this shift?" });
     expect(dialog.getAttribute("aria-describedby")).toBeTruthy();
+    expect(dialog.getAttribute("data-size")).toBe("md");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(document.activeElement).toBe(trigger);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it("Esc (cancel) and backdrop click close; clicks inside do not", () => {
-    render(<Harness />);
-    fireEvent.click(screen.getByRole("button", { name: "Open" }));
-    fireEvent.click(screen.getByText("Body"));
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
-    expect(screen.queryByRole("dialog")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Open" }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.pointerDown(dialog);
-    fireEvent.click(dialog);
-    expect(screen.queryByRole("dialog")).toBeNull();
+  it("maps the deprecated variant to a size", async () => {
+    render(<Dialog open onClose={() => {}} title="Wide" variant="panel" />);
+    expect((await screen.findByRole("dialog")).getAttribute("data-size")).toBe("lg");
   });
 });
 
@@ -92,7 +74,7 @@ describe("Field", () => {
     expect(select.getAttribute("aria-invalid")).toBe("true");
     const described = (select.getAttribute("aria-describedby") ?? "").split(" ").map((id) => document.getElementById(id)?.textContent);
     expect(described).toEqual(["RN, LPN or CNA", "Pick a role"]);
-    expect(select.parentElement?.className).toContain("err");
+    expect(select.className).toContain("aria-invalid:border-destructive");
   });
 });
 

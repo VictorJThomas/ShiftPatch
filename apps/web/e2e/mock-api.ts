@@ -62,6 +62,16 @@ const ERR = {
   shiftNotFound: "Shift not found",
   shiftNotOpen: "Shift is no longer open",
   shiftNotFilled: "Shift is not filled",
+  notFound: "Not found",
+};
+
+const NURSES: Record<string, { name: string; email: string; licenseType: "RN" | "LPN" | "CNA" }> = {
+  "nurse-1": { name: "Maria Lopez", email: "maria.lopez@example.com", licenseType: "RN" },
+  "nurse-2": { name: "James Cook", email: "james.cook@example.com", licenseType: "RN" },
+};
+const AGENCY_DETAILS: Record<string, { email: string; phone: string; city: string; state: string; members: { userId: string; name: string; email: string; role: "owner" | "manager" | "viewer" }[] }> = {
+  "agency-a": { email: "scheduler@sunrise-health.example", phone: "555-0100", city: "Austin", state: "TX", members: [{ userId: "agency-user-1", name: "Sam Carter", email: "scheduler@sunrise-health.example", role: "owner" }] },
+  "agency-b": { email: "admin@metrocare.example", phone: "555-0200", city: "Dallas", state: "TX", members: [{ userId: "agency-user-3", name: "Metro Admin", email: "admin@metrocare.example", role: "manager" }] },
 };
 
 export interface RecordedRequest {
@@ -104,6 +114,9 @@ export class MockApi {
   auditCount = 12;
   /** Uploaded credentials per nurse (pending). */
   uploads: Record<string, { id: string; expiresOn: string | null; uploadedAt: string }[]> = {};
+
+  /** Review outcomes set by PATCH /api/credentials/:id/review (credential id -> status). */
+  reviewed: Record<string, "verified" | "rejected"> = {};
 
   private validTokens = new Set<string>();
   private counter = 0;
@@ -153,12 +166,13 @@ export class MockApi {
 
   private credentialsOf(nurseId: string) {
     const seed = SEED_CREDENTIALS[nurseId];
-    const list = [
+    const list0 = [
       ...(seed
         ? [{ id: `cred-${nurseId}`, type: "license", licenseType: "RN", status: "verified", expiresOn: seed.expiresOn, screenedOn: null, uploadedAt: "2026-01-05T10:00:00.000Z", expired: seed.expired, hasFile: true }]
         : []),
       ...(this.uploads[nurseId] ?? []).map((u) => ({ id: u.id, type: "license", licenseType: null, status: "pending", expiresOn: u.expiresOn, screenedOn: null, uploadedAt: u.uploadedAt, expired: false, hasFile: true })),
     ];
+    const list = list0.map((c) => (this.reviewed[c.id] ? { ...c, status: this.reviewed[c.id]! } : c));
     return { credentials: list, licenseValid: list.some((c) => c.type === "license" && !c.expired && c.status !== "rejected") };
   }
 
@@ -244,10 +258,13 @@ export class MockApi {
     }
 
     if (path === "/api/shifts" && method === "GET") {
-      if (url.searchParams.get("matchable") !== "true") return this.json(route, 200, { shifts: this.shifts });
+      const sp = url.searchParams;
+      const filtered = (list: readonly MockShift[]) =>
+        list.filter((x) => (!sp.get("status") || x.status === sp.get("status")) && (!sp.get("role") || x.role === sp.get("role")) && (!sp.get("date") || x.date === sp.get("date")) && (!sp.get("agencyId") || x.agencyId === sp.get("agencyId")));
+      if (sp.get("matchable") !== "true") return this.json(route, 200, { shifts: filtered(this.shifts) });
       if (role !== "nurse") return this.json(route, 403, { error: ERR.forbidden });
       const eligible = !SEED_CREDENTIALS[user.user.id]?.expired || (this.uploads[user.user.id]?.length ?? 0) > 0;
-      return this.json(route, 200, { shifts: eligible ? this.shifts.filter((s) => s.status === "open" && s.role === "RN") : [] });
+      return this.json(route, 200, { shifts: eligible ? filtered(this.shifts.filter((x) => x.status === "open" && x.role === "RN")) : [] });
     }
 
     if (path === "/api/shifts" && method === "POST") {
@@ -301,6 +318,96 @@ export class MockApi {
         return this.json(route, 201, { credential });
       }
       return this.json(route, 200, this.credentialsOf(user.user.id));
+    }
+
+    const withNurse = (x: MockShift) => ({ ...x, claimedByName: x.claimedBy ? (NURSES[x.claimedBy]?.name ?? null) : null });
+    const matchesQ = (x: MockShift, q: string, withAgency: boolean) => {
+      const n = q.toLowerCase();
+      return x.id.toLowerCase().includes(n) || (withNurse(x).claimedByName ?? "").toLowerCase().includes(n) || (withAgency && x.agencyName.toLowerCase().includes(n));
+    };
+
+    const agencyCoverage = path.match(/^\/api\/agencies\/([^/]+)\/coverage$/);
+    if (agencyCoverage) {
+      const agencyId = agencyCoverage[1]!;
+      const override = this.shiftsStatus[agencyId];
+      if (override) return this.json(route, override.status, override.body);
+      const allowed = role === "admin" || (role === "agency" && active === agencyId);
+      if (!allowed) return this.json(route, 403, { error: ERR.forbidden });
+      const sp = url.searchParams;
+      const rows = this.shifts
+        .filter((x) => x.agencyId === agencyId)
+        .filter((x) => (!sp.get("status") || x.status === sp.get("status")) && (!sp.get("role") || x.role === sp.get("role")) && (!sp.get("date") || x.date === sp.get("date")))
+        .filter((x) => !sp.get("q") || matchesQ(x, sp.get("q")!, false));
+      return this.json(route, 200, { agencyId, shifts: rows.map(withNurse) });
+    }
+
+    if (path === "/api/admin/coverage") {
+      if (role !== "admin") return this.json(route, 403, { error: ERR.forbidden });
+      const sp = url.searchParams;
+      const base = this.shifts.filter((x) => (!sp.get("agencyId") || x.agencyId === sp.get("agencyId")) && (!sp.get("q") || matchesQ(x, sp.get("q")!, true)));
+      const statusCounts = { open: 0, filled: 0, cancelled: 0, completed: 0 };
+      for (const x of base) statusCounts[x.status]++;
+      const matching = base.filter((x) => !sp.get("status") || x.status === sp.get("status"));
+      const sign = sp.get("sort") === "desc" ? -1 : 1;
+      const num = (id: string) => Number(id.replace(/\D/g, ""));
+      matching.sort((a, b) => sign * (`${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`) || num(a.id) - num(b.id)));
+      const page = Number(sp.get("page") ?? 1);
+      const pageSize = Number(sp.get("pageSize") ?? 25);
+      return this.json(route, 200, { shifts: matching.slice((page - 1) * pageSize, page * pageSize).map(withNurse), page, pageSize, total: matching.length, statusCounts });
+    }
+
+    if (path === "/api/admin/users") {
+      if (role !== "admin") return this.json(route, 403, { error: ERR.forbidden });
+      const type = url.searchParams.get("type");
+      const q = (url.searchParams.get("q") ?? "").toLowerCase();
+      const items =
+        type === "nurse"
+          ? Object.entries(NURSES).map(([id, n]) => ({ id, type: "nurse" as const, name: n.name, email: n.email, licenseType: n.licenseType }))
+          : Object.entries(AGENCY_NAMES).map(([id, name]) => ({ id, type: "agency" as const, name, email: AGENCY_DETAILS[id]!.email, licenseType: null }));
+      return this.json(route, 200, { items: items.filter((i) => !q || i.name.toLowerCase().includes(q) || (i.email ?? "").toLowerCase().includes(q)), nextCursor: null });
+    }
+
+    const nurseDetail = (id: string) => {
+      const n = NURSES[id];
+      return n ? { id, name: n.name, email: n.email, licenseType: n.licenseType, credentials: this.credentialsOf(id).credentials } : null;
+    };
+
+    const adminNurse = path.match(/^\/api\/admin\/nurses\/([^/]+)$/);
+    if (adminNurse) {
+      if (role !== "admin") return this.json(route, 403, { error: ERR.forbidden });
+      const d = nurseDetail(adminNurse[1]!);
+      return d ? this.json(route, 200, d) : this.json(route, 404, { error: ERR.notFound });
+    }
+
+    const adminAgency = path.match(/^\/api\/admin\/agencies\/([^/]+)$/);
+    if (adminAgency) {
+      if (role !== "admin") return this.json(route, 403, { error: ERR.forbidden });
+      const id = adminAgency[1]!;
+      const det = AGENCY_DETAILS[id];
+      if (!det) return this.json(route, 404, { error: ERR.notFound });
+      const shiftCounts = { open: 0, filled: 0, cancelled: 0, completed: 0 };
+      for (const x of this.shifts.filter((y) => y.agencyId === id)) shiftCounts[x.status]++;
+      return this.json(route, 200, { id, name: AGENCY_NAMES[id], email: det.email, phone: det.phone, city: det.city, state: det.state, status: "active", members: det.members, shiftCounts });
+    }
+
+    const shiftNurse = path.match(/^\/api\/shifts\/([^/]+)\/nurse$/);
+    if (shiftNurse) {
+      const x = this.shifts.find((y) => y.id === shiftNurse[1]);
+      if (!x) return this.json(route, 404, { error: ERR.notFound });
+      const allowed = role === "admin" || (role === "agency" && active === x.agencyId);
+      if (!allowed) return this.json(route, 403, { error: ERR.forbidden });
+      const d = x.claimedBy ? nurseDetail(x.claimedBy) : null;
+      return d ? this.json(route, 200, d) : this.json(route, 404, { error: ERR.notFound });
+    }
+
+    const review = path.match(/^\/api\/credentials\/([^/]+)\/review$/);
+    if (review && method === "PATCH") {
+      if (role !== "admin") return this.json(route, 403, { error: ERR.forbidden });
+      const owner = Object.keys(NURSES).find((n) => this.credentialsOf(n).credentials.some((c) => c.id === review[1]));
+      if (!owner) return this.json(route, 404, { error: ERR.notFound });
+      const { status } = req.postDataJSON() as { status: "verified" | "rejected" };
+      this.reviewed[review[1]!] = status;
+      return this.json(route, 200, { credential: this.credentialsOf(owner).credentials.find((c) => c.id === review[1]) });
     }
 
     if (path === "/api/audit-logs") {

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { CancelShiftRequest, CreateShiftRequest, ErrorMessage } from "@shiftpatch/contracts";
+import { CancelShiftRequest, CreateShiftRequest, ErrorMessage, type NurseDetail } from "@shiftpatch/contracts";
 import type { Db } from "../../db/client.js";
 import { recordAudit, type RequestMeta } from "../audit/audit.js";
 import type { Actor } from "../authz/actor.js";
 import { can } from "../authz/can.js";
 import { type Decision, deny } from "../authz/decision.js";
-import { agencyScope, agencyScopeForAdmin, marketplaceScope, matchableScope } from "../authz/scope.js";
+import { type AgencyScope, agencyScope, agencyScopeForAdmin, marketplaceScope, matchableScope } from "../authz/scope.js";
+import { loadNurseDetail } from "../credentials/service.js";
 import { ineligibility, isEligible, roleMatchesLicense, todayIn } from "./eligibility.js";
 import * as repo from "./repository.js";
 
@@ -17,14 +18,15 @@ const denied = (d: Decision): Result<never> => ({ ok: false, denied: d as Decisi
 const failed = (status: Failure["status"], error: string): Result<never> => ({ ok: false, fail: { status, error } });
 
 /** GET /api/shifts: every non-deleted shift across agencies, any role (spec). */
-export const listMarketplace = (db: Db, actor: Actor) => repo.listMarketplace(db, marketplaceScope(actor), { openOnly: false });
+export const listMarketplace = (db: Db, actor: Actor, filters: repo.ShiftFilters = {}) =>
+  repo.listMarketplace(db, marketplaceScope(actor), { openOnly: false, filters });
 
 /** GET /api/shifts?matchable=true: open shifts in the nurse's network she is eligible for. */
-export async function listMatchable(db: Db, actor: Actor, now = new Date()): Promise<Result<Awaited<ReturnType<typeof repo.listMarketplace>>>> {
+export async function listMatchable(db: Db, actor: Actor, now = new Date(), filters: repo.ShiftFilters = {}): Promise<Result<Awaited<ReturnType<typeof repo.listMarketplace>>>> {
   const decision = can(actor, "shift:list-matchable", {});
   if (!decision.allow) return denied(decision);
   const [open, licenses, licenseType] = await Promise.all([
-    repo.listMarketplace(db, matchableScope(actor), { openOnly: true }),
+    repo.listMarketplace(db, matchableScope(actor), { openOnly: true, filters }),
     repo.licensesOf(db, actor.userId),
     repo.nurseLicenseType(db, actor.userId),
   ]);
@@ -42,6 +44,35 @@ export async function listForAgency(db: Db, actor: Actor, agencyId: string): Pro
   if (!decision.allow) return denied(decision);
   const scope = actor.role === "admin" ? agencyScopeForAdmin(actor, agencyId, networkId) : agencyScope(actor, agencyId);
   return { ok: true, value: await repo.listByAgency(db, scope) };
+}
+
+/** GET /api/agencies/:agencyId/coverage, step 1: same authorization as route 6 (runs before the query is validated). */
+export async function authorizeAgencyCoverage(db: Db, actor: Actor, agencyId: string): Promise<Result<AgencyScope>> {
+  const networkId = (await repo.agencyNetworkId(db, agencyId)) ?? "";
+  const decision = can(actor, "shift:read-agency", { agencyId, networkId });
+  if (!decision.allow) return denied(decision);
+  return { ok: true, value: actor.role === "admin" ? agencyScopeForAdmin(actor, agencyId, networkId) : agencyScope(actor, agencyId) };
+}
+
+/** Step 2: the agency's shifts with the claiming nurse's name, filters ANDed. */
+export const coverageForAgency = (db: Db, scope: AgencyScope, f: Parameters<typeof repo.coverageByAgency>[2]) => repo.coverageByAgency(db, scope, f);
+
+/**
+ * GET /api/shifts/:id/nurse. Who may see a nurse's credentials follows `credential:read-metadata` (ARCHITECTURE §7.1): admins of
+ * the shift's network, owners/managers of the owning agency. Nurses: 403. Everyone else outside the shift's scope: 404.
+ */
+export async function nurseOfShift(db: Db, actor: Actor, shiftId: string): Promise<Result<NurseDetail>> {
+  if (actor.role === "nurse") return denied(deny("role_not_permitted"));
+  const shift = await repo.findLiveShift(db, shiftId);
+  const decision = can(actor, "credential:read-metadata", {
+    nurseId: shift?.claimedBy ?? "",
+    nurseNetworkId: shift?.networkId ?? "", // a nurse can only claim inside her own network, so the shift's network is hers
+    agencyIdsHoldingNurse: shift ? [shift.agencyId] : [],
+  });
+  if (!shift || !decision.allow) return failed(404, ErrorMessage.shiftNotFound); // missing or out of scope: one answer, no existence leak
+  if (!shift.claimedBy) return failed(404, ErrorMessage.shiftHasNoNurse);
+  const nurse = await loadNurseDetail(db, shift.claimedBy);
+  return nurse ? { ok: true, value: nurse } : failed(404, ErrorMessage.shiftHasNoNurse);
 }
 
 /** POST /api/shifts. Authorization first (403 / 400 "Select an agency" before any body error), then validation. */

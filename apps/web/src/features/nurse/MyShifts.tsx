@@ -4,6 +4,9 @@ import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built
 import Link from "next/link";
 import { useState } from "react";
 import type { Shift } from "@shiftpatch/contracts";
+import { Alert } from "@/components/shadcn/alert";
+import { Badge } from "@/components/shadcn/badge";
+import { Button } from "@/components/shadcn/button";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
@@ -40,13 +43,17 @@ export function MyShifts() {
         ) : (
           <>
             <section aria-labelledby="my-upcoming-h">
-              <h2 id="my-upcoming-h" className="nurse-list-h tnum">
-                Upcoming · {upcoming.length}
+              <h2 id="my-upcoming-h" className="nurse-list-h">
+                Upcoming <span className="nurse-count tnum">{upcoming.length}</span>
               </h2>
+              {/* Policy notice: its own block above the cards grid, not a line inside it. */}
               {upcoming.length > 0 && (
-                <p id="my-cancel-note" className="muted nurse-confirm-note">
-                  Cancelling is an advance cancellation: the agency is notified right away and the shift reopens for other nurses.
-                </p>
+                <Alert id="my-cancel-note" variant="info" className="nurse-policy">
+                  <Icon name="info" size="lg" />
+                  <div>
+                    <b>Cancellation policy</b> Cancelling is an advance cancellation: the agency is notified right away and the shift reopens for other nurses.
+                  </div>
+                </Alert>
               )}
               {upcoming.length > 0 ? (
                 <ul className="card-grid">
@@ -55,29 +62,28 @@ export function MyShifts() {
                       <ShiftCard
                         shift={shift}
                         badge={
-                          <span className="badge b-filled">
+                          <Badge variant="filled">
                             <Icon name="check-circle" />
-                            Filled · you
-                          </span>
+                            Claimed by you
+                          </Badge>
                         }
                         actions={
                           <>
-                            <button
-                              type="button"
-                              className="btn btn-danger nurse-grow"
+                            <Button
+                              variant="danger"
+                              className="min-h-12 min-w-0 flex-1"
                               data-testid="shift-cancel-button"
                               disabled={!online || cancel.isPending}
-                              aria-busy={cancellingId === shift.id}
+                              loading={cancellingId === shift.id}
                               aria-describedby="my-cancel-note"
                               aria-label={`Cancel shift: ${shift.agencyName}, ${shift.role}`}
                               onClick={() => cancel.mutate(shift)}
                             >
-                              {cancellingId === shift.id && <span className="spin" aria-hidden="true" />}
                               Cancel shift
-                            </button>
-                            <button type="button" className="btn btn-secondary" aria-label={`Details: ${shift.agencyName}, ${shift.role}`} onClick={() => setDetails(shift)}>
+                            </Button>
+                            <Button variant="secondary" className="min-h-12" aria-label={`Details: ${shift.agencyName}, ${shift.role}`} onClick={() => setDetails(shift)}>
                               Details
-                            </button>
+                            </Button>
                           </>
                         }
                       />
@@ -89,9 +95,9 @@ export function MyShifts() {
                   icon="list"
                   title="No upcoming shifts"
                   action={
-                    <Link href="/nurse/shifts" className="btn btn-primary">
-                      Find shifts
-                    </Link>
+                    <Button asChild>
+                      <Link href="/nurse/shifts">Find shifts</Link>
+                    </Button>
                   }
                 >
                   Shifts you claim will show up here.
@@ -100,8 +106,8 @@ export function MyShifts() {
             </section>
             {completed.length > 0 && (
               <section aria-labelledby="my-completed-h">
-                <h2 id="my-completed-h" className="nurse-list-h tnum">
-                  Completed · {completed.length}
+                <h2 id="my-completed-h" className="nurse-list-h">
+                  Completed <span className="nurse-count tnum">{completed.length}</span>
                 </h2>
                 <ul className="card-grid">
                   {completed.map((shift) => (

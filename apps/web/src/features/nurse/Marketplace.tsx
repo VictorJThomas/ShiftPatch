@@ -2,16 +2,20 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Shift, ShiftRole } from "@shiftpatch/contracts";
+import { Alert } from "@/components/shadcn/alert";
+import { Button } from "@/components/shadcn/button";
 import { AppBar, UserAvatar } from "@/components/shells/NurseShell";
-import { ChipGroup } from "@/components/ui/ChipGroup";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FilterGroup } from "@/components/ui/FilterBar";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { parseIsoDate } from "@/lib/format";
-import { useClaimShift, useCredentials, useMatchableShifts, useOpenShifts } from "./queries";
+import { newCredentialHref } from "./credential-upload";
+import { useClaimShift, useCredentials, useFilteredShifts, useMatchableShifts, useOpenShifts, type ShiftParams } from "./queries";
 import { ShiftCard, ShiftDetailsDialog } from "./ShiftCard";
 
 type RoleFilter = "all" | ShiftRole;
@@ -34,29 +38,30 @@ export function pickShiftSource(matchable: Shift[], open: Shift[], licenseValid:
 function LicenseNotice({ kind }: { kind: "expired" | "nomatch" }) {
   if (kind === "expired") {
     return (
-      <div className="alert al-warn nurse-notice" role="status">
+      <Alert variant="warning" role="status" className="nurse-notice">
         <Icon name="cal-x" size="lg" />
         <div>
           <b>Your license has expired.</b> Upload a renewed license to claim shifts.
-          <Link href="/nurse/credentials" className="nurse-notice-link">
+          <Link href={newCredentialHref("license")} className="nurse-notice-link">
             Upload renewed license
             <Icon name="arrow" size="sm" />
           </Link>
         </div>
-      </div>
+      </Alert>
     );
   }
   return (
-    <div className="alert al-info" role="status">
+    <Alert variant="info" role="status">
       <Icon name="info" size="lg" />
       <div>
         <b>No shifts match your credentials right now</b> Here are all open shifts. Claiming checks your credentials.
       </div>
-    </div>
+    </Alert>
   );
 }
 
 export function Marketplace() {
+  // Two unfiltered queries: they pick the source (matchable first, open as the lapsed fallback) and feed the chip counts.
   const matchable = useMatchableShifts();
   const open = useOpenShifts();
   const credentials = useCredentials(); // a failure just means the neutral copy
@@ -69,20 +74,33 @@ export function Marketplace() {
 
   const loading = matchable.isPending || open.isPending;
   const failed = matchable.isError || open.isError;
-  const { shifts, notice } = loading || failed ? { shifts: [], notice: null } : pickShiftSource(matchable.data, open.data, credentials.data?.licenseValid);
+  const { shifts: all, notice } = loading || failed ? { shifts: [], notice: null } : pickShiftSource(matchable.data, open.data, credentials.data?.licenseValid);
 
-  // Filters: a selection that no longer exists (e.g. its last shift was claimed) falls back to "all".
-  const dates = [...new Set(shifts.map((s) => s.date))].sort();
+  // A selection that no longer exists (e.g. its last shift was claimed) falls back to "all".
+  const dates = [...new Set(all.map((s) => s.date))].sort();
   const activeDate = dates.includes(date) ? date : "all";
-  const byDate = activeDate === "all" ? shifts : shifts.filter((s) => s.date === activeDate);
-  const byRole = role === "all" ? shifts : shifts.filter((s) => s.role === role);
-  const visible = byDate.filter((s) => role === "all" || s.role === role).toSorted((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
-  const filtered = activeDate !== "all" || role !== "all";
+  // Drop the stale selection for good, so the date reappearing later does not silently re-activate the filter.
+  useEffect(() => {
+    if (date !== "all" && !loading && !failed && date !== activeDate) setDate("all");
+  }, [date, activeDate, loading, failed]);
+  const activeCount = (activeDate !== "all" ? 1 : 0) + (role !== "all" ? 1 : 0);
+  const filtered = activeCount > 0;
+  // Chip counts: each group counts what the other group's selection leaves, from the unfiltered data.
+  const byDate = activeDate === "all" ? all : all.filter((s) => s.date === activeDate);
+  const byRole = role === "all" ? all : all.filter((s) => s.role === role);
+
+  // The visible list is server-filtered (role/date params, same source as the unfiltered list).
+  const useMatch = !loading && !failed && matchable.data.length > 0;
+  const params: ShiftParams = { matchable: useMatch || undefined, role: role === "all" ? undefined : role, date: activeDate === "all" ? undefined : activeDate };
+  const list = useFilteredShifts(params, filtered && !loading && !failed);
+  const listFailed = filtered && list.isError;
+  const listPending = filtered && list.isPending;
+  const visible = (filtered ? (list.data ?? []) : all).toSorted((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
   const clearFilters = () => {
     setDate("all");
     setRole("all");
   };
-  const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch()]);
+  const retry = () => void Promise.all([matchable.refetch(), open.refetch(), credentials.refetch(), filtered ? list.refetch() : undefined]);
 
   // One click claims (spec: the test ID sits "on the element that performs the action"). Claiming is reversible
   // from My shifts, and the toast confirms the outcome, so no confirm step. The backend decides eligibility.
@@ -106,35 +124,37 @@ export function Marketplace() {
         ) : (
           <>
             {notice && <LicenseNotice kind={notice} />}
-            {shifts.length > 0 && (
-              <div className="nurse-filters">
-                <ChipGroup
-                  label="Date"
-                  value={activeDate}
-                  onChange={setDate}
-                  options={[
-                    { value: "all", label: "All dates", count: byRole.length },
-                    ...dates.map((d) => ({ value: d, label: chipDate.format(parseIsoDate(d)), count: byRole.filter((s) => s.date === d).length })),
-                  ]}
-                />
-                <ChipGroup<RoleFilter>
-                  label="Role"
-                  value={role}
-                  onChange={setRole}
-                  options={[
-                    { value: "all", label: "All roles", count: byDate.length },
-                    ...ROLES.map((r) => ({ value: r, label: r, count: byDate.filter((s) => s.role === r).length })),
-                  ]}
-                />
-                {filtered && (
-                  <button type="button" className="btn btn-ghost nurse-clear" onClick={clearFilters}>
-                    Clear filters
-                  </button>
-                )}
+            {all.length > 0 && (
+              <div className="flex">
+                {/* Server-side and immediate: every click changes the query params, so no Apply step. */}
+                <FilterDropdown label="Filters" activeCount={activeCount} onReset={clearFilters}>
+                  <FilterGroup
+                    label="Date"
+                    value={activeDate}
+                    onChange={setDate}
+                    options={[
+                      { value: "all", label: "All dates", count: byRole.length },
+                      ...dates.map((d) => ({ value: d, label: chipDate.format(parseIsoDate(d)), count: byRole.filter((s) => s.date === d).length })),
+                    ]}
+                  />
+                  <FilterGroup<RoleFilter>
+                    label="Role"
+                    value={role}
+                    onChange={setRole}
+                    options={[
+                      { value: "all", label: "All roles", count: byDate.length },
+                      ...ROLES.map((r) => ({ value: r, label: r, count: byDate.filter((s) => s.role === r).length })),
+                    ]}
+                  />
+                </FilterDropdown>
               </div>
             )}
-            {visible.length > 0 ? (
-              <section aria-labelledby="nurse-list-h">
+            {listFailed ? (
+              <ErrorState title="Couldn't load shifts" message={list.error?.message ?? "Try again."} onRetry={retry} />
+            ) : listPending ? (
+              <ListSkeleton rows={3} />
+            ) : visible.length > 0 ? (
+              <section aria-labelledby="nurse-list-h" aria-busy={list.isPlaceholderData || undefined}>
                 <h2 id="nurse-list-h" className="nurse-list-h tnum">
                   {notice ? plural(visible.length, "open shift", "open shifts") : `${plural(visible.length, "shift", "shifts")} you can take`}
                 </h2>
@@ -146,21 +166,19 @@ export function Marketplace() {
                         testId="shift-list-item"
                         actions={
                           <>
-                            <button
-                              type="button"
-                              className="btn btn-primary nurse-grow"
+                            <Button
+                              className="min-h-12 min-w-0 flex-1"
                               data-testid="shift-claim-button"
                               disabled={!online || claim.isPending}
-                              aria-busy={claimingId === shift.id}
+                              loading={claimingId === shift.id}
                               aria-label={`Claim shift: ${shift.agencyName}, ${shift.role}`}
                               onClick={() => startClaim(shift)}
                             >
-                              {claimingId === shift.id && <span className="spin" aria-hidden="true" />}
                               Claim shift
-                            </button>
-                            <button type="button" className="btn btn-secondary" aria-label={`Details: ${shift.agencyName}, ${shift.role}`} onClick={() => setDetails(shift)}>
+                            </Button>
+                            <Button variant="secondary" className="min-h-12" aria-label={`Details: ${shift.agencyName}, ${shift.role}`} onClick={() => setDetails(shift)}>
                               Details
-                            </button>
+                            </Button>
                           </>
                         }
                       />
@@ -173,9 +191,9 @@ export function Marketplace() {
                 icon="inbox"
                 title="No open shifts match"
                 action={
-                  <button type="button" className="btn btn-secondary" onClick={clearFilters}>
+                  <Button variant="secondary" onClick={clearFilters}>
                     Clear filters
-                  </button>
+                  </Button>
                 }
               >
                 Try another date or role. New shifts appear here as soon as agencies post them.
@@ -194,9 +212,9 @@ export function Marketplace() {
         onClose={() => setDetails(null)}
         footer={
           details && (
-            <button type="button" className="btn btn-primary" disabled={!online || claim.isPending} onClick={() => startClaim(details)}>
+            <Button disabled={!online || claim.isPending} onClick={() => startClaim(details)}>
               Claim shift
-            </button>
+            </Button>
           )
         }
       />

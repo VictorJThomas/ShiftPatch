@@ -20,9 +20,9 @@ const VIEWPORTS = [
 const PASSWORD = process.env.QA_PASSWORD; // spec password, passed via env, never logged
 const ROLES = [
   { role: "login", email: null, pages: ["/login"] },
-  { role: "nurse", email: "maria.lopez@example.com", pages: ["/nurse/shifts", "/nurse/my-shifts", "/nurse/credentials", "/nurse/profile"] },
+  { role: "nurse", email: "maria.lopez@example.com", pages: ["/nurse/shifts", "/nurse/my-shifts", "/nurse/credentials", "/nurse/credentials/new", "/nurse/profile"] },
   { role: "agency", email: "admin@sunrisehealth.example", pages: ["/agency/shifts", "/agency/profile"] },
-  { role: "admin", email: "alex.kim@example.com", pages: ["/admin/dashboard", "/admin/audit", "/admin/timesheets"] },
+  { role: "admin", email: "alex.kim@example.com", pages: ["/admin/dashboard", "/admin/users", "/admin/audit", "/admin/timesheets"] },
 ];
 
 const measure = () => {
@@ -59,7 +59,7 @@ for (const r of ROLES) {
     await page.setViewportSize({ width, height });
     for (const p of r.pages) {
       if (p !== "/login") await page.goto(`${BASE}${p}`, { waitUntil: "networkidle" });
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(Number(process.env.QA_DELAY_MS ?? 400)); // >=7000 stays under the 10 refreshes/min per session limit
       const m = await page.evaluate(measure);
       const file = `${r.role}${p.replaceAll("/", "-")}-${label}.png`;
       await page.screenshot({ path: `${OUT}/${file}`, fullPage: true });
