@@ -237,3 +237,22 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Board: 3 tasks added → Done (email v2, date filter, preview); new Pending "Enable credential preview in prod: R2 CORS rule + CREDENTIAL_STORAGE_ORIGIN on Vercel". Diff 0 drift. Notion still has a duplicate "Production DB: Railway Postgres..." row (both Done), left for Victor.
 - Skills copied: none needed (all used skills already in `.claude/skills`).
 - Open: all work uncommitted; Mailpit smoke not run; preview not tested on Safari/Firefox/real devices; PDF path checked in real Chrome only (Playwright Chromium has no PDF viewer).
+
+## 2026-11-10 (d) Prod rollout: preview CORS, Resend setup, migration 0005 incident
+- Done: PR #15 merged + deployed by Victor. Preview CORS error fixed (R2 rule had `https://shiftpatch-web-orcin.vercel.app/` with a trailing slash). Board "Enable credential preview in prod" -> Done.
+- Done: Resend checked in Victor's browser (key `shiftpatch` Full access, unused; no domain; account victorjthomas01@gmail.com). Railway `api` vars set via CLI with `--skip-deploys`: MAIL_TRANSPORT=resend, MAIL_FROM=onboarding@resend.dev, EMAIL_REDIRECT_TO=victorjthomas01@gmail.com, REMINDER_INTERVAL_MS=60000. RESEND_API_KEY left to Victor (Claude doesn't enter keys; full key not visible).
+- Prod mail test plan given: post shift (agency) -> E1; claim -> E2+E3; cancel -> E4; upload -> E5; review -> E6; shift <24 h -> S4/S5; credential expiring in 5 days -> S1. Outbox check: `select template, recipient_email, status, attempts, last_error from notifications order by created_at desc limit 20`.
+- **Incident:** prod credential upload 500. Railway logs (INFO level) show the outbox insert failing with Postgres 42703: `notifications.dedupe_key` missing = migration 0005 not applied in prod. All mail-enqueuing writes are broken. Repo migration/journal verified correct; prod migration table not read (classifier blocked). Board: new Active task "Prod hotfix: apply migration 0005 ...". Fix commands handed to Victor (see [[Status]]).
+- Transcripts: /export-transcripts -> 26 sessions, 136 MB, `transcripts/` excluded from git, secret scan: only the local `change-me-to-32+-random-bytes` placeholder. Not the final pre-submission export.
+- Board: 0 drift (23 open tasks on both sides). Skills copied: none needed.
+- Open: 0005 in prod; RESEND_API_KEY; CD schema check + redirect subject prefix offered, not built.
+- 2026-11-10 later: Victor ran `db:migrate` in the prod api container; 0005 applied, credential upload OK. Board "Prod hotfix: apply migration 0005 ..." -> Done.
+
+## 2026-11-10 (e) Branded transactional email templates
+- Done: rewrote the shared `layout()` (`apps/api/src/modules/notifications/templates.ts`): table layout, inline CSS, MSO 600px wrapper, hidden preheader, status badge (app `--st-*` tokens, label always shown), facts card with Date/Time first, bulletproof CTA + underlined fallback link, footer, `color-scheme: light`, iOS `format-detection`. Each of the 11 templates got a badge + CTA label; subjects, payload fields, recipients, triggers, dispatcher, transport unchanged. Text body changed only in fact order.
+- Logo: official `png/email/logo-horizontal-light-h32@2x.png` (273x64, shown 137x32) copied to `apps/web/public/brand/`, URL = `${APP_ORIGIN}/brand/...`. No appUrl -> text wordmark, no link (tests keep "no https without appUrl").
+- Verified: 21 template tests; previews of 16 cases at 640/375 px (logo loads, no horizontal overflow, long names wrap, images-blocked alt text OK); real `smtp` transport -> Mailpit HTML Check 88.9% supported / 6.1% partial / 5% unsupported (progressive extras only); Sonnet code-reviewer: APPROVE, contrast all >= 5.3:1; Optional fixes applied (Outlook button padding on td, link underline, Apple data detectors, preheader spacer). `/verify` GREEN. Commit `5127fdf`.
+- Decided: see [[Decisions]] "Branded email layout".
+- Board: added "Branded transactional email templates" (Extras) -> Done; 0 drift.
+- Skills used: ponytail, using-agent-skills, task, verify, wrap-session (all already in `.claude/skills`); copied: none.
+- Open: push + PR; logo 404 in prod until deploy; CTA labels ("Claim this shift", "Review credential") link to the app root, not the item (no deep links by design); no dark-mode logo; Outlook shows square corners.

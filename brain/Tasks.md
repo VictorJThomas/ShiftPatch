@@ -104,7 +104,8 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Production DB: Railway Postgres (private), migrations, spec seed, least-privilege app role
 - ☑ QA: full workflow + UI/UX audit
 - ☑ CD pipeline: auto-deploy API + web on master after CI
-- ☐ Enable credential preview in prod: R2 CORS rule + CREDENTIAL_STORAGE_ORIGIN on Vercel
+- ☑ Enable credential preview in prod: R2 CORS rule + CREDENTIAL_STORAGE_ORIGIN on Vercel
+- ☑ Prod hotfix: apply migration 0005 (notifications.dedupe_key missing, writes 500)
 
 ## 9 Delivery
 - ☑ Email recruiter scope commitment (day 1)
@@ -119,3 +120,4 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ Scoped, audited, expiring inspection package (Option D)
 - ☐ Full timesheets (clock in/out, approval)
 - ☐ Facility management + expiry reminder emails
+- ☑ Branded transactional email templates

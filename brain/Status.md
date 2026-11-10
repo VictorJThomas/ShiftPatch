@@ -3,19 +3,21 @@
 **Last updated:** 2026-11-10
 
 ## Where we are
-- master `db78fdd` (R2 download links + CD pipeline) is **live** at `https://shiftpatch-web-orcin.vercel.app` (test through the alias; per-deployment URLs are behind Vercel Authentication).
-- Branch `feature/14-email-notifications`, **all uncommitted**: email v2 (migration 0005 `dedupe_key`, 6 event mails + reminder sweep S1-S5, see [[Decisions]]), Marketplace Start/End date filter, credential "View file" preview dialog with Download. `/verify` **GREEN** 2026-11-10 (typecheck, lint, test, contract) on the combined tree.
-- Not checked: Mailpit smoke of the new mails; preview on Safari/Firefox/real phones; preview against real R2 (needs CORS + env, below). Prod mail transport is still `log` until Resend is set up.
+- master `fefaf33` (PR #15: email v2, Marketplace date range, credential preview) is deployed at `https://shiftpatch-web-orcin.vercel.app`. Credential "View file" preview works in prod (R2 CORS fixed: origin without trailing slash).
+- Migration `0005_notification_dedupe` applied in prod by Victor 2026-11-10 (manual `db:migrate` via Railway SSH); credential upload works again. Root cause of the skipped pre-deploy migrate not investigated.
+- Prod mail: Railway `api` has `MAIL_TRANSPORT=resend`, `MAIL_FROM=ShiftPatch <onboarding@resend.dev>`, `EMAIL_REDIRECT_TO=victorjthomas01@gmail.com`, `REMINDER_INTERVAL_MS=60000` (set with `--skip-deploys`). `RESEND_API_KEY` is Victor's to set (Resend account has no verified domain; `onboarding@resend.dev` only delivers to the account email).
+- Branch `feature/15-email-templates`: commit `5127fdf` branded email layout (all 11 templates, logo `apps/web/public/brand/logo-horizontal-light-h32@2x.png`). `/verify` GREEN 2026-11-10. Not pushed / no PR yet. Logo URL 404s in prod until this merges (Vercel serves `/brand/*`).
+- Last `/verify` GREEN on the PR #15 tree. Transcripts exported (26 sessions, 136 MB, secret scan clean).
 
 ## Next step
-1. Commit + PR the branch (review the diff; migration 0005 runs on deploy via Railway pre-deploy).
-2. Mailpit smoke: `docker compose up -d postgres mailpit`, `pnpm --filter api db:reset`, `MAIL_TRANSPORT=smtp REMINDER_INTERVAL_MS=10000 pnpm --filter api start:local` (background), run the flow, check http://localhost:8025 (plan "Verify" step 3).
-3. Board "Enable credential preview in prod": R2 CORS rule on `private-credentials` (AllowedOrigins = app origin, GET, no credentials) + Vercel env `CREDENTIAL_STORAGE_ORIGIN=https://<account>.r2.cloudflarestorage.com` (build-time). Until then the dialog shows "couldn't be reached"; Download works.
-4. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
-5. Optional: required reviewers on GitHub env `production`; migrate `railway.json` before 2026-12-01.
+1. Push `feature/15-email-templates` + PR. After deploy: `curl -I https://shiftpatch-web-orcin.vercel.app/brand/logo-horizontal-light-h32@2x.png` must be 200 image/png; confirm Railway `api` `APP_ORIGIN` = web origin (logo + CTA use it). Then send one real mail (Resend) and check Gmail/Outlook rendering.
+2. Add `RESEND_API_KEY` (Sending access key) on Railway `api`; check log `mail transport: resend`; run the prod mail test (table in Session-Log 2026-11-10 (d)); afterwards remove `REMINDER_INTERVAL_MS` and decide whether prod stays on Resend.
+3. Prevent a repeat (offered, not built): CD health smoke checks a schema marker (e.g. an `/api/health` field with the latest applied migration) so a skipped migration fails the deploy.
+4. Optional: subject prefix `[to: <original>]` when `EMAIL_REDIRECT_TO` is set (offered, not built).
+5. Board "Playwright E2E in CI"; "Production reseed to exact spec data before submission" (prod now holds test data).
 
 ## Blockers / waiting
-- Victor: R2 CORS + Vercel env for the preview (or choose an API stream instead, see [[Decisions]]); RESEND_API_KEY in Railway for real mail; past-date product rule; legacy CSS prune OK.
+- Victor: set `RESEND_API_KEY`; past-date product rule; legacy CSS prune OK.
 - Founder decision on export (Option C vs D), see [[ESCALATION]]. PostHog escalated (not built).
 - Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; duplicate Notion row "Production DB: Railway Postgres..." (both Done).
 
@@ -60,3 +62,7 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 
 - **Plan mode stops subagents:** toggling plan mode in the main session makes running subagents halt (they can't edit). Resume them with SendMessage after exiting plan mode.
 - **Credential preview locally** needs `CREDENTIAL_STORAGE_ORIGIN=http://localhost:9000` in the web env at build/dev start (CSP `connect-src`). Playwright's bundled Chromium has no PDF viewer: PDF preview is only verifiable in real Chrome.
+- **Prod DB errors log at INFO:** the `DrizzleQueryError` "Failed query" lines appear as `[INFO]` in Railway, so an error-level filter shows nothing for a 500. Search the logs for `Failed query` / `"code":"4`.
+- **Auto-mode classifier blocks prod reads too:** `railway variables` (prints secrets) and `railway ssh ... psql` against prod were denied. Victor runs them (`! <command>`) or adds an allow rule.
+- **R2 CORS AllowedOrigins must not end with `/`:** the browser's Origin has no trailing slash and R2 compares exactly.
+- **Email HTML:** one `layout()` in `notifications/templates.ts` renders every mail. Preview: render with `tsx` + screenshot with web's Playwright (`createRequire(apps/web/package.json)`); Mailpit `GET /api/v1/message/<id>/html-check` gives caniemail scores (2026-11-10: 88.9% supported). Git Bash heredocs turn `\n` inside Python strings into real newlines: edit TS escapes with the Edit tool.

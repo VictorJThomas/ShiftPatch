@@ -18,12 +18,14 @@ const CASES: [string, Record<string, unknown>, string][] = [
   ["shift.unfilled", shift, "Unfilled: RN shift 2026-12-05 07:00"],
 ];
 
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 describe("notification templates", () => {
   it.each(CASES)("%s renders subject, text and html", (template, payload, subject) => {
     const m = renderTemplate(template, payload);
     expect(m.subject).toBe(subject);
     expect(m.text.length).toBeGreaterThan(0);
-    expect(m.html).toContain("<h2");
+    expect(m.html).toContain("<h1");
     for (const out of [m.subject, m.text, m.html]) {
       expect(out).not.toMatch(/\bTB\b|tuberculosis|license document|https?:\/\//i); // no health data, no links without appUrl
     }
@@ -79,13 +81,36 @@ describe("notification templates", () => {
     expect(renderTemplate("shift.nurse_license_lapses", { ...shift, nurseName: "Ana Ruiz" }).html).toContain("Ana Ruiz");
   });
 
-  it("appUrl adds the sign-in footer to every template and changes nothing else", () => {
+  it("appUrl adds the sign-in footer to the text and the logo + button to the html", () => {
     const cancelled = { ...shift, reason: "advance" };
     const plain = renderTemplate("shift.cancelled", cancelled);
-    const withUrl = renderTemplate("shift.cancelled", cancelled, { appUrl: "https://app.example.com" });
-    expect(withUrl.text).toBe(`${plain.text}\n\nSign in to ShiftPatch: https://app.example.com`);
-    expect(withUrl.html.replace(/<p>Sign in to ShiftPatch: .*?<\/p>/, "")).toBe(plain.html);
+    const withUrl = renderTemplate("shift.cancelled", cancelled, { appUrl: "https://app.example.com/" });
+    expect(withUrl.text).toBe(`${plain.text}\n\nSign in to ShiftPatch: https://app.example.com/`);
     expect(plain.text).not.toContain("https://");
+    expect(plain.html).not.toContain("<img"); // text wordmark, never a broken image URL
+    expect(plain.html).toContain("Shift<b");
+    expect(withUrl.html).toContain('<img src="https://app.example.com/brand/logo-horizontal-light-h32@2x.png" width="137" height="32" alt="ShiftPatch"');
+    expect(withUrl.html).toContain('href="https://app.example.com/"');
+    expect(withUrl.html).toContain(">View shifts</a>");
     for (const [template, payload] of CASES) expect(renderTemplate(template, payload, { appUrl: "https://app.example.com" }).html).toContain("https://app.example.com");
+  });
+
+  it("every template is email-safe: badge, preheader, MSO wrapper, inline styles, no scripts or external CSS", () => {
+    const badges = new Set<string>();
+    for (const [template, payload] of CASES) {
+      const { html, text } = renderTemplate(template, payload, { appUrl: "https://app.example.com" });
+      const badge = /border-radius:999px;[^"]*">([^<]+)</.exec(html)?.[1];
+      expect(badge, template).toBeTruthy();
+      badges.add(badge!);
+      expect(html).toContain(`mso-hide:all">${esc(text.slice(0, text.indexOf("\n")))}&zwnj;&nbsp;`); // preheader = intro
+      expect(html).toContain("<!--[if mso]>");
+      expect(html).not.toMatch(/<script|<link|@import|javascript:/i);
+    }
+    expect(badges.size).toBeGreaterThan(6);
+  });
+
+  it("credential.reviewed badge follows the outcome", () => {
+    expect(renderTemplate("credential.reviewed", { outcome: "verified" }).html).toContain(">Verified<");
+    expect(renderTemplate("credential.reviewed", { outcome: "rejected" }).html).toContain(">Rejected<");
   });
 });
