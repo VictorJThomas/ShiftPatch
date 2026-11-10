@@ -220,4 +220,5 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Built plan steps 2-7 of `docs/r2-storage-plan.md` (see [[Status]], [[Decisions]] "R2 download links"). Test fix: credentials.test "own" query now filters `deletedAt` (new soft-delete test leaked into it). New `apps/api/src/lib/storage.test.ts`.
 - Checks: /verify GREEN, web 185, Playwright mocked 49/7 skipped, local MinIO smoke all PASS (9 MB). Uncommitted.
 - Skills used: using-agent-skills, ponytail, task, verify, postman-export (all already in `.claude/skills`).
+- CD: `deploy` job added to `ci.yml` (Railway CLI then Vercel CLI then health smoke, master only, after checks + security). GitHub env `production` created in browser, restricted to `master`. Token pages opened for Victor (Railway project tokens, Vercel tokens). Task "CD pipeline: auto-deploy API + web on master after CI" added Active (stage 8).
 

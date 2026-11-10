@@ -100,6 +100,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
 - ☑ Production DB: Railway Postgres (private), migrations, spec seed, least-privilege app role
 - ☑ QA: full workflow + UI/UX audit
+- ◐ CD pipeline: auto-deploy API + web on master after CI
 
 ## 9 Delivery
 - ☑ Email recruiter scope commitment (day 1)
