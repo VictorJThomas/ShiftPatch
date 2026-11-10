@@ -141,3 +141,68 @@ test("nurse-1 cancels from My shifts in one click -> 'Shift cancelled', shift re
   await expect(page.getByTestId("shift-list-item").filter({ hasText: "Dec 1" })).toHaveCount(1);
   await expect(await adminBadge(postedId)).toHaveText("Open", { timeout: 17_000 });
 });
+
+// ---- Agency B isolation + admin audit/timesheets. Each test logs in / navigates on its own and relies on no earlier mutation. ----
+const API = process.env.API_ORIGIN ?? "http://localhost:3001";
+
+test("agency-b sees only its own shifts and gets 403 {error} on agency-a's shift list", async ({ browser, playwright }) => {
+  const api = await playwright.request.newContext({ baseURL: API });
+  const login = await api.post("/api/auth/login", { data: { email: "admin@metrocare.example", password: PASSWORD } });
+  expect(login.status()).toBe(200);
+  const { token } = (await login.json()) as { token: string };
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const own = await api.get("/api/agencies/agency-b/shifts", { headers });
+  expect(own.status()).toBe(200);
+  const list = ((await own.json()) as { shifts: Array<{ id: string; agencyId: string }> }).shifts;
+  expect(list.every((s) => s.agencyId === "agency-b")).toBe(true);
+  const ids = list.map((s) => s.id);
+  expect(ids).toContain("shift-3");
+  expect(ids).not.toContain("shift-1");
+  expect(ids).not.toContain("shift-2");
+
+  const foreign = await api.get("/api/agencies/agency-a/shifts", { headers });
+  expect(foreign.status()).toBe(403);
+  const body = (await foreign.json()) as Record<string, unknown>;
+  expect(Object.keys(body)).toEqual(["error"]);
+  expect(typeof body.error).toBe("string");
+  await api.dispose();
+
+  // UI: the dashboard count equals agency-b's own list, not agency-a's.
+  const page = await loginAs(browser, "admin@metrocare.example", /\/agency\/shifts$/);
+  await expect(page.getByTestId("agency-shift-count")).toHaveText(`${list.length} ${list.length === 1 ? "shift" : "shifts"}`);
+  await page.context().close();
+});
+
+test("admin audit log: has rows, a filter narrows them, Load more matches the paging state", async () => {
+  const page = pages.admin!;
+  await nav(page, "/admin/audit");
+  const table = page.getByTestId("audit-log-table");
+  const rows = table.locator("tbody tr");
+  await expect(rows.first()).toBeVisible();
+  const first = await rows.count();
+  expect(first).toBeGreaterThan(0);
+
+  // Load more only exists when the API reports another page; otherwise it must be absent (no faked data).
+  const more = page.getByRole("button", { name: "Load more entries" });
+  if (await more.count()) {
+    await more.click();
+    await expect.poll(() => rows.count()).toBeGreaterThan(first);
+  } else {
+    await expect(page.getByText("more available")).toHaveCount(0);
+  }
+
+  // Filter to sign-ins: every remaining row is auth.login.
+  await page.getByRole("button", { name: /Filters/ }).click();
+  await page.getByLabel("Action").selectOption("auth.login");
+  await page.keyboard.press("Escape");
+  const codes = rows.locator("td:nth-child(3) code");
+  await expect(codes.first()).toHaveText("auth.login");
+  await expect.poll(async () => (await codes.allTextContents()).every((c) => c === "auth.login")).toBe(true);
+});
+
+test("admin timesheets page shows the timesheet table", async () => {
+  const page = pages.admin!;
+  await nav(page, "/admin/timesheets");
+  await expect(page.getByTestId("timesheet-table")).toBeVisible();
+});
