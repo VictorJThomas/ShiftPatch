@@ -12,6 +12,8 @@ export interface AgencyMembership {
   agencyId: string;
   name: string;
   role: "owner" | "manager" | "viewer";
+  /** IANA zone new shifts are posted in (the agency network default), from GET /api/me. */
+  timezone?: string | undefined;
 }
 
 /**

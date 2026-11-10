@@ -73,6 +73,9 @@ body{background:var(--c-bg);color:var(--c-ink);font-family:var(--f-sans);font-si
 /* inside an open modal dialog (the page behind it is inert): in flow at the top of the dialog box */
 .toaster.toaster-inline{position:static;inset:auto;width:auto;z-index:auto;pointer-events:auto}
 .toaster-inline:has(.banner){padding:12px 16px 0}
+/* F8: nurse shell has a sticky 60px app bar (76px >=700px): keep toasts below it */
+body:has(.nurse-shell) .toaster{top:calc(60px + 8px)}
+@media (min-width:700px){body:has(.nurse-shell) .toaster{top:calc(76px + 8px)}}
 @media (min-width:1000px){.toaster{top:auto;bottom:24px;right:24px;left:auto;width:min(420px,calc(100vw - 48px))}}
 .banner{overflow:hidden;border-radius:var(--r-md)}
 .banner .alert .iconbtn{color:inherit;margin:-8px -8px -8px 0}
@@ -165,7 +168,7 @@ html:has(.dlg[open]){overflow:hidden}
 .nurse-shell .appbar{position:sticky;top:0;z-index:5;background:var(--c-bg)}
 .nurse-shell .body{overflow:visible}
 .nurse-shell :focus-visible{scroll-margin-top:72px;scroll-margin-bottom:88px}
-.nurse-tabs{grid-template-columns:repeat(3,1fr);position:fixed;bottom:0;left:0;right:0;z-index:10;height:auto;min-height:72px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+.nurse-tabs{grid-template-columns:repeat(4,1fr);position:fixed;bottom:0;left:0;right:0;z-index:10;height:auto;min-height:72px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
 .nurse-rail{display:none}
 @media (min-width:700px){.nurse-shell .appbar,.nurse-shell .body{padding-left:var(--s-8);padding-right:var(--s-8)}.nurse-shell .appbar{height:76px}}
 @media (min-width:1000px){
@@ -234,12 +237,16 @@ html:has(.dlg[open]){overflow:hidden}
   .adm-side .rail-user{margin:0 0 0 auto;border-top:0;padding-top:0}
   .adm-nav{order:3;flex:1 0 100%;flex-direction:row;gap:4px;overflow-x:auto;scrollbar-width:none;padding:4px;margin:0 -4px}
   .adm-nav .navi{flex:none;white-space:nowrap}
+  /* F10: scroll cue on the right edge while the row overflows (scroll-driven shadow via background-attachment) */
+  .adm-nav{background:linear-gradient(to right,var(--c-surface),var(--c-surface)) left/24px 100% no-repeat local,linear-gradient(to left,var(--c-surface),var(--c-surface)) right/24px 100% no-repeat local,linear-gradient(to right,rgba(0,0,0,.14),transparent) left/10px 100% no-repeat scroll,linear-gradient(to left,rgba(0,0,0,.14),transparent) right/10px 100% no-repeat scroll}
   .adm-main{width:100%;padding:24px 16px;gap:16px}
 }
 .flip{transform:rotate(180deg)}
 .page-h{font-size:28px;font-weight:750;letter-spacing:-.02em}
 /* QA D1: absolutely positioned .sr text inside a scrolling table escaped the scroll box (page-level overflow on phones) */
 .scrollx{position:relative}
+/* F10: shadow cue on the clipped edge of any horizontally scrolling table (appears only while there is more to scroll) */
+.scrollx{background:linear-gradient(to right,var(--c-surface),var(--c-surface)) left/24px 100% no-repeat local,linear-gradient(to left,var(--c-surface),var(--c-surface)) right/24px 100% no-repeat local,linear-gradient(to right,rgba(0,0,0,.14),transparent) left/12px 100% no-repeat scroll,linear-gradient(to left,rgba(0,0,0,.14),transparent) right/12px 100% no-repeat scroll}
 /* QA D6: ids like "shift-1" never break across lines */
 .adm-id{white-space:nowrap}
 
@@ -324,6 +331,7 @@ button:disabled,[aria-disabled=true],select:disabled,input:disabled{cursor:not-a
 
 /* StatTile */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--s-4)}
+@media (max-width:479px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}} /* F12 */
 .stat-brand{background:var(--c-brand-soft);border-color:var(--c-brand)}
 .stat-hint{font-size:13px}
 
@@ -345,3 +353,6 @@ button:disabled,[aria-disabled=true],select:disabled,input:disabled{cursor:not-a
   .appdlg-foot>*{width:100%;min-height:52px;font-size:16px}
 }
 [role=menuitem]:focus-visible{outline-offset:-2px}
+
+/* Inspection package: print only the summary (shells and controls are hidden). */
+@media print{.adm-side,.ag-header,.ag-band,.skip,.no-print{display:none!important}.adm,.adm-main{display:block!important;margin:0!important}}

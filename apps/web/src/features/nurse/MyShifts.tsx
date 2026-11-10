@@ -12,8 +12,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { OfflineBanner, useOnline } from "@/components/ui/OfflineBanner";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
+import { useMyTimesheets } from "@/features/timesheets/queries";
 import { useCancelShift, useMyShifts } from "./queries";
 import { ShiftCard, ShiftDetailsDialog } from "./ShiftCard";
+import { SubmitHoursButton, TimesheetChip, TimesheetDialog } from "./TimesheetDialog";
 
 const byStart = (a: Shift, b: Shift) => (a.date + a.startTime).localeCompare(b.date + b.startTime);
 
@@ -22,6 +24,9 @@ export function MyShifts() {
   const cancel = useCancelShift();
   const online = useOnline();
   const [details, setDetails] = useState<Shift | null>(null);
+  const [hoursFor, setHoursFor] = useState<Shift | null>(null);
+  const timesheets = useMyTimesheets();
+  const timesheetOf = (shift: Shift) => timesheets.data?.find((t) => t.shiftId === shift.id);
   // One click cancels (spec: the test ID is on the element that performs the action); the note above explains the effect.
   const cancellingId = cancel.isPending ? cancel.variables?.id : undefined;
 
@@ -62,13 +67,17 @@ export function MyShifts() {
                       <ShiftCard
                         shift={shift}
                         badge={
-                          <Badge variant="filled">
-                            <Icon name="check-circle" />
-                            Claimed by you
-                          </Badge>
+                          <>
+                            <Badge variant="filled">
+                              <Icon name="check-circle" />
+                              Claimed by you
+                            </Badge>
+                            <TimesheetChip timesheet={timesheetOf(shift)} />
+                          </>
                         }
                         actions={
                           <>
+                            <SubmitHoursButton shift={shift} timesheet={timesheetOf(shift)} disabled={!online} onOpen={setHoursFor} />
                             <Button
                               variant="danger"
                               className="min-h-12 min-w-0 flex-1"
@@ -123,6 +132,7 @@ export function MyShifts() {
       </div>
 
       <ShiftDetailsDialog shift={details} onClose={() => setDetails(null)} />
+      <TimesheetDialog shift={hoursFor} timesheet={hoursFor ? timesheetOf(hoursFor) : undefined} onClose={() => setHoursFor(null)} />
     </>
   );
 }

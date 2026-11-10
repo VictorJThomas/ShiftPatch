@@ -16,6 +16,10 @@ const CASES: [string, Record<string, unknown>, string][] = [
   ["shift.nurse_license_lapses", { ...shift, nurseName: "Ana Ruiz" }, "Booked nurse's license lapses before 2026-12-05"],
   ["shift.reminder", shift, "Reminder: RN shift 2026-12-05 07:00"],
   ["shift.unfilled", shift, "Unfilled: RN shift 2026-12-05 07:00"],
+  ["timesheet.submitted", { ...shift, nurseName: "Ana Ruiz", workedTime: "11h 30m", resubmitted: "no" }, "Ana Ruiz submitted hours for RN on 2026-12-05"],
+  ["timesheet.submitted", { ...shift, nurseName: "Ana Ruiz", workedTime: "11h 30m", resubmitted: "yes" }, "Ana Ruiz resubmitted hours for RN on 2026-12-05"],
+  ["timesheet.approved", { ...shift, workedTime: "11h 30m" }, "Hours approved: RN on 2026-12-05"],
+  ["timesheet.disputed", { ...shift, workedTime: "11h 30m", reason: "Break was longer" }, "Hours disputed: RN on 2026-12-05"],
 ];
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -107,6 +111,19 @@ describe("notification templates", () => {
       expect(html).not.toMatch(/<script|<link|@import|javascript:/i);
     }
     expect(badges.size).toBeGreaterThan(6);
+  });
+
+  it("timesheet mails show worked time but never the dispute reason or a nurse note", () => {
+    const base = { ...shift, workedTime: "7h 30m", nurseName: "Ana Ruiz", resubmitted: "no", note: "NOTE-TEXT", reason: "REASON-TEXT" };
+    for (const t of ["timesheet.submitted", "timesheet.approved", "timesheet.disputed"]) {
+      const m = renderTemplate(t, base);
+      expect(m.text).toContain("7h 30m");
+      for (const out of [m.subject, m.text, m.html]) expect(out).not.toMatch(/NOTE-TEXT|REASON-TEXT/);
+    }
+    expect(renderTemplate("timesheet.submitted", base).html).toContain(">Review needed<");
+    expect(renderTemplate("timesheet.approved", base).html).toContain(">Approved<");
+    expect(renderTemplate("timesheet.disputed", base).html).toContain(">Disputed<");
+    expect(() => renderTemplate("timesheet.approved", { ...shift })).toThrow(PermanentMailError); // workedTime missing
   });
 
   it("credential.reviewed badge follows the outcome", () => {

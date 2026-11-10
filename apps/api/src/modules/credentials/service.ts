@@ -13,6 +13,7 @@ import { enqueue } from "../notifications/enqueue.js";
 import { networkAdmins, userName, userRecipient } from "../notifications/recipients.js";
 import { isEligible, todayIn } from "../shifts/eligibility.js";
 import { networkDefaultTimezone } from "../shifts/repository.js";
+import { unassignAfterLicenseLoss } from "../shifts/unassign.js";
 
 type Row = Pick<typeof credentials.$inferSelect, "id" | "type" | "licenseType" | "status" | "expiresOn" | "screenedOn" | "createdAt" | "fileId">;
 const columns = {
@@ -120,7 +121,7 @@ export async function loadNurseDetail(db: Db, nurseId: string, now = new Date())
 }
 
 export type ReviewResult =
-  | { ok: true; value: NurseCredential }
+  | { ok: true; value: NurseCredential; unassignedShifts: number }
   | { ok: false; denied: Decision & { allow: false } }
   | { ok: false; fail: { status: 404 | 409; error: string } };
 
@@ -160,7 +161,9 @@ export async function review(db: Db, actor: Actor, credentialId: string, status:
       changes: { status: [row.status, status], nurseId: row.nurseId },
     });
     await enqueue(tx, { template: "credential.reviewed", payload: { outcome: status }, recipients: [await userRecipient(tx, row.nurseId)] }); // outcome only: no type, note or file
-    return { ok: true, value: toNurseCredential(updated!, todayIn(await networkDefaultTimezone(tx, row.networkId), now)) };
+    // A rejected license may leave the nurse unable to work shifts she already holds: reopen those (same tx).
+    const unassignedShifts = status === "rejected" && row.type === "license" ? await unassignAfterLicenseLoss(tx, row.nurseId, actor, meta, now) : 0;
+    return { ok: true, value: toNurseCredential(updated!, todayIn(await networkDefaultTimezone(tx, row.networkId), now)), unassignedShifts };
   });
   const d = out.denied; // set inside the tx callback; the denial row is written after it, on its own
   if (d) {

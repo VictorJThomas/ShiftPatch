@@ -78,7 +78,7 @@ export async function nurseOfShift(db: Db, actor: Actor, shiftId: string): Promi
 }
 
 /** POST /api/shifts. Authorization first (403 / 400 "Select an agency" before any body error), then validation. */
-export async function createShift(db: Db, actor: Actor, body: unknown, meta: RequestMeta): Promise<Result<Awaited<ReturnType<typeof repo.insertShift>>>> {
+export async function createShift(db: Db, actor: Actor, body: unknown, meta: RequestMeta, now = new Date()): Promise<Result<Awaited<ReturnType<typeof repo.insertShift>>>> {
   const decision = can(actor, "shift:create", { agencyId: actor.activeAgencyId });
   if (!decision.allow) return denied(decision);
   const agencyId = actor.activeAgencyId!; // allow implies a validated active agency
@@ -126,7 +126,7 @@ export async function createShift(db: Db, actor: Actor, body: unknown, meta: Req
     const facility = input.facilityId ? await repo.facilityName(tx, input.facilityId) : null;
     await enqueue(tx, {
       template: "shift.posted",
-      recipients: await eligibleNurses(tx, networkId, input.role, input.date, todayIn(timezone, new Date())),
+      recipients: await eligibleNurses(tx, networkId, input.role, input.date, todayIn(timezone, now)),
       payload: { shiftId: created.id, role: input.role, date: input.date, startTime: input.startTime.slice(0, 5), endTime: input.endTime.slice(0, 5), agencyName: created.agencyName, facilityName: facility },
     });
     return created;
@@ -141,7 +141,7 @@ type ShiftView = Awaited<ReturnType<typeof repo.shiftView>>;
  * `UPDATE ... WHERE status='open'`, audit. A refusal before the UPDATE writes nothing; any throw rolls the whole thing back.
  */
 export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: RequestMeta, now = new Date()): Promise<Result<ShiftView>> {
-  const out: { blocked?: { reason: "credential_expired" | "no_valid_credential" | "license_role_mismatch"; shift: { id: string; networkId: string; agencyId: string } } } = {};
+  const out: { blocked?: { reason: "credential_expired" | "no_valid_credential" | "license_role_mismatch" | "shift_overlap"; shift: { id: string; networkId: string; agencyId: string } } } = {};
   const result = await db.transaction(async (tx): Promise<Result<ShiftView>> => {
     const shift = await repo.findLiveShift(tx, shiftId);
     const decision = can(actor, "shift:claim", { networkId: shift?.networkId ?? "" });
@@ -158,6 +158,12 @@ export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: Re
     if (!roleMatchesLicense(await repo.nurseLicenseType(tx, actor.userId), shift.role)) { // same rule as the matchable list
       out.blocked = { reason: "license_role_mismatch", shift };
       return failed(403, ErrorMessage.licenseRoleMismatch);
+    }
+
+    // One claim at a time per nurse, then the overlap check: two racing claims of overlapping shifts can't both pass.
+    if (shift.status === "open" && (await repo.overlapsHeldShift(tx, actor.userId, shift.id))) { // not open: the claim below answers 409 "no longer open"
+      out.blocked = { reason: "shift_overlap", shift };
+      return failed(409, ErrorMessage.shiftOverlap);
     }
 
     if (!(await repo.claimRow(tx, { id: shift.id, nurseId: actor.userId, networkId: shift.networkId, now }))) {
@@ -247,17 +253,19 @@ export async function cancelShift(
     // Authorize on an unlocked read first: a caller with no rights must not be able to take the row lock (and stall real claims).
     const peek = await repo.findLiveShift(tx, shiftId);
     if (!peek) return failed(404, ErrorMessage.shiftNotFound);
+    // Authorization before validation (403 before 400): decide with the caller's reason when it parses, else with the most
+    // permissive one ("advance"), so a caller with no rights never learns what a valid body looks like.
     const parsed = CancelShiftRequest.safeParse(body ?? {});
+    const resource = (s: NonNullable<typeof peek>, reason: "no-show" | "advance") => ({ agencyId: s.agencyId, networkId: s.networkId, claimedBy: s.claimedBy, reason });
+    const first = can(actor, "shift:cancel", resource(peek, parsed.success ? parsed.data.reason : "advance"));
+    if (!first.allow) return denied(first);
     if (!parsed.success) return { ok: false, invalid: parsed.error.issues[0]?.message ?? "Invalid request" };
     const { reason } = parsed.data;
-    const resource = (s: NonNullable<typeof peek>) => ({ agencyId: s.agencyId, networkId: s.networkId, claimedBy: s.claimedBy, reason });
-    const first = can(actor, "shift:cancel", resource(peek));
-    if (!first.allow) return denied(first);
 
     // Then lock and re-decide on the locked row: the holder may have changed in between.
     const shift = await repo.findLiveShift(tx, shiftId, { lock: true });
     if (!shift) return failed(404, ErrorMessage.shiftNotFound);
-    const decision = can(actor, "shift:cancel", resource(shift));
+    const decision = can(actor, "shift:cancel", resource(shift, reason));
     if (!decision.allow) return denied(decision);
     const previousNurseId = shift.claimedBy;
     if (shift.status !== "filled" || !previousNurseId) return failed(409, ErrorMessage.shiftNotFilled);

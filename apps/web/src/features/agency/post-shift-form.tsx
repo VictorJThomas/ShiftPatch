@@ -2,7 +2,7 @@
 
 import "@/lib/zod-csp"; // first: zod must be jitless before any schema is built (see the module)
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { ShiftRole, type CreateShiftRequest, type Shift } from "@shiftpatch/contracts";
@@ -12,7 +12,7 @@ import { AppDialog } from "@/components/ui/AppDialog";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { formatShiftEcho } from "@/lib/format";
-import { useCreateShift } from "./queries";
+import { useActiveMembership, useCreateShift } from "./queries";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -29,6 +29,18 @@ export const PostShiftSchema = z
 
 type Values = z.output<typeof PostShiftSchema>;
 
+/** Fallback when /api/me gave no timezone: the API's own default for a network without one. */
+export const DEFAULT_TIMEZONE = "America/New_York";
+/** `YYYY-MM-DD` of `now` in an IANA timezone (same computation as the API's `todayIn`). */
+export const todayIn = (timezone: string, now = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(now);
+
+/**
+ * PostShiftSchema plus the past-date rule (Decisions 2026-11-10): new shifts can't be dated before today in the shift's
+ * timezone. Form-only on purpose: the API keeps the spec's POST /api/shifts behaviour, and existing shifts are untouched.
+ */
+export const postShiftSchemaFor = (today: string) =>
+  PostShiftSchema.refine((s) => s.date >= today, { message: "Pick today or a later date", path: ["date"] });
+
 const ROLE_HINT: Record<Values["role"], string> = { RN: "Registered", LPN: "Licensed practical", CNA: "Nursing assistant" };
 
 /** Live echo ("Sat, Oct 3, 2026 · 07:00 → 19:00 · 12 h · Overnight"), or null until date + both times are valid. */
@@ -41,6 +53,9 @@ export function echoLine(v: { date?: string; startTime?: string; endTime?: strin
 export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open: boolean; onClose: () => void; agencyName: string; onPosted: (shift: Shift) => void }) {
   const create = useCreateShift();
   const formId = useId();
+  const timezone = useActiveMembership().membership?.timezone ?? DEFAULT_TIMEZONE;
+  const today = todayIn(timezone); // recomputed on each render, so a dialog left open over midnight still uses the new day
+  const schema = useMemo(() => postShiftSchemaFor(today), [today]);
   const {
     register,
     handleSubmit,
@@ -48,7 +63,7 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
     reset,
     formState: { errors },
   } = useForm<z.input<typeof PostShiftSchema>, unknown, Values>({
-    resolver: zodResolver(PostShiftSchema),
+    resolver: zodResolver(schema),
     defaultValues: { date: "", startTime: "", endTime: "" },
   });
   const watched = useWatch({ control });
@@ -110,7 +125,7 @@ export function PostShiftDialog({ open, onClose, agencyName, onPosted }: { open:
           )}
         </fieldset>
         <Field label="Date" error={errors.date?.message} required>
-          {(p) => <Input {...p} type="date" {...register("date")} />}
+          {(p) => <Input {...p} type="date" min={today} {...register("date")} />}
         </Field>
         <div className="ag-two">
           <Field label="Start time" error={errors.startTime?.message} required>

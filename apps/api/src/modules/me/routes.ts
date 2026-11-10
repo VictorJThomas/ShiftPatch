@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { Db } from "../../db/client.js";
 import { agencies, userProfiles, users } from "../../db/schema/index.js";
+import { agencyNetworkId, networkDefaultTimezone } from "../shifts/repository.js";
 
 export function meRoutes(app: FastifyInstance, db: () => Db) {
   // Bootstrap call: the web client uses it to learn which agencies it may send as X-Agency-Id, so a stale header must not break it.
@@ -28,9 +29,14 @@ export function meRoutes(app: FastifyInstance, db: () => Db) {
     // session (401, same as login's behaviour of refusing them), not a 500.
     if (!user?.name) return reply.code(401).send({ error: ErrorMessage.unauthorized });
     const roleOf = new Map(actor.agencies.map((m) => [m.agencyId, m.role])); // memberships were loaded with the active/not-suspended filter
+    // Same timezone createShift uses when no facility is given (the agency's network default).
+    const tzOf = new Map(await Promise.all(names.map(async (a) => {
+      const networkId = await agencyNetworkId(db(), a.agencyId);
+      return [a.agencyId, networkId ? await networkDefaultTimezone(db(), networkId) : undefined] as const;
+    })));
     return MeResponse.parse({
       user: { ...user, name: user.name },
-      agencies: names.map((a) => ({ agencyId: a.agencyId, name: a.name, role: roleOf.get(a.agencyId) })),
+      agencies: names.map((a) => ({ agencyId: a.agencyId, name: a.name, role: roleOf.get(a.agencyId), ...(tzOf.get(a.agencyId) ? { timezone: tzOf.get(a.agencyId) } : {}) })),
     });
   });
 }

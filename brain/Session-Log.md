@@ -265,3 +265,10 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Skills copied: none new (task, verify, wrap-session, ponytail, using-agent-skills, export-transcripts already in `.claude/skills`).
 - Open: Victor runs the prod mail test, the reseed (gate) and the Loom; past-date decision; founder C/D; transcripts re-export last.
 - Transcripts re-exported 2026-11-10 (interim): 29 sessions incl. this one, secret scan clean (only the .env.example placeholder). Final re-export still due right before submission.
+
+## 2026-11-10 — Founder requests pass (PR #19)
+- Done: Victor confirmed the prod mail test and the prod reseed. Built: Option D inspection package (agent), full timesheets (agent), canvas P3 fixes (agent; F4 left out), overlap rule, license-rejection reopen, cancel 403-before-400, past-date check in the Post-shift form (main session). Migration 0006. /verify GREEN.
+- Decided: past-date rule lives in the form only, because the spec's POST example (2026-10-05) must keep returning 201 (Victor). Option D (Victor). Rejection reopens shifts rather than only warning. F4 confirm sheet not merged (one-click decision). See [[Decisions]].
+- Board: 7 tasks set Done, 3 added Done (Tasks.md; Notion was rate-limited at first).
+- Skills copied: none new.
+- Open: merge PR #19, Loom, reseed again after the Loom, final transcript export.

@@ -42,6 +42,7 @@ export const ErrorMessage = {
   invalidFacility: "Facility not found in this network", // 400 POST /api/shifts facilityId outside the agency's network
   shiftNotFound: "Shift not found", // 404 claim / cancel (ARCHITECTURE §5.2); also an out-of-network shift (no existence leak)
   shiftNotOpen: "Shift is no longer open", // 409 claim (ARCHITECTURE §5.2)
+  shiftOverlap: "You already hold a shift that overlaps this one", // 409 claim: the nurse's filled shifts may touch but not overlap
   shiftNotFilled: "Shift is not filled", // 409 cancel of a shift that is not filled (ARCHITECTURE §5.1)
   fileRequired: "Attach a file to upload", // 400 credential upload without a file part
   fileTooLarge: "File is larger than 10 MB", // 413 credential upload
@@ -139,7 +140,9 @@ export const NurseShiftsResponse = z.strictObject({ shifts: z.array(Shift) });
 export const AgencyMembershipRole = z.enum(["owner", "manager", "viewer"]);
 export const MeResponse = z.strictObject({
   user: z.strictObject({ id: Id, name: z.string().min(1), email: z.email(), role: UserRole }),
-  agencies: z.array(z.strictObject({ agencyId: Id, name: z.string().min(1), role: AgencyMembershipRole })),
+  // timezone: the IANA zone new shifts of this agency are posted in (its network's default), so the Post-shift form can refuse a
+  // past date the same way the server would compute "today". Optional for older clients/mocks.
+  agencies: z.array(z.strictObject({ agencyId: Id, name: z.string().min(1), role: AgencyMembershipRole, timezone: z.string().min(1).optional() })),
 });
 
 // ---------- 6. GET /api/agencies/:agencyId/shifts ----------
@@ -289,7 +292,8 @@ export const AdminAgencyResponse = z.strictObject({
 
 /** PATCH /api/credentials/:id/review. Only the two outcomes: a credential never returns to `pending`. */
 export const ReviewCredentialRequest = z.object({ status: z.enum(["verified", "rejected"]) });
-export const ReviewCredentialResponse = z.strictObject({ credential: NurseCredential });
+/** `unassignedShifts`: upcoming filled shifts reopened because a rejection left the nurse without a valid license (0 otherwise). */
+export const ReviewCredentialResponse = z.strictObject({ credential: NurseCredential, unassignedShifts: z.number().int().min(0).default(0) });
 
 // ---------- Inferred types ----------
 // Requests use z.input (what a client sends), responses z.output (what the API returns).
@@ -344,3 +348,6 @@ export type AdminUsersResponse = z.infer<typeof AdminUsersResponse>;
 export type AdminAgencyResponse = z.infer<typeof AdminAgencyResponse>;
 export type ReviewCredentialRequest = z.input<typeof ReviewCredentialRequest>;
 export type ReviewCredentialResponse = z.infer<typeof ReviewCredentialResponse>;
+
+export * from "./inspection.js";
+export * from "./timesheets.js";

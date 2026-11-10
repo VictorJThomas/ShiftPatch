@@ -69,7 +69,7 @@ export async function credentialRoutes(app: FastifyInstance, db: () => Db, stora
     const body = ReviewCredentialRequest.safeParse(req.body ?? {});
     if (!body.success) return reply.code(400).send({ error: "Invalid status: use verified or rejected" });
     const r = await service.review(db(), req.actor!, params.data.id, body.data.status, meta(req));
-    if (r.ok) return ReviewCredentialResponse.parse({ credential: r.value });
+    if (r.ok) return ReviewCredentialResponse.parse({ credential: r.value, unassignedShifts: r.unassignedShifts });
     return "denied" in r ? (sendDenial(reply, r.denied), reply) : reply.code(r.fail.status).send({ error: r.fail.error });
   });
 

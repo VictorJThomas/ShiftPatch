@@ -343,6 +343,7 @@ describe("type inference", () => {
       | "Select an agency"
       | "Facility not found in this network"
       | "Shift not found"
+      | "You already hold a shift that overlaps this one"
       | "Shift is no longer open"
       | "Shift is not filled"
       | "Attach a file to upload"

@@ -57,9 +57,10 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Tolerate empty JSON body on POST claim (Fastify FST_ERR_CTP_EMPTY_JSON_BODY -> 400)
 - ☐ Cancel: authorize before body validation (403 before 400) · Later
 - ☐ Audit shift.claimed: record when a pending license was used · Later
-- ☐ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
+- ☑ Nurse overlapping-shift exclusion (tstzrange constraint) · Later
 - ☑ GET /api/me (profile + agency memberships)
-- ☐ Decide: reject past-dated shifts on create/claim/matchable?
+- ☑ Decide: reject past-dated shifts on create/claim/matchable?
+- ☑ Cancel returns 403 before 400
 
 ## 5 Audit+Notify
 - ☑ Audit module wired into every write (same transaction)
@@ -84,6 +85,7 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Notion design notes: screen UI/UX implementation
 - ☑ Shadcn/Tailwind migration, AppDialog sizes, FilterDropdown, dedicated credential screen + Chrome QA · 2026-11-08; QA-007..013 in docs/qa/DEFECT_LOG.md
 - ☑ Date filter: start/end date pickers instead of date buttons
+- ☑ Canvas QA P3 fixes (F6, F8-F12)
 
 ## 7 Credentials
 - ☑ Credential upload route: private R2/MinIO, sniffed type, 10MB limit
@@ -95,11 +97,12 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ☑ Upload abuse tests: 413 >10MB, 415 sniffed type, nurse-only, PII-free keys, signed links (needs Stage 7 upload route) · also 8 Release
 - ☑ R2 production storage + credential download links
 - ☑ Credential document preview dialog with Download
+- ☑ Reopen upcoming shifts when a license is rejected after claim
 
 ## 8 Release
 - ☑ Playwright E2E in CI (post, claim, admin table, nurse-2 error banner, cancel)
 - ☑ Security pass: headers/CSP, IDOR, token tampering, upload abuse, dep audit
-- ☐ Production reseed to exact spec data before submission
+- ☑ Production reseed to exact spec data before submission
 - ☐ PostHog analytics setup · Escalated (as tagged on board; no health data in events)
 - ☑ Production DB: Railway Postgres (private), migrations, spec seed, least-privilege app role
 - ☑ QA: full workflow + UI/UX audit
@@ -112,12 +115,12 @@ Legend: ☐ Pending · ◐ Active · ☑ Done
 - ◐ Export full unedited AI session transcripts
 - ☐ Record 5-min Loom for the founder (non-technical)
 - ☑ Agentic setup: custom skills/commands in .claude/ committed
-- ☐ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated
+- ☑ Founder decision on export: Option C vs D (see ESCALATION.md) · Escalated
 - ☑ /postman-export skill + committed Postman collection (docs/postman)
 
 ## Extras (Scope: Later)
-- ☐ Credential summary report (Option C)
-- ☐ Scoped, audited, expiring inspection package (Option D)
-- ☐ Full timesheets (clock in/out, approval)
+- ☑ Credential summary report (Option C)
+- ☑ Scoped, audited, expiring inspection package (Option D)
+- ☑ Full timesheets (clock in/out, approval)
 - ☐ Facility management + expiry reminder emails
 - ☑ Branded transactional email templates

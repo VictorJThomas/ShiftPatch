@@ -11,7 +11,7 @@ import { useSessionStore, type AgencyMembership } from "@/stores/session";
 import { useToastStore } from "@/stores/toasts";
 import { AgencySwitcher } from "./agency-switcher";
 import { useSwitchAgency } from "./queries";
-import { echoLine } from "./post-shift-form";
+import { echoLine, postShiftSchemaFor, todayIn } from "./post-shift-form";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }), usePathname: () => "/agency/shifts" }));
 
@@ -259,6 +259,13 @@ describe("post shift form", () => {
     fireEvent.click(screen.getByTestId("agency-post-shift-submit-button"));
     expect(await within(dialog).findByText("Start and end must differ")).toBeTruthy();
     expect(posts("/api/shifts")).toHaveLength(0);
+
+    // Past dates are refused in the agency's timezone (create only); the date picker's min is today there.
+    fill(dialog, { date: "2020-01-01", start: "07:00", end: "19:00" });
+    fireEvent.click(screen.getByTestId("agency-post-shift-submit-button"));
+    expect(await within(dialog).findByText("Pick today or a later date")).toBeTruthy();
+    expect((within(dialog).getByLabelText("Date") as HTMLInputElement).min).toBe(todayIn("America/New_York"));
+    expect(posts("/api/shifts")).toHaveLength(0);
   });
 
   it("posts the exact body, notifies, closes and refetches", async () => {
@@ -406,6 +413,21 @@ describe("agency switching", () => {
     fireEvent.click(screen.getByRole("button", { name: "Switch to Metro Care Partners" }));
     expect(useSessionStore.getState().activeAgencyId).toBe("agency-b");
     expect(screen.queryByText("agency-b")).toBeNull();
+  });
+});
+
+describe("postShiftSchemaFor (past-date rule)", () => {
+  const base = { role: "RN", startTime: "07:00", endTime: "19:00" };
+  it("accepts today and later, refuses yesterday", () => {
+    const s = postShiftSchemaFor("2026-11-10");
+    expect(s.safeParse({ ...base, date: "2026-11-10" }).success).toBe(true);
+    expect(s.safeParse({ ...base, date: "2026-12-01" }).success).toBe(true);
+    expect(s.safeParse({ ...base, date: "2026-11-09" }).success).toBe(false);
+  });
+  it("todayIn uses the shift's timezone, not the browser's", () => {
+    const now = new Date("2026-11-11T03:30:00Z"); // 22:30 on Nov 10 in New York, already Nov 11 in UTC / Europe
+    expect(todayIn("America/New_York", now)).toBe("2026-11-10");
+    expect(todayIn("Europe/Madrid", now)).toBe("2026-11-11");
   });
 });
 

@@ -7,9 +7,11 @@ export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 /** The audit action catalog (ARCHITECTURE §11). */
 export type AuditAction =
   | "auth.login" | "auth.login_failed" | "auth.refresh_reuse_detected" | "auth.logout"
-  | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.deleted"
+  | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.unassigned" | "shift.deleted"
   | "credential.uploaded" | "credential.reviewed" | "credential.document_viewed"
+  | "inspection_package.generated" | "inspection_package.viewed" | "inspection_package.document_downloaded" | "inspection_package.revoked"
   | "agency.updated" | "membership.granted" | "membership.revoked"
+  | "timesheet.submitted" | "timesheet.approved" | "timesheet.disputed"
   | "access.denied";
 export type AuditEntry = Omit<typeof auditLog.$inferInsert, "action"> & { action: AuditAction };
 /** Request context copied onto every audit row (ARCHITECTURE §11: request ID links audit rows to logs). */

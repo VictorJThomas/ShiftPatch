@@ -10,9 +10,9 @@ afterAll(async () => {
 });
 
 const EXPECTED_TABLES = [
-  "agencies", "agency_memberships", "audit_log", "credentials", "facilities", "files", "hospital_networks",
+  "agencies", "agency_memberships", "audit_log", "credentials", "facilities", "files", "hospital_networks", "inspection_packages",
   "network_agencies", "network_memberships", "notifications", "nurse_profiles", "refresh_tokens",
-  "shift_cancellations", "shifts", "user_profiles", "users",
+  "shift_cancellations", "shifts", "timesheets", "user_profiles", "users",
 ];
 
 describe("migrations on a fresh database", () => {

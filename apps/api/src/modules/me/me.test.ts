@@ -84,7 +84,8 @@ describe("GET /api/me", () => {
     expect(r.status).toBe(200);
     expect(MeResponse.parse(r.body).agencies).toEqual([
       { agencyId: "agency-z", name: "Alpha Staffing", role: "viewer" },
-      { agencyId: "agency-a", name: "Sunrise Health Staffing", role: "owner" },
+      { agencyId: "agency-a", name: "Sunrise Health Staffing", role: "owner", timezone: "America/New_York" }, // network default: what the Post-shift form uses for "today"
+      // agency-z has no approved network: no timezone (the form falls back to the API default)
     ]);
   });
 
