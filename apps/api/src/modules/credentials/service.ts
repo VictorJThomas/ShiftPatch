@@ -133,7 +133,8 @@ export type ReviewResult =
 export async function review(db: Db, actor: Actor, credentialId: string, status: "verified" | "rejected", meta: RequestMeta, now = new Date()): Promise<ReviewResult> {
   const role = can(actor, "admin:network", { networkId: "" }); // a non-admin is refused before any lookup
   if (!role.allow && role.reason === "role_not_permitted") return { ok: false, denied: role as Decision & { allow: false } };
-  return db.transaction(async (tx): Promise<ReviewResult> => {
+  const out: { denied?: { id: string; networkId: string } } = {};
+  const result = await db.transaction(async (tx): Promise<ReviewResult> => {
     const [row] = await tx
       .select({ ...columns, nurseId: credentials.nurseId, networkId: nurseProfiles.networkId })
       .from(credentials)
@@ -141,7 +142,10 @@ export async function review(db: Db, actor: Actor, credentialId: string, status:
       .where(and(eq(credentials.id, credentialId), isNull(credentials.deletedAt)))
       .for("update", { of: credentials });
     const decision = can(actor, "admin:network", { networkId: row?.networkId ?? "" });
-    if (!row || !decision.allow) return { ok: false, fail: { status: 404, error: ErrorMessage.notFound } };
+    if (!row || !decision.allow) {
+      if (row) out.denied = row;
+      return { ok: false, fail: { status: 404, error: ErrorMessage.notFound } };
+    }
     if (row.status === status) return { ok: false, fail: { status: 409, error: ErrorMessage.credentialAlreadyReviewed } };
     const [updated] = await tx.update(credentials).set({ status, reviewedBy: actor.userId, reviewedAt: now, updatedAt: now }).where(eq(credentials.id, row.id)).returning(columns);
     await recordAudit(tx, {
@@ -158,6 +162,14 @@ export async function review(db: Db, actor: Actor, credentialId: string, status:
     await enqueue(tx, { template: "credential.reviewed", payload: { outcome: status }, recipients: [await userRecipient(tx, row.nurseId)] }); // outcome only: no type, note or file
     return { ok: true, value: toNurseCredential(updated!, todayIn(await networkDefaultTimezone(tx, row.networkId), now)) };
   });
+  const d = out.denied; // set inside the tx callback; the denial row is written after it, on its own
+  if (d) {
+    await recordAudit(db, {
+      ...meta, actorUserId: actor.userId, actorRole: actor.role, networkId: d.networkId, agencyId: actor.activeAgencyId ?? null,
+      action: "access.denied", entityType: "credential", entityId: d.id, changes: { reason: "out_of_scope" },
+    });
+  }
+  return result;
 }
 
 export const DOWNLOAD_TTL_SECONDS = 300;
@@ -182,7 +194,14 @@ export async function documentUrl(db: Db, storage: ObjectStorage, actor: Actor, 
     .from(shifts)
     .where(and(eq(shifts.claimedBy, row.nurseId), eq(shifts.status, "filled"), isNull(shifts.deletedAt)));
   const decision = can(actor, "credential:read-document", { nurseId: row.nurseId, nurseNetworkId: row.networkId, agencyIdsHoldingNurse: holding.map((h) => h.agencyId) });
-  if (!decision.allow || !row.objectKey) return notFound;
+  if (!decision.allow) { // the credential exists but is not this actor's to see: log it, answer the same uniform 404
+    await recordAudit(db, {
+      ...meta, actorUserId: actor.userId, actorRole: actor.role, networkId: row.networkId, agencyId: actor.activeAgencyId ?? null,
+      action: "access.denied", entityType: "credential", entityId: credentialId, changes: { reason: "out_of_scope" },
+    });
+    return notFound;
+  }
+  if (!row.objectKey) return notFound;
   await recordAudit(db, {
     ...meta,
     actorUserId: actor.userId,

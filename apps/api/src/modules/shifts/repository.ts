@@ -207,7 +207,7 @@ export async function networkDefaultTimezone(db: Db | Tx, networkId: string): Pr
   return row?.tz ?? "America/New_York";
 }
 
-export async function nurseLicenseType(db: Db, nurseId: string): Promise<string | null> {
+export async function nurseLicenseType(db: Db | Tx, nurseId: string): Promise<string | null> {
   const [row] = await db.select({ t: nurseProfiles.licenseType }).from(nurseProfiles).where(eq(nurseProfiles.userId, nurseId));
   return row?.t ?? null;
 }

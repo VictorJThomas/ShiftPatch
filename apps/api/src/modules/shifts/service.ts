@@ -141,7 +141,8 @@ type ShiftView = Awaited<ReturnType<typeof repo.shiftView>>;
  * `UPDATE ... WHERE status='open'`, audit. A refusal before the UPDATE writes nothing; any throw rolls the whole thing back.
  */
 export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: RequestMeta, now = new Date()): Promise<Result<ShiftView>> {
-  return db.transaction(async (tx): Promise<Result<ShiftView>> => {
+  const out: { blocked?: { reason: "credential_expired" | "no_valid_credential" | "license_role_mismatch"; shift: { id: string; networkId: string; agencyId: string } } } = {};
+  const result = await db.transaction(async (tx): Promise<Result<ShiftView>> => {
     const shift = await repo.findLiveShift(tx, shiftId);
     const decision = can(actor, "shift:claim", { networkId: shift?.networkId ?? "" });
     // Wrong role = 403. Missing shift, or one outside the nurse's network = the same 404 (no existence leak).
@@ -150,7 +151,14 @@ export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: Re
 
     const licenses = await repo.lockLicenses(tx, actor.userId); // FOR SHARE: a concurrent credential change can't slip past the check
     const why = ineligibility(licenses, { shiftDate: shift.shiftDate }, todayIn(shift.timezone, now));
-    if (why) return failed(403, why === "expired" ? ErrorMessage.credentialExpired : ErrorMessage.noValidCredential);
+    if (why) {
+      out.blocked = { reason: why === "expired" ? "credential_expired" : "no_valid_credential", shift };
+      return failed(403, why === "expired" ? ErrorMessage.credentialExpired : ErrorMessage.noValidCredential);
+    }
+    if (!roleMatchesLicense(await repo.nurseLicenseType(tx, actor.userId), shift.role)) { // same rule as the matchable list
+      out.blocked = { reason: "license_role_mismatch", shift };
+      return failed(403, ErrorMessage.licenseRoleMismatch);
+    }
 
     if (!(await repo.claimRow(tx, { id: shift.id, nurseId: actor.userId, networkId: shift.networkId, now }))) {
       return failed(409, ErrorMessage.shiftNotOpen); // another request got there first (or it was withdrawn / deleted meanwhile)
@@ -173,6 +181,15 @@ export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: Re
     await enqueue(tx, { template: "shift.claimed.nurse", payload: { ...times, agencyName: view.agencyName }, recipients: [await userRecipient(tx, actor.userId)] });
     return { ok: true, value: view };
   });
+  // The claim tx wrote nothing (it returned early), so the denial row is written on its own and persists.
+  const b = out.blocked;
+  if (b) {
+    await recordAudit(db, {
+      ...meta, actorUserId: actor.userId, actorRole: actor.role, networkId: b.shift.networkId, agencyId: b.shift.agencyId,
+      action: "access.denied", entityType: "shift", entityId: b.shift.id, changes: { reason: b.reason },
+    });
+  }
+  return result;
 }
 
 /**

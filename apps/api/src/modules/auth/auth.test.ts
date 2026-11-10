@@ -234,6 +234,8 @@ describe("POST /api/auth/refresh", () => {
     await t.db.update(users).set({ status: "suspended" }).where(eq(users.id, u.id));
     expect((await refresh(s.refresh)).statusCode).toBe(401);
     expect((await familyRows(s.refresh)).every((r) => r.revokedAt !== null)).toBe(true);
+    const logout = (await auditFor("auth.logout")).filter((r) => r.actorUserId === u.id);
+    expect(logout.map((r) => r.changes)).toEqual([{ reason: "suspended" }]);
   });
 
   it("403 for a foreign Origin, 200 for the app origin", async () => {

@@ -11,7 +11,7 @@ import {
 import { seed } from "../../db/seed.js";
 import { createTestDb } from "../../db/test-db.js";
 import { REFRESH_COOKIE, signAccessToken } from "../auth/tokens.js";
-import { recordAudit } from "./audit.js";
+import { type AuditAction, recordAudit } from "./audit.js";
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
 let app: FastifyInstance;
@@ -74,7 +74,7 @@ async function all(qs: string, who: string, headers: Record<string, string> = {}
 }
 const ins = (e: { networkId?: string | null; agencyId?: string | null; entityType: string; entityId?: string; action?: string; occurredAt?: Date; changes?: unknown }) =>
   recordAudit(t.db, {
-    actorUserId: "admin-1", actorRole: "admin", networkId: e.networkId ?? null, agencyId: e.agencyId ?? null, action: e.action ?? "test.event",
+    actorUserId: "admin-1", actorRole: "admin", networkId: e.networkId ?? null, agencyId: e.agencyId ?? null, action: (e.action ?? "test.event") as AuditAction,
     entityType: e.entityType, entityId: e.entityId ?? "e-1", requestId: "req-1", ip: "203.0.113.9", userAgent: "vitest",
     ...(e.occurredAt ? { occurredAt: e.occurredAt } : {}), ...(e.changes !== undefined ? { changes: e.changes } : {}),
   });
