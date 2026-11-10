@@ -7,7 +7,8 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # PRs: newest push wins. master: never cancel a run mid-deploy; a newer push waits and deploys after it.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -62,3 +63,41 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # GITLEAKS_LICENSE is only required for organizations; personal account needs none.
+
+  # Continuous deploy: every push to master (PR merge / rebase-merge) that passes checks + security ships API, then web.
+  # ponytail: CLI deploys from Actions, not the Railway/Vercel Git integrations, so nothing ships while CI is red.
+  deploy:
+    needs: [checks, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: production # GitHub environment: holds the secrets; add required reviewers there for a manual gate
+    timeout-minutes: 20
+    env:
+      PROD_URL: https://shiftpatch-web-orcin.vercel.app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      # API first: the pre-deploy step (railway.json) migrates the DB before the new web can call new routes.
+      # --ci streams the build and fails the job when the build or health check fails.
+      - name: Deploy API (Railway)
+        run: npx --yes @railway/cli@5.71.0 up --ci --service api --environment production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} # project token scoped to the production environment
+      - name: Deploy web (Vercel)
+        run: npx --yes vercel@65.3.1 deploy --prod --yes --token "$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_6px9Vx6uRuUj0Y4FbjZJKTGG # not secret: ids from .vercel/project.json
+          VERCEL_PROJECT_ID: prj_qf3LvYnK7CY06qRzqEq05EaoS5MR
+      # Through the Vercel /api rewrite: proves the web deploy and its API_ORIGIN rewrite reach a live API (health skips the DB).
+      - name: Smoke test
+        run: |
+          for _ in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 10 "$PROD_URL/api/health"; then echo; exit 0; fi
+            sleep 10
+          done
+          echo "health check failed: $PROD_URL/api/health" >&2
+          exit 1
+
