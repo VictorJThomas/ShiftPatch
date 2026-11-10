@@ -216,3 +216,11 @@ Q1 agency id = agency id? · Q2 grader sees ineligible shifts to trigger 403? (f
 - **Keep string templates, no React Email.** One shared `layout()` serves all 11 templates; React Email would add deps + a JSX build in the API for a visual-only change.
 - **Logo hosted by the web app** at `${APP_ORIGIN}/brand/logo-horizontal-light-h32@2x.png` (public, stable; not R2, no signed URL). Light variant (for light backgrounds), @2x shown at 137x32. Without `appUrl` the header is a text wordmark so no broken image URL is ever sent.
 - **Light-only emails** (`color-scheme: light`); dark-mode logo variant not used. Badges always carry a text label. CTAs link only to the plain app origin (no deep or tokenized links).
+
+## OPEN — Past-dated shifts (brief for Victor, 2026-11-10)
+- **Problem:** nothing rejects a shift dated before today. Agencies can post one, nurses see it as matchable and can claim it. The spec (`ShiftPatch-Technical-Spec.md`) is silent; ARCHITECTURE has no rule.
+- **Key fact:** all three spec seed shifts are dated 2026-10-02..04, so they are **already in the past**. The grader logs in after the deadline and expects nurse-1 to claim shift-1 and nurse-2 to get the exact 403 on it.
+- **Option A, reject everywhere** (create, matchable, claim: `date < today` in the shift's timezone, via the existing `todayIn(tz)`): cleanest data, but it **breaks the graded seed demo**. shift-1/3 disappear from the marketplace and a claim can't reach the "Credential expired" 403. Not viable unless claim checks credentials first.
+- **Option B, allow everything** (current): demo works; agencies can post nonsense dates; nurses may claim a shift that already happened.
+- **Option C, reject on create only (recommended):** `POST /api/shifts` returns 400 `{ "error": "Shift date is in the past" }` when `date < todayIn(timezone)`. Matchable and claim stay as they are, so the seed demo is untouched. Timezone: compare in the facility's timezone (same helper as eligibility); "today" is allowed. Contract: adds a 400 case to the required POST /api/shifts route (body/shape unchanged). Cost: ~10 lines + 3 tests.
+- **Decision needed:** A, B or C. Until then: B (unchanged).
