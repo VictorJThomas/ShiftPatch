@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/format";
 import { DetailList } from "./DetailList";
 import { AppDialog } from "./AppDialog";
 import { CredentialDownloadButton } from "./CredentialDownloadButton";
+import { CredentialViewButton } from "./CredentialViewButton";
 import { ErrorState, ListSkeleton } from "./States";
 import { StatusBadge } from "./StatusBadge";
 
@@ -58,7 +59,12 @@ export function NurseDetailDialog({ open, onClose, nurse, loading, error, onRetr
                   <StatusBadge status={c.status} />
                   {(credentialActions || c.hasFile) && (
                     <div className="adm-cred-acts">
-                      {c.hasFile && <CredentialDownloadButton credentialId={c.id} label={credentialLabel(c)} />}
+                      {c.hasFile && (
+                        <>
+                          <CredentialViewButton credentialId={c.id} label={credentialLabel(c)} />
+                          <CredentialDownloadButton credentialId={c.id} label={credentialLabel(c)} />
+                        </>
+                      )}
                       {credentialActions?.(c)}
                     </div>
                   )}

@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import {
-  agencies, agencyMemberships, credentials, facilities, hospitalNetworks, networkAgencies, notifications, nurseProfiles, shiftCancellations, shifts, userProfiles, users,
+  agencies, credentials, facilities, hospitalNetworks, networkAgencies, nurseProfiles, shiftCancellations, shifts, userProfiles,
 } from "../../db/schema/index.js";
 import type { Tx } from "../audit/audit.js";
 import {
@@ -12,6 +12,7 @@ import {
   type MarketplaceScope,
   type NetworkScope,
 } from "../authz/scope.js";
+import { agencyManagers, userRecipient } from "../notifications/recipients.js";
 
 // Tenant data: every shift query takes a scope object that only the authorization layer can issue. No unscoped variant exists.
 
@@ -196,6 +197,11 @@ export async function facilityTimezone(db: Db, facilityId: string, networkId: st
   return row?.timezone ?? null;
 }
 
+export async function facilityName(q: Q, facilityId: string): Promise<string | null> {
+  const [row] = await q.select({ name: facilities.name }).from(facilities).where(eq(facilities.id, facilityId));
+  return row?.name ?? null;
+}
+
 export async function networkDefaultTimezone(db: Db | Tx, networkId: string): Promise<string> {
   const [row] = await db.select({ tz: hospitalNetworks.defaultTimezone }).from(hospitalNetworks).where(eq(hospitalNetworks.id, networkId));
   return row?.tz ?? "America/New_York";
@@ -302,24 +308,7 @@ export const insertCancellation = (tx: Tx, c: typeof shiftCancellations.$inferIn
 
 /** Active owners/managers of the agency (+ the previous nurse when given), with the email to notify. One row per user. */
 export async function cancelRecipients(q: Q, agencyId: string, previousNurseId: string) {
-  const managers = await q
-    .select({ userId: users.id, email: users.email })
-    .from(agencyMemberships)
-    .innerJoin(users, eq(users.id, agencyMemberships.userId))
-    .where(
-      and(
-        eq(agencyMemberships.agencyId, agencyId),
-        isNull(agencyMemberships.revokedAt),
-        inArray(agencyMemberships.role, ["owner", "manager"]),
-        isNull(users.deletedAt),
-        eq(users.status, "active"),
-      ),
-    );
-  const [nurse] = await q
-    .select({ userId: users.id, email: users.email })
-    .from(users)
-    .where(and(eq(users.id, previousNurseId), isNull(users.deletedAt), eq(users.status, "active")));
-  return { managers, nurse: nurse ?? null };
+  const managers = await agencyManagers(q, agencyId);
+  const nurse = await userRecipient(q, previousNurseId);
+  return { managers, nurse };
 }
-
-export const insertNotifications = (tx: Tx, rows: (typeof notifications.$inferInsert)[]) => (rows.length ? tx.insert(notifications).values(rows) : Promise.resolve());

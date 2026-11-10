@@ -56,12 +56,14 @@ export const notifications = pgTable(
     nextAttemptAt: tstz().notNull().defaultNow(),
     lockedUntil: tstz(), // lease while status = 'sending': a dispatcher claimed the row; after this instant it may be reclaimed
     lastError: text(),
+    dedupeKey: text(), // reminders only: one row per key (partial unique index) makes the sweep idempotent
     sentAt: tstz(),
     createdAt: createdAt(),
     updatedAt: createdAt(),
   },
   (t) => [
     index("notifications_pending_idx").on(t.status, t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
+    uniqueIndex("notifications_dedupe_uq").on(t.dedupeKey).where(sql`${t.dedupeKey} IS NOT NULL`),
   ],
 );
 

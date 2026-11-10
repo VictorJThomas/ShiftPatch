@@ -221,4 +221,19 @@ Format: `## YYYY-MM-DD — topic` then bullets: done / decided / open. Keep shor
 - Checks: /verify GREEN, web 185, Playwright mocked 49/7 skipped, local MinIO smoke all PASS (9 MB). Uncommitted.
 - Skills used: using-agent-skills, ponytail, task, verify, postman-export (all already in `.claude/skills`).
 - CD: `deploy` job added to `ci.yml` (Railway CLI then Vercel CLI then health smoke, master only, after checks + security). GitHub env `production` created in browser, restricted to `master`. Token pages opened for Victor (Railway project tokens, Vercel tokens). Task "CD pipeline: auto-deploy API + web on master after CI" added Active (stage 8).
+- Victor merged PR #13 (R2) and #14 (CD), set the secrets. First CD run green (deploy job included). Prod smoke via alias: all PASS incl. 9 MB upload (no Vercel 413). Test credential soft-deleted with Victor's OK. Tasks "R2 production storage + credential download links" and "CD pipeline..." → Done (Tasks.md + Notion).
 
+
+## 2026-11-10 (b) Email notifications v2 plan
+- Planned email notifications for every role: 6 event emails (E1 shift.posted to eligible nurses, E2/E3 claim to agency + nurse confirmation, E4 existing cancel, E5 credential submitted to admins, E6 credential reviewed) + 5 reminders (S1 expiring 30d/7d, S2 expired, S3 booked nurse license lapses, S4 shift in 24h, S5 unfilled in 24h). Victor picked all three reminder kinds + new-shift emails to eligible nurses only.
+- Plan saved: `docs/email-notifications-plan.md` (Victor implements). Key design: `notifications.dedupe_key` + partial unique index (migration 0005), in-process reminder sweep (15 min, pg advisory lock), shared `enqueue`/`recipients` helpers, no credential type or TB data in mail.
+- No code changed. Skill used: plan-md (already in `.claude/skills`).
+
+## 2026-11-10 (c) Email v2 built, date range filter, document preview (manager + 2 subagents)
+- Done: Sonnet subagent built email v2 per `docs/email-notifications-plan.md` (migration 0005 `dedupe_key`, `recipients.ts`, `enqueue.ts`, 10 new templates, hooks E1/E2/E3/E5/E6, `reminders.ts` S1-S5 wired in `server.ts`, `.env.example`, ARCHITECTURE §10). Manager review found the intro missing from HTML mail + unbounded expired-credential rescan; both fixed. A plan-mode toggle interrupted the agent once; resumed.
+- Done: second subagent (frontend-design, make-interfaces-feel-better, using-agent-skills, TDD) replaced Marketplace date chips with Start/End date inputs and added the credential "View file" preview dialog with Download (blob render, CSP `frame-src blob:` + `CREDENTIAL_STORAGE_ORIGIN`). Manager added the `.env.example` line.
+- Verify: `/verify` GREEN (typecheck, lint, test, contract) on the combined tree. API 542 tests; web 201 Vitest; mocked Playwright 51 pass / 7 skipped (agent-reported).
+- Decided: see [[Decisions]] "Email notifications v2 + date range + document preview".
+- Board: 3 tasks added → Done (email v2, date filter, preview); new Pending "Enable credential preview in prod: R2 CORS rule + CREDENTIAL_STORAGE_ORIGIN on Vercel". Diff 0 drift. Notion still has a duplicate "Production DB: Railway Postgres..." row (both Done), left for Victor.
+- Skills copied: none needed (all used skills already in `.claude/skills`).
+- Open: all work uncommitted; Mailpit smoke not run; preview not tested on Safari/Firefox/real devices; PDF path checked in real Chrome only (Playwright Chromium has no PDF viewer).

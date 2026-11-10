@@ -9,6 +9,8 @@ import { type RequestMeta, recordAudit } from "../audit/audit.js";
 import type { Actor } from "../authz/actor.js";
 import { can } from "../authz/can.js";
 import type { Decision } from "../authz/decision.js";
+import { enqueue } from "../notifications/enqueue.js";
+import { networkAdmins, userName, userRecipient } from "../notifications/recipients.js";
 import { isEligible, todayIn } from "../shifts/eligibility.js";
 import { networkDefaultTimezone } from "../shifts/repository.js";
 
@@ -86,6 +88,8 @@ export async function upload(db: Db, storage: ObjectStorage, actor: Actor, input
         changes: { type: input.type, expiresOn: input.expiresOn ?? null }, // no file key, name or hash
         ...meta,
       });
+      // Outbox (§10): network admins learn that something awaits review. Name only, never the credential type.
+      await enqueue(tx, { template: "credential.submitted", payload: { nurseName: await userName(tx, actor.userId) }, recipients: actor.nurseNetworkId ? await networkAdmins(tx, actor.nurseNetworkId) : [] });
       return inserted!;
     });
     return toNurseCredential(row, today);
@@ -151,6 +155,7 @@ export async function review(db: Db, actor: Actor, credentialId: string, status:
       entityId: row.id,
       changes: { status: [row.status, status], nurseId: row.nurseId },
     });
+    await enqueue(tx, { template: "credential.reviewed", payload: { outcome: status }, recipients: [await userRecipient(tx, row.nurseId)] }); // outcome only: no type, note or file
     return { ok: true, value: toNurseCredential(updated!, todayIn(await networkDefaultTimezone(tx, row.networkId), now)) };
   });
 }

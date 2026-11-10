@@ -124,7 +124,12 @@ describe("claim: concurrency (genuine Postgres, independent connections)", () =>
     expect(log[0]!.requestId).toBeTruthy();
     const after = await t.db.select({ n: sql<number>`count(*)::int` }).from(auditLog).where(eq(auditLog.action, "shift.claimed"));
     expect(after[0]!.n - before[0]!.n).toBe(1); // 19 losers wrote nothing
-    expect(await outbox(id)).toEqual([]);
+    // Outbox: E2 to agency-a's active owners/managers (viewer-a gets nothing) + E3 to the winner; the 19 losers added no row.
+    expect(await outbox(id)).toEqual(["admin@sunrisehealth.example", "mgr-a@example.com", `${winner.n}@example.com`].sort());
+    const rows = await t.db.select().from(notifications).where(sql`${notifications.payload}->>'shiftId' = ${id}`);
+    expect(rows.filter((n) => n.template === "shift.claimed.nurse").map((n) => n.recipientEmail)).toEqual([`${winner.n}@example.com`]);
+    expect(rows.filter((n) => n.template === "shift.claimed.agency")).toHaveLength(2);
+    expect(JSON.stringify(rows.map((n) => n.payload))).not.toMatch(/license|tb_screening|credential/i);
   });
 
   it("the same nurse claiming twice at once: one 200, one 409, one audit row", async () => {
@@ -356,6 +361,19 @@ describe("rollback: a failure late in the transaction undoes everything", () => 
       await untrap();
     }
     expect((await claim(id, "cn17")).status).toBe(200); // and the shift is claimable once the fault is gone
+  });
+
+  it("claim: outbox insert fails -> 500, shift still open, no audit", async () => {
+    const id = await mkShift({ id: "shift-rb3" });
+    const untrap = await trap("notifications", "fail_outbox_rb3", `new.payload->>'shiftId' = 'shift-rb3'`);
+    try {
+      expect(await claim(id, "cn19")).toMatchObject({ status: 500, body: { error: "Internal server error" } });
+      expect(await shiftRow(id)).toMatchObject({ status: "open", claimedBy: null });
+      expect(await audits(id, "shift.claimed")).toHaveLength(0);
+    } finally {
+      await untrap();
+    }
+    expect((await claim(id, "cn19")).status).toBe(200);
   });
 
   it("cancel: outbox insert fails -> 500, still filled, no history, no audit", async () => {

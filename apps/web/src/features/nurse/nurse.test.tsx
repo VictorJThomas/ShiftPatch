@@ -169,7 +169,32 @@ describe("Marketplace filters (FilterDropdown, immediate)", () => {
     expect(await screen.findByText("2 shifts you can take")).toBeTruthy();
   });
 
-  it("filters by date, counts both active filters and Reset restores the unfiltered list", async () => {
+  // Date range: Start/End native inputs inside the panel (inclusive, either side optional).
+  const setRange = (panel: HTMLElement, from: string | null, to: string | null) => {
+    if (from !== null) fireEvent.change(within(panel).getByLabelText("Start date"), { target: { value: from } });
+    if (to !== null) fireEvent.change(within(panel).getByLabelText("End date"), { target: { value: to } });
+  };
+  const listed = () => screen.getAllByTestId("shift-list-item").map((el) => el.textContent ?? "");
+  // A third open shift so a range can sit strictly inside the data.
+  const shift4: Shift = { ...shift1, id: "shift-4", date: "2026-10-06", role: "CNA" };
+
+  it("renders labelled Start/End date inputs bounded by the first and last open shift", async () => {
+    marketplace([shift1, shift3, shift4], [shift1, shift3, shift4], true);
+    wrap(<Marketplace />);
+    await screen.findAllByTestId("shift-list-item");
+    const panel = await openFilters();
+    expect(within(panel).queryByRole("button", { name: /Oct/ })).toBeNull(); // no per-date chips any more
+    const start = within(panel).getByLabelText("Start date") as HTMLInputElement;
+    const end = within(panel).getByLabelText("End date") as HTMLInputElement;
+    expect([start.type, end.type]).toEqual(["date", "date"]);
+    expect([start.min, start.max, end.min, end.max]).toEqual(["2026-10-02", "2026-10-06", "2026-10-02", "2026-10-06"]);
+    setRange(panel, "2026-10-03", null);
+    expect(end.min).toBe("2026-10-03"); // each side bounds the other
+    setRange(panel, null, "2026-10-04");
+    expect(start.max).toBe("2026-10-04");
+  });
+
+  it("filters a one-day range on the server (date param), counts both filters and Reset restores the list", async () => {
     marketplace([shift1, shift3], [shift1, shift3], true, {
       "GET /api/shifts?matchable=true&date=2026-10-04&status=open": { shifts: [shift3] },
       "GET /api/shifts?matchable=true&role=RN&date=2026-10-04&status=open": { shifts: [shift3] },
@@ -177,44 +202,74 @@ describe("Marketplace filters (FilterDropdown, immediate)", () => {
     wrap(<Marketplace />);
     await screen.findAllByTestId("shift-list-item");
     const panel = await openFilters();
-    fireEvent.click(within(panel).getByRole("button", { name: /Sun, Oct 4/ }));
+    setRange(panel, "2026-10-04", "2026-10-04");
     await waitFor(() => expect(screen.getAllByTestId("shift-list-item")).toHaveLength(1));
+    expect(api).toHaveBeenCalledWith("/api/shifts?matchable=true&date=2026-10-04&status=open", expect.anything());
     expect(screen.getByText("1 shift you can take")).toBeTruthy();
-    expect(within(panel).getByRole("button", { name: "All dates 2" })).toBeTruthy(); // counts come from the unfiltered data
+    expect(within(panel).getByRole("button", { name: "All roles 1" })).toBeTruthy(); // role counts follow the range
     fireEvent.click(within(panel).getByRole("button", { name: /^RN/ }));
     await waitFor(() => expect(api).toHaveBeenCalledWith("/api/shifts?matchable=true&role=RN&date=2026-10-04&status=open", expect.anything()));
     expect(trigger("Filters, 2 active")).toBeTruthy();
     fireEvent.click(within(panel).getByRole("button", { name: "Reset" }));
     await waitFor(() => expect(screen.getAllByTestId("shift-list-item")).toHaveLength(2));
     expect(trigger("Filters").getAttribute("aria-label")).toBeNull();
+    expect((within(panel).getByLabelText("Start date") as HTMLInputElement).value).toBe("");
   });
 
-  it("filters the lapsed-license fallback list from the open source (no matchable param)", async () => {
-    marketplace([], [shift1, shift3], false, { "GET /api/shifts?role=RN&status=open": { shifts: [shift1, shift3] } });
+  it("filters a multi-day range inclusively on the loaded list (no extra request)", async () => {
+    marketplace([shift1, shift3, shift4], [shift1, shift3, shift4], true);
     wrap(<Marketplace />);
     await screen.findAllByTestId("shift-list-item");
     const panel = await openFilters();
-    fireEvent.click(within(panel).getByRole("button", { name: "RN 2" }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith("/api/shifts?role=RN&status=open", expect.anything()));
-    expect(await screen.findByText("2 open shifts")).toBeTruthy();
+    const calls = api.mock.calls.length;
+    setRange(panel, "2026-10-02", "2026-10-04"); // both ends inclusive
+    await waitFor(() => expect(listed()).toHaveLength(2));
+    expect(listed().join()).not.toContain("Oct 6");
+    expect(trigger("Filters, 1 active")).toBeTruthy();
+    expect(api.mock.calls.length).toBe(calls);
   });
 
-  it("does not re-activate a date filter whose shift vanished and then reappeared", async () => {
-    const filtered = { "GET /api/shifts?matchable=true&date=2026-10-04&status=open": { shifts: [shift3] } };
-    marketplace([shift1, shift3], [shift1, shift3], true, filtered);
+  it("filters with only a start date or only an end date", async () => {
+    marketplace([shift1, shift3, shift4], [shift1, shift3, shift4], true);
     wrap(<Marketplace />);
     await screen.findAllByTestId("shift-list-item");
     const panel = await openFilters();
-    fireEvent.click(within(panel).getByRole("button", { name: /Sun, Oct 4/ }));
-    expect(await screen.findByRole("button", { name: "Filters, 1 active" })).toBeTruthy();
-    marketplace([shift1], [shift1], true); // shift3 claimed elsewhere
-    await act(() => qc.invalidateQueries());
-    await waitFor(() => expect(screen.getAllByTestId("shift-list-item")).toHaveLength(1));
+    setRange(panel, "2026-10-04", null); // start only: Oct 4 onwards
+    await waitFor(() => expect(listed()).toHaveLength(2));
+    expect(listed().join()).not.toContain("Oct 2");
+    fireEvent.click(within(panel).getByRole("button", { name: "Clear dates" }));
+    await waitFor(() => expect(listed()).toHaveLength(3));
+    setRange(panel, null, "2026-10-04"); // end only: up to Oct 4
+    await waitFor(() => expect(listed()).toHaveLength(2));
+    expect(listed().join()).not.toContain("Oct 6");
+  });
+
+  it("flags an end date before the start date inline and does not apply the range", async () => {
+    marketplace([shift1, shift3], [shift1, shift3], true, { "GET /api/shifts?matchable=true&date=2026-10-04&status=open": { shifts: [shift3] } });
+    wrap(<Marketplace />);
+    await screen.findAllByTestId("shift-list-item");
+    const panel = await openFilters();
+    setRange(panel, "2026-10-04", "2026-10-02");
+    const end = within(panel).getByLabelText("End date");
+    const msg = within(panel).getByText("End date must be on or after the start date");
+    expect(end.getAttribute("aria-invalid")).toBe("true");
+    expect(end.getAttribute("aria-describedby")).toContain(msg.id);
+    expect(listed()).toHaveLength(2); // nothing filtered while invalid
     expect(trigger("Filters").getAttribute("aria-label")).toBeNull();
-    marketplace([shift1, shift3], [shift1, shift3], true, filtered); // reappears
-    await act(() => qc.invalidateQueries());
-    await waitFor(() => expect(screen.getAllByTestId("shift-list-item")).toHaveLength(2));
-    expect(trigger("Filters").getAttribute("aria-label")).toBeNull();
+    setRange(panel, null, "2026-10-04"); // fixed (a one-day range now): applies
+    await waitFor(() => expect(listed()).toHaveLength(1));
+    expect(within(panel).queryByText("End date must be on or after the start date")).toBeNull();
+  });
+
+  it("shows the filtered empty state with Clear filters when the range holds no shift", async () => {
+    marketplace([shift1, shift3], [shift1, shift3], true);
+    wrap(<Marketplace />);
+    await screen.findAllByTestId("shift-list-item");
+    const panel = await openFilters();
+    setRange(panel, "2026-10-05", "2026-10-09");
+    expect(await screen.findByText("No open shifts match")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters", hidden: true }));
+    await waitFor(() => expect(listed()).toHaveLength(2));
   });
 
   it("shows an error with retry when the filtered request fails", async () => {

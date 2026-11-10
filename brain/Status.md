@@ -3,23 +3,21 @@
 **Last updated:** 2026-11-10
 
 ## Where we are
-- `feature/12-r2-integration` (from master after PR #12 merge): **R2 download links implemented, committed `53165f4` (Victor)** per `docs/r2-storage-plan.md` steps 2-7. `storage.ts` `signedGetUrl` + PUT `content-disposition`; `service.documentUrl`; route `GET /api/credentials/:id/download-url`; contract `CredentialDownloadResponse`; web `CredentialDownloadButton` in nurse `CredentialDetailDialog` + shared `NurseDetailDialog`; audit label; e2e mock; Postman regenerated; ARCHITECTURE §9.3 updated. Decision: [[Decisions]] "R2 download links".
-- Verified 2026-11-10: `/verify` GREEN 4/4 · web vitest 185 · mocked Playwright 49 passed / 7 skipped · Postman regenerated (27 requests) · real local API + MinIO smoke (scratch script): 9 MB PDF upload 201; nurse-1/admin-1/agency-a get link, bytes identical, `credential.pdf` attachment, unsigned URL 403; nurse-2/agency-b 404; 3 audit rows, no key/URL in audit or logs.
-- **Prod R2:** bucket `private-credentials` created in Cloudflare (public access disabled, automatic location). Token + Railway env NOT done (Victor: secrets).
-- **CD pipeline added, UNCOMMITTED:** `deploy` job in `ci.yml` (see [[Decisions]] "CD pipeline"); actionlint 1.7.7 clean (Docker). GitHub environment `production` created, deployment branches = `master`. Secrets NOT set yet (Victor).
-- Not checked: 375 px row with Verify + Reject + Download (admin), real-browser click of Download.
+- master `db78fdd` (R2 download links + CD pipeline) is **live** at `https://shiftpatch-web-orcin.vercel.app` (test through the alias; per-deployment URLs are behind Vercel Authentication).
+- Branch `feature/14-email-notifications`, **all uncommitted**: email v2 (migration 0005 `dedupe_key`, 6 event mails + reminder sweep S1-S5, see [[Decisions]]), Marketplace Start/End date filter, credential "View file" preview dialog with Download. `/verify` **GREEN** 2026-11-10 (typecheck, lint, test, contract) on the combined tree.
+- Not checked: Mailpit smoke of the new mails; preview on Safari/Firefox/real phones; preview against real R2 (needs CORS + env, below). Prod mail transport is still `log` until Resend is set up.
 
 ## Next step
-1. Victor: Cloudflare R2 → Manage API tokens → Account token, **Object Read & Write**, bucket `private-credentials` only. Railway `api` vars: `R2_ACCOUNT_ID` (1d3b1ddf066d2d3db6cf15b415c67bbc), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET=private-credentials`; `S3_ENDPOINT` unset/empty.
-2. Victor: GitHub env `production` → secrets `RAILWAY_TOKEN` (Railway project → Settings → Tokens, env production) and `VERCEL_TOKEN` (vercel.com/account/settings/tokens, scope victorjthomas' projects). Optional: required reviewers on the env for a manual gate.
-2b. Victor: review + commit, PR to master; merging deploys automatically (first real run of the `deploy` job: watch it).
-3. Prod gate (plan step 1): upload ~9 MB PDF via the Vercel domain. 413 → fallback in `docs/r2-storage-plan.md` step 1. Then prod verify list in the plan.
+1. Commit + PR the branch (review the diff; migration 0005 runs on deploy via Railway pre-deploy).
+2. Mailpit smoke: `docker compose up -d postgres mailpit`, `pnpm --filter api db:reset`, `MAIL_TRANSPORT=smtp REMINDER_INTERVAL_MS=10000 pnpm --filter api start:local` (background), run the flow, check http://localhost:8025 (plan "Verify" step 3).
+3. Board "Enable credential preview in prod": R2 CORS rule on `private-credentials` (AllowedOrigins = app origin, GET, no credentials) + Vercel env `CREDENTIAL_STORAGE_ORIGIN=https://<account>.r2.cloudflarestorage.com` (build-time). Until then the dialog shows "couldn't be reached"; Download works.
 4. Board "Playwright E2E in CI": Postgres service job running `flows.spec.ts`.
+5. Optional: required reviewers on GitHub env `production`; migrate `railway.json` before 2026-12-01.
 
 ## Blockers / waiting
-- Victor: past-date product rule; R2 bucket + keys; legacy CSS prune OK.
+- Victor: R2 CORS + Vercel env for the preview (or choose an API stream instead, see [[Decisions]]); RESEND_API_KEY in Railway for real mail; past-date product rule; legacy CSS prune OK.
 - Founder decision on export (Option C vs D), see [[ESCALATION]]. PostHog escalated (not built).
-- Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; audit "All changes" dialog and Load more not exercised in QA (seed too small).
+- Open (minor): credential form guard does not cover browser Back/Forward; upload progress is indeterminate; admin search font 15px may zoom on iOS focus; duplicate Notion row "Production DB: Railway Postgres..." (both Done).
 
 ## Environment gotchas
 Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan `node` first. Project path is OneDrive-synced: pin Turbopack workspace root in config. See global CLAUDE.md. Python 3.14 + Node 26 + pnpm 10.7 + Docker 29 available. `tasks_md.py` keeps the file's CRLF/LF style.
@@ -60,3 +58,5 @@ Windows 11, memory-constrained. Never run dev servers in foreground; kill orphan
 - **Parallel `/verify` runs** (several agents at once) make API rollback tests time out; one run on a quiet machine is green. Run gates one at a time.
 - Docker Desktop and the dev servers can disappear mid-session: check `docker ps` and ports 3000/3001 before blaming code.
 
+- **Plan mode stops subagents:** toggling plan mode in the main session makes running subagents halt (they can't edit). Resume them with SendMessage after exiting plan mode.
+- **Credential preview locally** needs `CREDENTIAL_STORAGE_ORIGIN=http://localhost:9000` in the web env at build/dev start (CSP `connect-src`). Playwright's bundled Chromium has no PDF viewer: PDF preview is only verifiable in real Chrome.

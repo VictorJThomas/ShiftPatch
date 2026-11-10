@@ -7,6 +7,8 @@ import { can } from "../authz/can.js";
 import { type Decision, deny } from "../authz/decision.js";
 import { type AgencyScope, agencyScope, agencyScopeForAdmin, marketplaceScope, matchableScope } from "../authz/scope.js";
 import { loadNurseDetail } from "../credentials/service.js";
+import { enqueue } from "../notifications/enqueue.js";
+import { agencyManagers, eligibleNurses, userName, userRecipient } from "../notifications/recipients.js";
 import { ineligibility, isEligible, roleMatchesLicense, todayIn } from "./eligibility.js";
 import * as repo from "./repository.js";
 
@@ -120,6 +122,13 @@ export async function createShift(db: Db, actor: Actor, body: unknown, meta: Req
         startTime: [null, input.startTime], endTime: [null, input.endTime], facilityId: [null, input.facilityId ?? null],
       },
     });
+    // Outbox (§10): only nurses who could claim it right now. Same tx, so a failed insert rolls the post back.
+    const facility = input.facilityId ? await repo.facilityName(tx, input.facilityId) : null;
+    await enqueue(tx, {
+      template: "shift.posted",
+      recipients: await eligibleNurses(tx, networkId, input.role, input.date, todayIn(timezone, new Date())),
+      payload: { shiftId: created.id, role: input.role, date: input.date, startTime: input.startTime.slice(0, 5), endTime: input.endTime.slice(0, 5), agencyName: created.agencyName, facilityName: facility },
+    });
     return created;
   });
   return { ok: true, value: row };
@@ -157,7 +166,12 @@ export async function claimShift(db: Db, actor: Actor, shiftId: string, meta: Re
       entityId: shift.id,
       changes: { status: ["open", "filled"], claimedBy: [null, actor.userId] },
     });
-    return { ok: true, value: await repo.shiftView(tx, shift.id) };
+    // Outbox (§10): the agency's owners/managers, plus the claiming nurse's own confirmation (the one email an actor gets about their action).
+    const view = await repo.shiftView(tx, shift.id);
+    const times = { shiftId: shift.id, role: shift.role, date: shift.shiftDate, startTime: view.startTime.slice(0, 5), endTime: view.endTime.slice(0, 5) };
+    await enqueue(tx, { template: "shift.claimed.agency", payload: { ...times, nurseName: await userName(tx, actor.userId) }, recipients: await agencyManagers(tx, shift.agencyId) });
+    await enqueue(tx, { template: "shift.claimed.nurse", payload: { ...times, agencyName: view.agencyName }, recipients: [await userRecipient(tx, actor.userId)] });
+    return { ok: true, value: view };
   });
 }
 
@@ -255,14 +269,8 @@ export async function cancelShift(
     // Outbox (§10): nurse cancels -> agency owners/managers; agency or admin cancels -> the previous nurse + the other owners/managers.
     const view = await repo.shiftView(tx, shift.id);
     const { managers, nurse } = await repo.cancelRecipients(tx, shift.agencyId, previousNurseId);
-    const to = new Map<string, string>();
-    for (const m of managers) if (m.userId !== actor.userId) to.set(m.userId, m.email);
-    if (nurse && actor.role !== "nurse") to.set(nurse.userId, nurse.email);
     const payload = { shiftId: shift.id, date: shift.shiftDate, startTime: view.startTime.slice(0, 5), endTime: view.endTime.slice(0, 5), role: shift.role, agencyName: view.agencyName, reason }; // no credential / health data
-    await repo.insertNotifications(
-      tx,
-      [...to].map(([userId, email]) => ({ id: `ntf_${randomUUID()}`, recipientUserId: userId, recipientEmail: email, template: "shift.cancelled", payload })),
-    );
+    await enqueue(tx, { template: "shift.cancelled", payload, recipients: [...managers, nurse], excludeUserId: actor.userId });
     return { ok: true, value: { shift: view, cancellation: { reason, previousNurseId } } };
   });
 }

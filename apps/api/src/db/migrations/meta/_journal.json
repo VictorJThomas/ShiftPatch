@@ -36,6 +36,13 @@
       "when": 1794054136225,
       "tag": "0004_outbox_sending_lease",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794328756321,
+      "tag": "0005_notification_dedupe",
+      "breakpoints": true
     }
   ]
 }
