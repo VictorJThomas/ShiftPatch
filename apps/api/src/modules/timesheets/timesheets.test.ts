@@ -69,7 +69,7 @@ async function call(method: "GET" | "POST", url: string, who: string | null, bod
   const h: Record<string, string> = { ...headers };
   if (who) h.authorization = `Bearer ${await signAccessToken({ id: who, role: roles.get(who)! })}`;
   const res = await app.inject({ method, url, headers: h, remoteAddress: `10.7.${Math.floor(++ip / 250)}.${ip % 250}`, ...(body === undefined ? {} : { payload: body as object }) });
-  return { status: res.statusCode, body: res.json() as Record<string, any> };
+  return { status: res.statusCode, body: res.json() as Record<string, unknown> };
 }
 const submit = (shiftId: string, who: string | null, body: unknown = HOURS) => call("POST", `/api/shifts/${shiftId}/timesheet`, who, body);
 const approve = (id: string, who: string | null) => call("POST", `/api/timesheets/${id}/approve`, who);

@@ -13,6 +13,7 @@ import { useSessionStore } from "@/stores/session";
 
 const NAV: { href: string; label: string; short: string; icon: IconName }[] = [
   { href: "/agency/shifts", label: "Shifts", short: "Shifts", icon: "brief" },
+  { href: "/agency/timesheets", label: "Timesheets", short: "Timesheets", icon: "clock" },
   { href: "/agency/profile", label: "Agency profile", short: "Agency profile", icon: "building" },
 ];
 
@@ -37,7 +38,7 @@ function AgencyBand() {
         <AgencySwitcher />
         {/* Below 720px the header is hidden: the account menu lives in the band instead. */}
         <div className="ag-band-acct">
-          <AccountMenu profileHref="/agency/profile" links={[{ href: "/agency/shifts", label: "Shifts", icon: "brief" }]} />
+          <AccountMenu profileHref="/agency/profile" links={[{ href: "/agency/shifts", label: "Shifts", icon: "brief" }, { href: "/agency/timesheets", label: "Timesheets", icon: "clock" }]} />
         </div>
       </div>
     </section>
