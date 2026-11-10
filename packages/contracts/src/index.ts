@@ -344,3 +344,5 @@ export type AdminUsersResponse = z.infer<typeof AdminUsersResponse>;
 export type AdminAgencyResponse = z.infer<typeof AdminAgencyResponse>;
 export type ReviewCredentialRequest = z.input<typeof ReviewCredentialRequest>;
 export type ReviewCredentialResponse = z.infer<typeof ReviewCredentialResponse>;
+
+export * from "./inspection.js";

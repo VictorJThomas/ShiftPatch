@@ -9,6 +9,7 @@ export type AuditAction =
   | "auth.login" | "auth.login_failed" | "auth.refresh_reuse_detected" | "auth.logout"
   | "shift.created" | "shift.claimed" | "shift.cancelled" | "shift.withdrawn" | "shift.deleted"
   | "credential.uploaded" | "credential.reviewed" | "credential.document_viewed"
+  | "inspection_package.generated" | "inspection_package.viewed" | "inspection_package.document_downloaded" | "inspection_package.revoked"
   | "agency.updated" | "membership.granted" | "membership.revoked"
   | "access.denied";
 export type AuditEntry = Omit<typeof auditLog.$inferInsert, "action"> & { action: AuditAction };
