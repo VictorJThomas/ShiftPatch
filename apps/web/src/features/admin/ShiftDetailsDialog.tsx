@@ -10,7 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { NurseDetailDialog } from "@/components/ui/NurseDetailDialog";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useShiftNurse } from "@/lib/shift-nurse";
-import { formatDate, formatShiftWhen, isOvernight, shiftHours } from "@/lib/format";
+import { formatDate, formatShiftWhen, isOvernight, formatHours } from "@/lib/format";
 
 
 /** Every field of a shift for the admin, plus the claiming nurse's name and a way into their details. */
@@ -41,7 +41,7 @@ export function ShiftDetailsDialog({ shift, onClose }: { shift: CoverageRow | nu
               { label: "Role", value: shift.role, icon: "brief" },
               { label: "Date", value: formatDate(shift.date), icon: "cal" },
               { label: "Time", value: `${formatShiftWhen(shift)}${isOvernight(shift) ? " · overnight" : ""}`, icon: "clock" },
-              { label: "Duration", value: `${shiftHours(shift)} h` },
+              { label: "Duration", value: formatHours(shift) },
               { label: "Status", value: <StatusBadge status={shift.status} /> },
               {
                 label: "Claimed by",

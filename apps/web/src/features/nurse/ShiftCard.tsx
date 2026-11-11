@@ -6,7 +6,7 @@ import type { Shift } from "@shiftpatch/contracts";
 import { AppDialog } from "@/components/ui/AppDialog";
 import { Icon } from "@/components/ui/Icon";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDate, formatShiftWhen, isOvernight, shiftHours } from "@/lib/format";
+import { formatDate, formatShiftWhen, isOvernight, formatHours } from "@/lib/format";
 
 /** "Fri, Oct 2 · 19:00 → Sat 07:00" with the arrow muted (design `.when .arr`). */
 export function ShiftWhen({ shift }: { shift: Shift }) {
@@ -24,7 +24,7 @@ export function DurationTag({ shift }: { shift: Shift }) {
   return (
     <span className="tag">
       <Icon name={night ? "moon" : "clock"} />
-      {night ? "Overnight" : "Day"} · {shiftHours(shift)} h
+      {night ? "Overnight" : "Day"} · {formatHours(shift)}
     </span>
   );
 }
@@ -94,7 +94,7 @@ export function ShiftDetailsDialog({ shift, onClose, footer }: { shift: Shift | 
               <dt>Hours</dt>
               <dd className="tnum">
                 {shift.startTime} → {shift.endTime}
-                {isOvernight(shift) ? " (next day)" : ""} · {shiftHours(shift)} h
+                {isOvernight(shift) ? " (next day)" : ""} · {formatHours(shift)}
               </dd>
             </div>
             <div>

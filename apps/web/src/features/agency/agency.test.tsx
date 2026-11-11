@@ -434,7 +434,7 @@ describe("postShiftSchemaFor (past-date rule)", () => {
 describe("echoLine", () => {
   it("formats overnight and same-day shifts, null until complete", () => {
     expect(echoLine({ date: "2026-10-02", startTime: "19:00", endTime: "07:00" })).toBe("Fri, Oct 2, 2026 · 19:00 → 07:00 · 12 h · Overnight");
-    expect(echoLine({ date: "2026-10-03", startTime: "07:00", endTime: "15:30" })).toBe("Sat, Oct 3, 2026 · 07:00 → 15:30 · 8.5 h");
+    expect(echoLine({ date: "2026-10-03", startTime: "07:00", endTime: "15:30" })).toBe("Sat, Oct 3, 2026 · 07:00 → 15:30 · 8 h 30 min");
     expect(echoLine({ date: "2026-10-03", startTime: "07:00", endTime: "" })).toBeNull();
   });
 });

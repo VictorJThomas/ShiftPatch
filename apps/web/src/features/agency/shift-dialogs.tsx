@@ -10,7 +10,7 @@ import { AppDialog } from "@/components/ui/AppDialog";
 import { Icon } from "@/components/ui/Icon";
 import { NurseDetailDialog } from "@/components/ui/NurseDetailDialog";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDate, formatShiftWhen, isOvernight, shiftHours } from "@/lib/format";
+import { formatDate, formatShiftWhen, isOvernight, formatHours } from "@/lib/format";
 import { useShiftNurse } from "@/lib/shift-nurse";
 import { useCancelShift, useWithdrawShift } from "./queries";
 
@@ -175,7 +175,7 @@ export function ShiftDetailsDialog({
             { label: "Status", value: <StatusBadge status={shift.status} /> },
             { label: "Role", value: <span className="role">{shift.role}</span> },
             { label: "Date", value: formatDate(shift.date) },
-            { label: "Time", value: `${shift.startTime} → ${shift.endTime} · ${shiftHours(shift)} h${isOvernight(shift) ? " · Overnight" : ""}` },
+            { label: "Time", value: `${shift.startTime} → ${shift.endTime} · ${formatHours(shift)}${isOvernight(shift) ? " · Overnight" : ""}` },
             { label: "Agency", value: shift.agencyName },
             {
               label: "Claimed by",

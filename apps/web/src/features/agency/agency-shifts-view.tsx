@@ -15,7 +15,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { StatTile } from "@/components/ui/StatTile";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatShiftWhen, isOvernight, parseIsoDate, shiftHours } from "@/lib/format";
+import { formatShiftWhen, isOvernight, parseIsoDate, formatHours } from "@/lib/format";
 import { PostShiftDialog } from "./post-shift-form";
 import { useActiveMembership, useAgencyCoverage } from "./queries";
 import { CancelDialog, ShiftDetailsDialog, ShiftNurseDialog, WithdrawDialog, shiftSummary } from "./shift-dialogs";
@@ -346,7 +346,7 @@ function When({ shift }: { shift: CoverageRow }) {
             Overnight
           </span>
         )}
-        <span className="muted tnum">{shiftHours(shift)} h</span>
+        <span className="muted tnum">{formatHours(shift)}</span>
       </span>
     </span>
   );
