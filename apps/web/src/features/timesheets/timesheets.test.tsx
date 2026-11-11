@@ -209,7 +209,8 @@ describe("Nurse: My shifts submit hours", () => {
     expect(screen.getByText("Break was longer")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Resubmit hours:/ }));
     const dlg = await screen.findByRole("dialog", { name: "Resubmit your hours" });
-    expect((within(dlg).getByLabelText(/Clock out/) as HTMLInputElement).value).toBe("19:30"); // the previous values, not the schedule
+    expect((within(dlg).getByLabelText(/Clock out/) as HTMLInputElement).value).toBe("19:00"); // the schedule, so the nurse sees the shift's hours
+    expect(within(dlg).getByText(/You submitted 07:00 → 19:30, 30 min break./)).toBeTruthy(); // the disputed values stay visible
     expect((within(dlg).getByLabelText(/Unpaid break/) as HTMLInputElement).value).toBe("30");
   });
 });
