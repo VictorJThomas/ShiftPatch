@@ -15,6 +15,8 @@ test("nurse submits hours for a started shift and sees the Submitted chip", asyn
   await page.goto("/nurse/my-shifts");
   await page.getByRole("button", { name: /^Submit hours:/ }).click();
   const hours = page.getByRole("dialog", { name: "Submit your hours" });
+  await expect(hours.getByLabel(/Clock in/)).toHaveValue("07:00"); // prefilled with the scheduled times
+  await expect(hours.getByLabel(/Clock out/)).toHaveValue("19:00");
   await hours.getByLabel(/Unpaid break/).fill("30");
   await hours.getByRole("button", { name: "Submit hours" }).click();
   await expect(page.getByText("Submitted", { exact: true })).toBeVisible();
@@ -30,6 +32,10 @@ test("nurse with a disputed timesheet sees the reason and can resubmit", async (
   await expect(page.getByText("Reason: Break was longer")).toBeVisible();
   await page.getByRole("button", { name: /^Resubmit hours:/ }).click();
   const hours = page.getByRole("dialog", { name: "Resubmit your hours" });
+  await expect(hours.getByLabel(/Clock in/)).toHaveValue("07:00");
+  await expect(hours.getByLabel(/Clock out/)).toHaveValue("19:00"); // the scheduled time, not the disputed 19:30
+  await expect(hours.getByText("You submitted 07:00 → 19:30, 30 min break.")).toBeVisible();
+  await expect(hours.getByText(/Scheduled: 07:00 → 19:00 · 12 h/)).toBeVisible();
   await hours.getByLabel(/Unpaid break/).fill("60");
   await hours.getByRole("button", { name: "Resubmit hours" }).click();
   await expect(page.getByText("Submitted", { exact: true })).toBeVisible();

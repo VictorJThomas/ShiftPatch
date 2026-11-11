@@ -9,7 +9,7 @@ import { Textarea } from "@/components/shadcn/textarea";
 import { AppDialog } from "@/components/ui/AppDialog";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
-import { formatShiftWhen } from "@/lib/format";
+import { formatHours, formatShiftWhen } from "@/lib/format";
 import { formatWorked, hasStarted } from "@/features/timesheets/format";
 import { TimesheetStatusBadge } from "@/features/timesheets/TimesheetList";
 import { useSubmitTimesheet } from "@/features/timesheets/queries";
@@ -65,8 +65,9 @@ export function TimesheetDialog({ shift, timesheet, onClose }: { shift: Shift | 
 function TimesheetDialogBody({ shift, timesheet, onClose }: { shift: Shift | null; timesheet: TimesheetRow | undefined; onClose: () => void }) {
   const submit = useSubmitTimesheet();
   const formId = useId();
-  const [clockIn, setClockIn] = useState(timesheet?.clockIn ?? shift?.startTime ?? "");
-  const [clockOut, setClockOut] = useState(timesheet?.clockOut ?? shift?.endTime ?? "");
+  // Always start from the scheduled times (also on resubmit), so the nurse sees the shift's hours; she can still enter any range.
+  const [clockIn, setClockIn] = useState(shift?.startTime ?? "");
+  const [clockOut, setClockOut] = useState(shift?.endTime ?? "");
   const [breakText, setBreakText] = useState(String(timesheet?.breakMinutes ?? 0));
   const [note, setNote] = useState(timesheet?.note ?? "");
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
@@ -114,6 +115,8 @@ function TimesheetDialogBody({ shift, timesheet, onClose }: { shift: Shift | nul
           <Icon name="alert" />
           <span>
             <b>The agency disputed these hours:</b> {timesheet.reviewNote}
+            <br />
+            You submitted {timesheet.clockIn} → {timesheet.clockOut}, {timesheet.breakMinutes} min break.
           </span>
         </p>
       )}
@@ -126,6 +129,11 @@ function TimesheetDialogBody({ shift, timesheet, onClose }: { shift: Shift | nul
           onSubmit();
         }}
       >
+        {shift && (
+          <p className="muted tnum" style={{ margin: "0 0 12px" }}>
+            Scheduled: {shift.startTime} → {shift.endTime} · {formatHours(shift)}. Change the times if you worked a different range.
+          </p>
+        )}
         <div className="ag-two">
           <Field label="Clock in" error={errors.clockIn} required>
             {(p) => <Input {...p} type="time" step={60} value={clockIn} onChange={(e) => { setClockIn(e.target.value); clear("clockIn"); clear("clockOut"); }} />}
