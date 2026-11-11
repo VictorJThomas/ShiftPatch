@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveMembership } from "@/features/agency/queries";
 import { TimesheetList } from "@/features/timesheets/TimesheetList";
 import { useSessionStore } from "@/stores/session";
+// The shared timesheet table uses the admin table styles (filter chips, sticky first column); this route group does not load them otherwise.
+import "../../../(admin)/admin.css";
 
 /** Hours submitted for this agency's filled shifts. Owners and managers approve or dispute; viewers read. Keyed by agency: a switch resets the filter. */
 export default function AgencyTimesheetsPage() {

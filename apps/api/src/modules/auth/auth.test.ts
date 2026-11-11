@@ -81,7 +81,7 @@ describe("POST /api/auth/login", () => {
     const claims = decodeJwt(body.token);
     expect(claims).toMatchObject({ sub: "nurse-1", role: "nurse" });
     expect(claims.jti).toEqual(expect.any(String));
-    expect(claims.exp! - claims.iat!).toBe(15 * 60);
+    expect(claims.exp! - claims.iat!).toBe(2 * 60 * 60);
     expect(Object.keys(claims).sort()).toEqual(["exp", "iat", "jti", "role", "sub"]);
 
     const raw = cookieOf(res)!.value;
