@@ -15,7 +15,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { StatTile } from "@/components/ui/StatTile";
 import { ErrorState, ListSkeleton } from "@/components/ui/States";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDateTime, formatShiftWhen, isOvernight, relativeFrom, shiftHours } from "@/lib/format";
+import { formatDateTime, formatShiftWhen, isOvernight, relativeFrom, formatHours } from "@/lib/format";
 import {
   type AgencyCoverage, agenciesOf, countByStatus, coverageByAgency, fillRate, PAGE_SIZE, POLL_MS, SHIFT_STATUSES, type SortDir,   type StatusCounts, type StatusFilter,
 } from "./model";
@@ -323,7 +323,7 @@ function ShiftTable({ shifts }: { shifts: Shift[] }) {
                   <td className="num">
                     {formatShiftWhen(s)}
                     {isOvernight(s) && <span className="muted"> · overnight</span>}
-                    <span className="muted"> · {shiftHours(s)} h</span>
+                    <span className="muted"> · {formatHours(s)}</span>
                   </td>
                   <td>
                     <StatusBadge status={s.status} testId="admin-shift-status-badge" />

@@ -47,6 +47,14 @@ export function shiftHours({ startTime, endTime }: ShiftTimes): number {
   return (diff <= 0 ? diff + 24 * 60 : diff) / 60;
 }
 
+/** Shift length for display: "12 h", "12 h 30 min", "5 h 58 min" (never a raw float like 5.966666 h). */
+export function formatHours(shift: ShiftTimes): string {
+  const total = Math.round(shiftHours(shift) * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}
+
 /** "Fri, Oct 2 · 19:00 → Sat 07:00" (overnight) or "Sat, Oct 3 · 07:00 → 19:00" (same day). */
 export function formatShiftWhen(shift: ShiftTimes & { date: string }): string {
   const start = parseIsoDate(shift.date);
@@ -79,6 +87,5 @@ export function relativeFrom(value: string | Date, now: Date = new Date()): stri
 
 /** Live echo under the post-shift date/time inputs: "Sat, Oct 3, 2026 · 07:00 → 19:00 · 12 h · Overnight". */
 export function formatShiftEcho(shift: ShiftTimes & { date: string }): string {
-  const hours = shiftHours(shift);
-  return `${formatDate(shift.date)} · ${shift.startTime} → ${shift.endTime} · ${Number.isInteger(hours) ? hours : hours.toFixed(1)} h${isOvernight(shift) ? " · Overnight" : ""}`;
+  return `${formatDate(shift.date)} · ${shift.startTime} → ${shift.endTime} · ${formatHours(shift)}${isOvernight(shift) ? " · Overnight" : ""}`;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatDateTime, formatShiftWhen, isOvernight, parseIsoDate, relativeFrom, shiftHours } from "./format";
+import { formatDate, formatDateTime, formatShiftWhen, isOvernight, parseIsoDate, relativeFrom, shiftHours, formatHours } from "./format";
 
 describe("format", () => {
   it("parseIsoDate keeps the calendar day (no UTC shift)", () => {
@@ -16,6 +16,9 @@ describe("format", () => {
   it("shiftHours and isOvernight are overnight aware", () => {
     expect(shiftHours({ startTime: "19:00", endTime: "07:00" })).toBe(12);
     expect(shiftHours({ startTime: "07:00", endTime: "19:30" })).toBe(12.5);
+    expect(formatHours({ startTime: "19:00", endTime: "07:00" })).toBe("12 h");
+    expect(formatHours({ startTime: "07:00", endTime: "19:30" })).toBe("12 h 30 min");
+    expect(formatHours({ startTime: "07:00", endTime: "12:58" })).toBe("5 h 58 min"); // was "5.966666666666667 h"
     expect(isOvernight({ startTime: "19:00", endTime: "07:00" })).toBe(true);
     expect(isOvernight({ startTime: "07:00", endTime: "19:00" })).toBe(false);
   });
