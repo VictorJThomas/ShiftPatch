@@ -6,7 +6,7 @@ export class JwtConfigError extends Error {}
 
 export type Role = "nurse" | "agency" | "admin";
 
-export const ACCESS_TOKEN_TTL = "15m";
+export const ACCESS_TOKEN_TTL = "2h"; // a session survives 2 hours of inactivity without a refresh
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // sliding: every rotation starts a new 7 days
 export const REFRESH_COOKIE = "sp_refresh";
 
@@ -18,7 +18,7 @@ function secret() {
 }
 export const assertJwtConfigured = () => void secret();
 
-/** HS256 access token. Claims: sub, role, jti (+ iat/exp). 15 minutes. */
+/** HS256 access token. Claims: sub, role, jti (+ iat/exp). 2 hours. */
 export function signAccessToken(user: { id: string; role: Role }) {
   return new SignJWT({ role: user.role })
     .setProtectedHeader({ alg: "HS256" })

@@ -699,7 +699,7 @@ sequenceDiagram
 
 | Token | Format | Lifetime | Where it lives |
 |---|---|---|---|
-| Access token | JWT (HS256, `jose`), claims `sub`, `role`, `jti` only | 15 min | Login **response body** `token` [Spec]. In the browser, **only in memory** (Zustand, not persisted). |
+| Access token | JWT (HS256, `jose`), claims `sub`, `role`, `jti` only | 2 h | Login **response body** `token` [Spec]. In the browser, **only in memory** (Zustand, not persisted). |
 | Refresh token | 256-bit random value, stored as a SHA-256 hash | 7 days, sliding with each refresh | **httpOnly, Secure, SameSite=Strict cookie**, `Path=/api/auth` |
 
 **Why this keeps the login contract exact:**
@@ -746,7 +746,7 @@ sequenceDiagram
 - **Rate limiting:** `@fastify/rate-limit` on `/api/auth/*`, e.g. 10 requests per minute per IP and email.
 - **Logout:** `POST /api/auth/logout` revokes the refresh token family and clears the cookie.
 - **Page reload:** the app calls `/api/auth/refresh` on start to get a new access token.
-- **Changes take effect immediately:** suspending a user or revoking a membership affects the next request. Memberships and status are **loaded from the database on every request**, not trusted from the token, so a stale token can last at most 15 minutes before refresh and even then can't use revoked access.
+- **Changes take effect immediately:** suspending a user or revoking a membership affects the next request. Memberships and status are **loaded from the database on every request**, not trusted from the token, so a stale token can last at most 2 hours before refresh and even then can't use revoked access.
 
 ### 6.3 Request pipeline
 
@@ -803,7 +803,7 @@ flowchart TD
 
 **As built (Stage 3, `apps/api/src/modules/authz/`):**
 - **Pipeline:** `authenticate` and `loadActor` are `onRequest` hooks (opt in per route: `{ onRequest: [app.authenticate, app.loadActor] }`), so a bad token gets 401 before body parsing or Zod can answer 400. `x-request-id` (Fastify's `req.id`, never client-supplied) is echoed on every response.
-- **authenticate:** strict `Bearer <token>` → `verifyAccessToken` (HS256 pinned, exp) → one DB read. 401 `{error:"Unauthorized"}` if the user is missing, deleted, suspended, an inactive nurse, or the JWT `role` ≠ DB role. Only `sub/role/jti` are used. Known limit: access tokens carry no refresh-family id, so logout doesn't kill a live access token (≤15 min).
+- **authenticate:** strict `Bearer <token>` → `verifyAccessToken` (HS256 pinned, exp) → one DB read. 401 `{error:"Unauthorized"}` if the user is missing, deleted, suspended, an inactive nurse, or the JWT `role` ≠ DB role. Only `sub/role/jti` are used. Known limit: access tokens carry no refresh-family id, so logout doesn't kill a live access token (≤2 h).
 - **Actor** (rebuilt from the DB every request, frozen): `{ userId, role, status, agencies[{agencyId, role}], networkIds[], nurseNetworkId, activeAgencyId }`. Agency memberships load only for global role `agency` (active, agency not deleted/suspended); network memberships only for `admin` (active, network not deleted/suspended). A nurse is never an agency member.
 - **X-Agency-Id:** anything but one value naming an active membership → 403 `Forbidden` (nurses/admins included). Absent + one membership → implicit; absent + several → `activeAgencyId = null`.
 - **Denial reasons → HTTP:** `agency_selection_required` → 400 `Select an agency`; `out_of_scope` → 404 (hidden records); all others → 403 `Forbidden`.
@@ -1172,7 +1172,7 @@ Open question §19 (Q2).
 | Variable | Where | Purpose |
 |---|---|---|
 | `DATABASE_URL` | API | Postgres connection |
-| `JWT_SECRET` (≥ 32 bytes), `ACCESS_TOKEN_TTL=15m`, `REFRESH_TOKEN_TTL=7d` | API | Tokens |
+| `JWT_SECRET` (≥ 32 bytes), `ACCESS_TOKEN_TTL=2h`, `REFRESH_TOKEN_TTL=7d` | API | Tokens |
 | `COOKIE_SECURE=true`, `APP_ORIGIN` | API | Cookies, origin check on refresh and logout |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BUCKET`, `R2_PRIVATE_BUCKET`, `R2_PUBLIC_BASE_URL`, `S3_ENDPOINT` | API | Storage (MinIO endpoint locally) |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REDIRECT_TO` | API | Email, plus the demo redirect |
@@ -1290,7 +1290,7 @@ Short form: context → alternatives → decision → consequences.
 **ADR-007: JWT access tokens + rotating refresh tokens**
 - **Alternatives:** server sessions only (conflicts with the spec's JWT/Bearer contract); long-lived JWTs (can't be revoked); a third-party auth provider (conflicts with seeded logins and the exact login contract).
 - **Decision:**
-  - Access JWT: 15 minutes, held in memory in the browser.
+  - Access JWT: 2 hours, held in memory in the browser.
   - Refresh token: opaque, rotating, stored hashed, with reuse detection, sent in an httpOnly cookie.
   - Permissions are reloaded from the database on every request.
 - **Consequences:** a refresh call on page load; the login body stays exactly as the spec says; immediate revocation of memberships.
